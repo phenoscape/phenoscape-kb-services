@@ -19,7 +19,7 @@ import javax.ws.rs.core.Form
 import javax.ws.rs.client.Entity
 
 /**
- * This implements a SPARQL endpoint which preprocesses queries using owlet, before passing the query on 
+ * This implements a SPARQL endpoint which preprocesses queries using owlet, before passing the query on
  * to a "real" SPARQL endpoint.
  */
 @Path("sparql")
