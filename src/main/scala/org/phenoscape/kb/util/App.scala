@@ -13,22 +13,24 @@ import javax.ws.rs.ext.Provider
 /**
  * Caution—this object must be safe to access from multiple threads.
  */
-@Provider
-object App extends ContainerLifecycleListener {
+object App {
 
   val KB_SPARQL_ENDPOINT_PROPERTY = "org.phenoscape.kb.endpoint"
   val KB_ONTOLOGY_FILE_PROPERTY = "org.phenoscape.kb.owl.file"
 
   val reasoner: OWLReasoner = new ElkReasonerFactory().createReasoner(
     OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(System.getProperty(KB_ONTOLOGY_FILE_PROPERTY))))
-  reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY)
 
   val endpoint: String = System.getProperty(KB_SPARQL_ENDPOINT_PROPERTY)
+}
 
-  override def onStartup(container: Container): Unit = {}
+@Provider
+class App extends ContainerLifecycleListener {
 
-  override def onReload(container: Container): Unit = { println("Disposing"); reasoner.dispose() }
+  override def onStartup(container: Container): Unit = { App.reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY) }
 
-  override def onShutdown(container: Container): Unit = { println("Disposing"); reasoner.dispose() }
+  override def onReload(container: Container): Unit = {}
+
+  override def onShutdown(container: Container): Unit = { App.reasoner.dispose() }
 
 }

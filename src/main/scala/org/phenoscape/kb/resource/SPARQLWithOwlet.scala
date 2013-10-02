@@ -17,6 +17,7 @@ import javax.ws.rs.client.ClientBuilder
 import javax.ws.rs.client.WebTarget
 import javax.ws.rs.core.Form
 import javax.ws.rs.client.Entity
+import javax.ws.rs.core.Response.ResponseBuilder
 
 /**
  * This implements a SPARQL endpoint which preprocesses queries using owlet, before passing the query on
@@ -37,9 +38,12 @@ class SPARQLWithOwlet(@QueryParam("query") queryParam: String, @HeaderParam("Acc
       val expandedQuery = expander.expandQueryString(queryOption.get)
       val client = ClientBuilder.newClient()
       val target = client.target(App.endpoint)
-      val form = new Form();
-      form.param("query", expandedQuery);
-      target.request(acceptOption.get).post(Entity.entity(form, MediaType.APPLICATION_FORM_URLENCODED_TYPE))
+      val form = new Form()
+      form.param("query", expandedQuery)
+      val response = target.request(acceptOption.getOrElse("")).post(Entity.entity(form, MediaType.APPLICATION_FORM_URLENCODED_TYPE))
+      // Don't understand why we can't just pass along the response object
+      //Response.fromResponse(response).entity(response.getEntity()).build()
+      Response.status(response.getStatus()).entity(response.getEntity()).build()
     } else {
       Response.status(Response.Status.BAD_REQUEST).build()
     }
