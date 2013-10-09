@@ -40,6 +40,7 @@ class SPARQLWithOwlet(@QueryParam("query") queryParam: String, @HeaderParam("Acc
       val target = client.target(App.endpoint)
       val form = new Form()
       form.param("query", expandedQuery)
+      // accept doesn't work if empty
       val response = target.request(acceptOption.getOrElse("")).post(Entity.entity(form, MediaType.APPLICATION_FORM_URLENCODED_TYPE))
       // Don't understand why we can't just pass along the response object
       //Response.fromResponse(response).entity(response.getEntity()).build()
