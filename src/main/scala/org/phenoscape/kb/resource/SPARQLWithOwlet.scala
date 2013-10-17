@@ -34,7 +34,7 @@ class SPARQLWithOwlet(@QueryParam("query") queryParam: String, @HeaderParam("Acc
   @GET
   @Produces(Array("application/sparql-results+xml", "application/sparql-results+json", "text/tab-separated-values",
     "text/csv", "application/rdf+xml", "text/plain", "application/x-turtle", "text/rdf+n3"))
-  def executeQuery(): Response = {
+  def urlQuery(): Response = {
     if (queryOption.isDefined) {
       executeQuery(queryOption.get)
     } else {
