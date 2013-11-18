@@ -22,6 +22,7 @@ object App {
     OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(new File(System.getProperty(KB_ONTOLOGY_FILE_PROPERTY))))
 
   val endpoint: String = System.getProperty(KB_SPARQL_ENDPOINT_PROPERTY)
+  
 }
 
 @Provider

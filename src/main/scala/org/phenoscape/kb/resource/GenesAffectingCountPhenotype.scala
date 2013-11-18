@@ -21,11 +21,10 @@ import javax.ws.rs.core.Response.ResponseBuilder
 import javax.ws.rs.POST
 import javax.ws.rs.Consumes
 
-@Path("genes_affecting_phenotype")
-class GenesAffectingPhenotype(@QueryParam("entity") entityParam: String, @QueryParam("quality") qualityParam: String) {
+@Path("genes_affecting_count_phenotype")
+class GenesAffectingCountPhenotype(@QueryParam("iri") iriParam: String) {
 
-  private val entityOption: Option[String] = Option(entityParam)
-  private val qualityOption: Option[String] = Option(qualityParam)
+  private val iriOption: Option[String] = Option(iriParam)
   private val query = """
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -38,17 +37,20 @@ PREFIX has_character: <http://purl.obolibrary.org/obo/CDAO_0000142>
 PREFIX has_state: <http://purl.obolibrary.org/obo/CDAO_0000184>
 PREFIX belongs_to_tu: <http://purl.obolibrary.org/obo/CDAO_0000191>
 PREFIX has_external_reference: <http://purl.obolibrary.org/obo/CDAO_0000164>
+PREFIX HasNumberOf: <http://purl.obolibrary.org/obo/PATO_0001555>
+PREFIX Count: <http://purl.obolibrary.org/obo/PATO_0000070>
 PREFIX part_of: <http://purl.obolibrary.org/obo/BFO_0000050>
 PREFIX inheres_in: <http://purl.obolibrary.org/obo/BFO_0000052>
+PREFIX LimbFin: <http://purl.obolibrary.org/obo/UBERON_0004708>
+PREFIX Sarcopterygii: <http://purl.obolibrary.org/obo/VTO_0001464>
 PREFIX Entity: <??ENTITY_IRI>
-PREFIX Quality: <??QUALITY_IRI>
 PREFIX towards: <http://purl.obolibrary.org/obo/pato#towards>
 
 SELECT DISTINCT ?gene (STR(?gene_label) AS ?gene_label_string) (STR(?taxon_label) AS ?taxon_label_string)
 FROM <http://kb.phenoscape.org/>
 WHERE
 {
-?eq rdfs:subClassOf "(Quality: and inheres_in: some Entity:) or (Quality: and towards: some Entity:) or (Quality: and towards: value Entity:)"^^ow:omn .
+?eq rdfs:subClassOf "(Count: and inheres_in: some Entity:) or (HasNumberOf: and towards: value Entity:)"^^ow:omn .
 ?pheno_instance rdf:type ?eq .
 ?pheno_instance ps:annotated_taxon ?taxon .
 ?taxon rdfs:label ?taxon_label .
@@ -60,10 +62,9 @@ WHERE
   @GET
   @Produces(Array("text/tab-separated-values"))
   def urlQuery(): Response = {
-    if (entityOption.isDefined && qualityOption.isDefined) {
+    if (iriOption.isDefined) {
       val expander = new QueryExpander(App.reasoner)
-      val expandedQuery = expander.expandQueryString(
-        query.replaceAllLiterally("??ENTITY_IRI", entityOption.get).replaceAllLiterally("??QUALITY_IRI", qualityOption.get))
+      val expandedQuery = expander.expandQueryString(query.replaceAllLiterally("??ENTITY_IRI", iriOption.get))
       val client = ClientBuilder.newClient()
       val target = client.target(App.endpoint)
       val form = new Form()
