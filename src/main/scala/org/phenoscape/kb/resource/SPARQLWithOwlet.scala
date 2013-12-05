@@ -20,6 +20,8 @@ import javax.ws.rs.client.Entity
 import javax.ws.rs.core.Response.ResponseBuilder
 import javax.ws.rs.POST
 import javax.ws.rs.Consumes
+import org.apache.log4j.Logger
+import com.hp.hpl.jena.query.Query
 
 /**
  * This implements a SPARQL endpoint which preprocesses queries using owlet, before passing the query on
@@ -36,7 +38,7 @@ class SPARQLWithOwlet(@QueryParam("query") queryParam: String, @HeaderParam("Acc
     "text/csv", "application/rdf+xml", "text/plain", "application/x-turtle", "text/rdf+n3"))
   def urlQuery(): Response = {
     if (queryOption.isDefined) {
-      executeQuery(queryOption.get)
+      executeQuery(QueryFactory.create(queryOption.get))
     } else {
       Response.status(Response.Status.BAD_REQUEST).build()
     }
@@ -46,22 +48,23 @@ class SPARQLWithOwlet(@QueryParam("query") queryParam: String, @HeaderParam("Acc
   @Consumes(Array("application/sparql-query"))
   @Produces(Array("application/sparql-results+xml", "application/sparql-results+json", "text/tab-separated-values",
     "text/csv", "application/rdf+xml", "text/plain", "application/x-turtle", "text/rdf+n3"))
-  def directPOSTQuery(query: String): Response = {
+  def directPOSTQuery(query: Query): Response = {
     //TODO query should be interpreted as UTF-8; where is this determined?
     if (queryOption.isDefined) {
       Response.status(Response.Status.BAD_REQUEST).build()
     } else {
+      logger.error("Parsing query: " + query)
       executeQuery(query)
     }
   }
 
-  def executeQuery(query: String): Response = {
+  def executeQuery(query: Query): Response = {
     val expander = new QueryExpander(App.reasoner)
-    val expandedQuery = expander.expandQueryString(query)
+    val expandedQuery = expander.expandQuery(query)
     val client = ClientBuilder.newClient()
     val target = client.target(App.endpoint)
     val form = new Form()
-    form.param("query", expandedQuery)
+    form.param("query", expandedQuery.toString)
     // accept doesn't work if empty
     val response = target.request(acceptOption.getOrElse("")).post(Entity.entity(form, MediaType.APPLICATION_FORM_URLENCODED_TYPE))
     // Don't understand why we can't just pass along the response object
@@ -69,5 +72,7 @@ class SPARQLWithOwlet(@QueryParam("query") queryParam: String, @HeaderParam("Acc
     Response.status(response.getStatus()).entity(response.getEntity()).build()
 
   }
+  
+  lazy val logger = Logger.getLogger(this.getClass)
 
 }

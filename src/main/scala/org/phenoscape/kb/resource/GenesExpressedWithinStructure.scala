@@ -20,9 +20,9 @@ class GenesExpressedWithinStructure(@QueryParam("iri") iriParam: String) {
   private val query = """
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX dc: <http://purl.org/dc/terms/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
-PREFIX ps: <http://purl.org/phenoscape/vocab/>
+PREFIX ps: <http://purl.org/phenoscape/vocab.owl#>
 PREFIX ow: <http://purl.org/phenoscape/owlet/syntax#>
 PREFIX StandardState: <http://purl.obolibrary.org/obo/CDAO_0000045>
 PREFIX has_character: <http://purl.obolibrary.org/obo/CDAO_0000142>
@@ -39,7 +39,7 @@ PREFIX Entity: <??ENTITY_IRI>
 PREFIX towards: <http://purl.obolibrary.org/obo/pato#towards>
 PREFIX GeneExpression: <http://purl.obolibrary.org/obo/GO_0010467>
 
-SELECT DISTINCT ?gene (STR(?gene_label) AS ?gene_label_string) (STR(?taxon_label) AS ?taxon_label_string)
+SELECT DISTINCT ?gene (STR(?gene_label) AS ?gene_label_string) (STR(?taxon_label) AS ?taxon_label_string) ?source
 FROM <http://kb.phenoscape.org/>
 WHERE
 {
@@ -47,10 +47,13 @@ WHERE
 ?structure rdf:type ?entity .
 ?expression occurs_in: ?structure .
 ?expression rdf:type GeneExpression: .
-?expression ps:annotated_taxon ?taxon .
+?expression ps:associated_with_taxon ?taxon .
 ?taxon rdfs:label ?taxon_label .
-?expression ps:annotated_gene ?gene .
+?expression ps:associated_with_gene ?gene .
 ?gene rdfs:label ?gene_label .
+OPTIONAL {
+  ?expression dc:source ?source .
+}
 }
 """
 

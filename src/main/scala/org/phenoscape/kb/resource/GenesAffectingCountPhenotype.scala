@@ -28,9 +28,9 @@ class GenesAffectingCountPhenotype(@QueryParam("iri") iriParam: String) {
   private val query = """
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX dc: <http://purl.org/dc/terms/>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
-PREFIX ps: <http://purl.org/phenoscape/vocab/>
+PREFIX ps: <http://purl.org/phenoscape/vocab.owl#>
 PREFIX ow: <http://purl.org/phenoscape/owlet/syntax#>
 PREFIX StandardState: <http://purl.obolibrary.org/obo/CDAO_0000045>
 PREFIX has_character: <http://purl.obolibrary.org/obo/CDAO_0000142>
@@ -46,16 +46,19 @@ PREFIX Sarcopterygii: <http://purl.obolibrary.org/obo/VTO_0001464>
 PREFIX Entity: <??ENTITY_IRI>
 PREFIX towards: <http://purl.obolibrary.org/obo/pato#towards>
 
-SELECT DISTINCT ?gene (STR(?gene_label) AS ?gene_label_string) (STR(?taxon_label) AS ?taxon_label_string)
+SELECT DISTINCT ?gene (STR(?gene_label) AS ?gene_label_string) (STR(?taxon_label) AS ?taxon_label_string) ?source
 FROM <http://kb.phenoscape.org/>
 WHERE
 {
 ?eq rdfs:subClassOf "(Count: and inheres_in: some Entity:) or (HasNumberOf: and towards: value Entity:)"^^ow:omn .
 ?pheno_instance rdf:type ?eq .
-?pheno_instance ps:annotated_taxon ?taxon .
+?pheno_instance ps:associated_with_taxon ?taxon .
 ?taxon rdfs:label ?taxon_label .
-?pheno_instance ps:annotated_gene ?gene .
+?pheno_instance ps:associated_with_gene ?gene .
 ?gene rdfs:label ?gene_label .
+OPTIONAL {
+  ?pheno_instance dc:source ?source .
+}
 }
 """
 
