@@ -22,23 +22,22 @@ import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
 import org.apache.log4j.Logger
+import org.semanticweb.owlapi.model.OWLClassExpression
+import org.phenoscape.scowl.OWL._
+import org.phenoscape.owlet.SPARQLComposer._
+import com.hp.hpl.jena.query.Query
+import javax.ws.rs.HeaderParam
 
 @Path("entity/absence")
-class AbsenceOfStructure(@QueryParam("taxon") var taxonParam: String, @QueryParam("entity") var entityParam: String) {
+class AbsenceOfStructure(@QueryParam("taxon") var taxonParam: String, @QueryParam("entity") var entityParam: String, @HeaderParam("Accept") acceptParam: String) {
 
   private val entityInput: Try[IRI] = Try(IRI.create(entityParam))
   private val taxonInput: Try[IRI] = Try(IRI.create(taxonParam))
-
-  private def u(entity: OWLEntity): String = u(entity.getIRI)
-  private def u(iri: IRI): String = u(iri.toString)
-  private def u(text: String): String = s"<${text}>"
-  val rdfType = OWLRDFVocabulary.RDF_TYPE.getIRI
-  val rdfsSubClassOf = OWLRDFVocabulary.RDFS_SUBCLASS_OF.getIRI
-  val rdfsLabel = OWLManager.getOWLDataFactory.getRDFSLabel
-  val dcDescription = DublinCoreVocabulary.DESCRIPTION.getIRI
+  private val acceptOption: Option[String] = Option(acceptParam)
+  private implicit val owlReasoner = App.reasoner
 
   @GET
-  @Produces(Array("text/tab-separated-values"))
+  @Produces(Array("text/tab-separated-values", "application/sparql-results+json", "application/json"))
   def urlQuery(): Response = {
     val inputs = for {
       entityIRI <- entityInput
@@ -48,39 +47,30 @@ class AbsenceOfStructure(@QueryParam("taxon") var taxonParam: String, @QueryPara
     }
     inputs match {
       case Success((entityIRI, taxonIRI)) => {
-        val expander = new QueryExpander(App.reasoner)
-        println(query.replaceAllLiterally("?taxon!", u(taxonIRI)).replaceAllLiterally("?entity!", u(entityIRI)))
-        val expandedQuery = expander.expandQueryString(
-          query.replaceAllLiterally("?taxon!", u(taxonIRI)).replaceAllLiterally("?entity!", u(entityIRI)))
         val client = ClientBuilder.newClient()
         val target = client.target(App.endpoint)
         val form = new Form()
-        form.param("query", expandedQuery)
-        val response = target.request("text/tab-separated-values").post(Entity.entity(form, MediaType.APPLICATION_FORM_URLENCODED_TYPE))
+        form.param("query", buildQuery(taxonIRI, entityIRI).toString)
+        val response = target.request(acceptOption.getOrElse("text/tab-separated-values")).post(Entity.entity(form, MediaType.APPLICATION_FORM_URLENCODED_TYPE))
         Response.status(response.getStatus()).entity(response.getEntity()).build()
       }
       case Failure(e) => Response.status(Response.Status.BAD_REQUEST).build()
     }
   }
 
-  private val query = s"""
-PREFIX ow: <http://purl.org/phenoscape/owlet/syntax#>
-SELECT DISTINCT ?state (STR(?state_label_text) AS ?state_label) (STR(?matrix_label_text) AS ?matrix_label)
-FROM <http://kb.phenoscape.org/>
-WHERE
-{
-?taxon! ${u(HAS_MEMBER)}/${u(EXHIBITS)} ?pheno_instance .
-?pheno_instance ${u(rdfType)} ?phenotype .
-?phenotype ${u(rdfsSubClassOf)} "${u(LACKS_ALL_PARTS_OF_TYPE)} and ${u(TOWARDS)} value ?entity! and ${u(inheres_in)} some ${u(MULTI_CELLULAR_ORGANISM)}"^^ow:omn .
-?state ${u(DENOTES_EXHIBITING)} ?state_instance .
-?state_instance ${u(rdfType)} ?phenotype .
-?state ${u(rdfType)} ${u(STANDARD_STATE)} .
-?state ${u(dcDescription)} ?state_label_text .
-?matrix ${u(HAS_CHARACTER)} ?matrix_char .
-?matrix ${u(rdfsLabel)} ?matrix_label_text .
-?matrix_char ${u(MAY_HAVE_STATE_VALUE)} ?state .
-}
-"""
+  def buildQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
+    val taxon = Class(taxonIRI)
+    val entity = Individual(entityIRI)
+    select_distinct('state, 'state_label, 'matrix_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t(taxon, HAS_MEMBER / EXHIBITS / rdfType, 'phenotype),
+        t('state, DENOTES_EXHIBITING / rdfType, 'phenotype),
+        t('state, dcDescription, 'state_label),
+        t('matrix, HAS_CHARACTER, 'matrix_char),
+        t('matrix, rdfsLabel, 'matrix_label),
+        t('matrix_char, MAY_HAVE_STATE_VALUE, 'state)),
+        subClassOf('phenotype, LacksAllPartsOfType and (TOWARDS value entity) and (inheres_in some MultiCellularOrganism)))
+  }
 
   lazy val logger = Logger.getLogger(this.getClass)
 
