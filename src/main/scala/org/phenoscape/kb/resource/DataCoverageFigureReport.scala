@@ -182,6 +182,7 @@ class DataCoverageFigureReport {
     Response.ok(stream).build()
   }
 
+  //character states annotating the term or its parts
   def buildQuery(taxonClass: OWLClassExpression, entityIRI: String): Query = {
     val entityClass = Class(IRI.create(entityIRI))
     val entityInd = Individual(entityIRI)
