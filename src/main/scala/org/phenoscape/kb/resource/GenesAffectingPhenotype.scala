@@ -40,7 +40,7 @@ PREFIX belongs_to_tu: <http://purl.obolibrary.org/obo/CDAO_0000191>
 PREFIX has_external_reference: <http://purl.obolibrary.org/obo/CDAO_0000164>
 PREFIX part_of: <http://purl.obolibrary.org/obo/BFO_0000050>
 PREFIX has_part: <http://purl.obolibrary.org/obo/BFO_0000051>
-PREFIX inheres_in: <http://purl.obolibrary.org/obo/BFO_0000052>
+PREFIX inheres_in_part_of: <http://purl.obolibrary.org/obo/RO_0002314>
 PREFIX Entity: <??ENTITY_IRI>
 PREFIX Quality: <??QUALITY_IRI>
 PREFIX towards: <http://purl.obolibrary.org/obo/pato#towards>
@@ -49,7 +49,7 @@ SELECT DISTINCT ?gene (STR(?gene_label) AS ?gene_label_string) (STR(?taxon_label
 FROM <http://kb.phenoscape.org/>
 WHERE
 {
-?eq rdfs:subClassOf "((has_part: some Quality:) and (inheres_in: some Entity:)) or ((has_part: some Quality:) and (towards: some Entity:)) or ((has_part some Quality:) and (towards: value Entity:))"^^ow:omn .
+?eq rdfs:subClassOf "(has_part: some (Quality: and (inheres_in_part_of: some Entity:))) or (has_part: some (Quality: and (towards: some Entity:))) or (has_part: some (Quality: and (towards: value Entity:)))"^^ow:omn .
 ?pheno_instance rdf:type ?eq .
 ?pheno_instance ps:associated_with_taxon ?taxon .
 ?taxon rdfs:label ?taxon_label .

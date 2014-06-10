@@ -51,7 +51,7 @@ SELECT DISTINCT ?gene (STR(?gene_label) AS ?gene_label_string) (STR(?taxon_label
 FROM <http://kb.phenoscape.org/>
 WHERE
 {
-?eq rdfs:subClassOf "((has_part: some Count:) and (inheres_in: some Entity:)) or ((has_part: some HasNumberOf:) and (towards: value Entity:))"^^ow:omn .
+?eq rdfs:subClassOf "(has_part: some (Count: and (inheres_in: some Entity:))) or (has_part: some (HasNumberOf: and (towards: value Entity:)))"^^ow:omn .
 ?pheno_instance rdf:type ?eq .
 ?pheno_instance ps:associated_with_taxon ?taxon .
 ?taxon rdfs:label ?taxon_label .
