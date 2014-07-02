@@ -1,0 +1,62 @@
+FORMAT: 1A
+HOST: http://pkb-new.nescent.org/kb/
+
+# Phenoscape Knowledgebase web API
+# Group Implemented services
+The Phenoscape Knowledgebase web API is an HTTP interface for searching ontology terms, retrieving term info, and querying data from the KB.
+
+## Genes affecting phenotype [/genes_affecting_phenotype{?entity,quality}]
+### Search for genes affecting phenotype of any part of a structure [GET]
++ Parameters
+  + entity (required, URI, `http://purl.obolibrary.org/obo/UBERON_0002101`) ... Identifier of an anatomical structure
+  + quality (required, URI, `http://purl.obolibrary.org/obo/PATO_0000052`) ... Identifier of phenotypic quality
++ Response 200 (text/tsv)
+
+        ?gene ?gene_label_string ?taxon_label_string ?source
+        <http://www.informatics.jax.org/marker/MGI:88302> Ccnb1 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:46439>
+        <http://www.informatics.jax.org/marker/MGI:95834> Pdia3 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:98374>
+
+## Genes expressed within a structure [/genes_expressed_in_structure{?iri}]
+### Search for genes expressed within any part of a structure [GET]
++ Parameters
+  + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0002101`) ... Identifier of an anatomical structure
++ Response 200 (text/tsv)
+
+        ?gene ?gene_label_string ?taxon_label_string ?source
+        <http://www.informatics.jax.org/marker/MGI:88302> Ccnb1 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:46439>
+        <http://www.informatics.jax.org/marker/MGI:95834> Pdia3 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:98374>
+
+## EQ for gene [/gene/eq{?id}]
+### Return most direct UBERON entities and PATO qualities for all phenotype annotations associated with a gene [GET]
++ Parameters
+    + id (required, URI) ... Identifier for a gene
++ Response 200 (application/json)
+
+## Evidence for presence of a structure [/entity/presence{?taxon,entity}]
+### Return any character states which entail the presence of an anatomical structure within a taxon [GET]
++ Parameters
+  + taxon (required, URI, `http://purl.obolibrary.org/obo/VTO_0034991`) ... Identifier of a taxonomic group
+  + entity (required, URI, `http://purl.obolibrary.org/obo/UBERON_4000164`) ... Identifier of an anatomical structure
++ Response 200 (text/tsv)
+
+## Evidence for absence of a structure [/entity/absence{?taxon,entity}]
+### Return any character states which entail the absence of an anatomical structure within a taxon [GET]
++ Parameters
+  + taxon (required, URI, `http://purl.obolibrary.org/obo/VTO_0034991`) ... Identifier of a taxonomic group
+  + entity (required, URI, `http://purl.obolibrary.org/obo/UBERON_0002542`) ... Identifier of an anatomical structure
++ Response 200 (text/tsv)
+
+# Group Unimplemented services
+## Term search [/term/search{?text}]
+### Search [GET]
++ Parameters
+    + text (required, string, `basihyal`)
++ Response 200 (application/json)
+
+## Synthetic presence/absence matrix [/presence-absence-matrix{?taxon,entity}]
+### Generate matrix for anatomical structures subsumed by the provided entity class expression, for any taxa within the provided taxon class expression [GET]
+Returns a NeXML-format character matrix.
++ Parameters
+    + taxon (required, string, `<http://purl.obolibrary.org/obo/VTO_0034991>`) ... Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+    + entity (required, string `<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/UBERON_0008897>`) ... Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
++ Response 200 (application/xml) 
