@@ -17,6 +17,7 @@ import org.phenoscape.owl.Vocab.rdfType
 import org.phenoscape.scowl.OWL._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClassExpression
+import org.phenoscape.owlet.OwletManchesterSyntaxDataType._
 
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.sparql.core.Var
@@ -31,11 +32,11 @@ import javax.ws.rs.client.ClientBuilder
 import javax.ws.rs.core.Form
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.StreamingOutput
+import org.phenoscape.owl.Vocab._
 
 @Path("report/data_coverage_figure")
 class DataCoverageFigureReport {
 
-  private implicit val owlReasoner = App.reasoner
   val entities = Set(
     "anocleithrum" -> "http://purl.obolibrary.org/obo/UBERON_4000160",
     "basipterygium bone" -> "http://purl.obolibrary.org/obo/UBERON_2000623",
@@ -191,8 +192,10 @@ class DataCoverageFigureReport {
         t('taxon, HAS_MEMBER / EXHIBITS / rdfType, 'phenotype),
         t('state, DENOTES_EXHIBITING / rdfType, 'phenotype),
         t('state, rdfType, STANDARD_STATE)),
-        subClassOf('taxon, taxonClass),
-        subClassOf('phenotype, (IMPLIES_PRESENCE_OF some entityClass) or (TOWARDS value entityInd)))
+        service(App.owlery, bgp(
+          t('taxon, rdfsSubClassOf, taxonClass.asOMN))),
+        service(App.owlery, bgp(
+          t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (TOWARDS value entityInd)).asOMN))))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
     query
   }

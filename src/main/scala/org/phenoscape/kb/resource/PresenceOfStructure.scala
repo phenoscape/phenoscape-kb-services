@@ -8,8 +8,9 @@ import org.apache.log4j.Logger
 import org.phenoscape.kb.util.App
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.owl.Vocab._
-import org.phenoscape.owlet.QueryExpander
 import org.semanticweb.owlapi.apibinding.OWLManager
+import org.phenoscape.owl.Vocab._
+import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLEntity
 import org.semanticweb.owlapi.vocab.DublinCoreVocabulary
@@ -42,7 +43,6 @@ class PresenceOfStructure(@QueryParam("taxon") var taxonParam: String, @QueryPar
   private val entityInput: Try[IRI] = Try(IRI.create(entityParam))
   private val taxonInput: Try[IRI] = Try(IRI.create(taxonParam))
   private val acceptOption: Option[String] = Option(acceptParam)
-  private implicit val owlReasoner = App.reasoner
 
   @GET
   @Produces(Array("text/tab-separated-values", "application/sparql-results+json", "application/json"))
@@ -77,7 +77,8 @@ class PresenceOfStructure(@QueryParam("taxon") var taxonParam: String, @QueryPar
         t('matrix, HAS_CHARACTER, 'matrix_char),
         t('matrix, rdfsLabel, 'matrix_label),
         t('matrix_char, MAY_HAVE_STATE_VALUE, 'state)),
-        subClassOf('phenotype, IMPLIES_PRESENCE_OF some entity))
+        service(App.owlery, bgp(
+          t('phenotype, rdfsSubClassOf, (IMPLIES_PRESENCE_OF some entity).asOMN))))
   }
 
   lazy val logger = Logger.getLogger(this.getClass)

@@ -9,7 +9,6 @@ import javax.ws.rs.core.Response
 import javax.ws.rs.QueryParam
 import javax.ws.rs.DefaultValue
 import org.phenoscape.kb.util.App
-import org.phenoscape.owlet.QueryExpander
 import com.hp.hpl.jena.query.QueryFactory
 import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP
 import javax.ws.rs.HeaderParam
@@ -20,64 +19,55 @@ import javax.ws.rs.client.Entity
 import javax.ws.rs.core.Response.ResponseBuilder
 import javax.ws.rs.POST
 import javax.ws.rs.Consumes
+import org.phenoscape.owl.Vocab._
+import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
+import org.phenoscape.scowl.OWL._
+import com.hp.hpl.jena.query.Query
+import org.semanticweb.owlapi.model.IRI
+import org.phenoscape.owlet.SPARQLComposer._
+import org.phenoscape.owl.Vocab
+import scala.util.Try
+import scala.util.Success
+import scala.util.Failure
 
 @Path("genes_affecting_count_phenotype")
 class GenesAffectingCountPhenotype(@QueryParam("iri") iriParam: String) {
 
-  private val iriOption: Option[String] = Option(iriParam)
-  private val query = """
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX dc: <http://purl.org/dc/terms/>
-PREFIX obo: <http://purl.obolibrary.org/obo/>
-PREFIX ps: <http://purl.org/phenoscape/vocab.owl#>
-PREFIX ow: <http://purl.org/phenoscape/owlet/syntax#>
-PREFIX StandardState: <http://purl.obolibrary.org/obo/CDAO_0000045>
-PREFIX has_character: <http://purl.obolibrary.org/obo/CDAO_0000142>
-PREFIX has_state: <http://purl.obolibrary.org/obo/CDAO_0000184>
-PREFIX belongs_to_tu: <http://purl.obolibrary.org/obo/CDAO_0000191>
-PREFIX has_external_reference: <http://purl.obolibrary.org/obo/CDAO_0000164>
-PREFIX HasNumberOf: <http://purl.obolibrary.org/obo/PATO_0001555>
-PREFIX Count: <http://purl.obolibrary.org/obo/PATO_0000070>
-PREFIX part_of: <http://purl.obolibrary.org/obo/BFO_0000050>
-PREFIX has_part: <http://purl.obolibrary.org/obo/BFO_0000051>
-PREFIX inheres_in: <http://purl.obolibrary.org/obo/BFO_0000052>
-PREFIX LimbFin: <http://purl.obolibrary.org/obo/UBERON_0004708>
-PREFIX Sarcopterygii: <http://purl.obolibrary.org/obo/VTO_0001464>
-PREFIX Entity: <??ENTITY_IRI>
-PREFIX towards: <http://purl.obolibrary.org/obo/pato#towards>
-
-SELECT DISTINCT ?gene (STR(?gene_label) AS ?gene_label_string) (STR(?taxon_label) AS ?taxon_label_string) ?source
-FROM <http://kb.phenoscape.org/>
-WHERE
-{
-?eq rdfs:subClassOf "(has_part: some (Count: and (inheres_in: some Entity:))) or (has_part: some (HasNumberOf: and (towards: value Entity:)))"^^ow:omn .
-?pheno_instance rdf:type ?eq .
-?pheno_instance ps:associated_with_taxon ?taxon .
-?taxon rdfs:label ?taxon_label .
-?pheno_instance ps:associated_with_gene ?gene .
-?gene rdfs:label ?gene_label .
-OPTIONAL {
-  ?pheno_instance dc:source ?source .
-}
-}
-"""
+  private val entityInput: Try[IRI] = Try(IRI.create(iriParam))
+  private val Count = Class("http://purl.obolibrary.org/obo/PATO_0000070")
+  private val HasNumberOf = Class(HAS_NUMBER_OF)
 
   @GET
   @Produces(Array("text/tab-separated-values"))
-  def urlQuery(): Response = {
-    if (iriOption.isDefined) {
-      val expander = new QueryExpander(App.reasoner)
-      val expandedQuery = expander.expandQueryString(query.replaceAllLiterally("??ENTITY_IRI", iriOption.get))
-      val client = ClientBuilder.newClient()
-      val target = client.target(App.endpoint)
-      val form = new Form()
-      form.param("query", expandedQuery)
-      val response = target.request("text/tab-separated-values").post(Entity.entity(form, MediaType.APPLICATION_FORM_URLENCODED_TYPE))
-      Response.status(response.getStatus()).entity(response.getEntity()).build()
-    } else {
-      Response.status(Response.Status.BAD_REQUEST).build()
-    }
+  def urlQuery(): Response = buildResponse match {
+    case Success(response) => response
+    case Failure(e) => Response.status(Response.Status.BAD_REQUEST).build()
+  }
+
+  def buildResponse: Try[Response] = for {
+    entityIRI <- entityInput
+  } yield {
+    val client = ClientBuilder.newClient()
+    val target = client.target(App.endpoint)
+    val form = new Form()
+    form.param("query", buildQuery(entityIRI).toString)
+    val response = target.request("text/tab-separated-values").post(Entity.entity(form, MediaType.APPLICATION_FORM_URLENCODED_TYPE))
+    Response.status(response.getStatus()).entity(response.getEntity()).build()
+  }
+
+  def buildQuery(entityIRI: IRI): Query = {
+    val entity = Individual(entityIRI)
+    select_distinct('gene, 'gene_label, 'taxon_label, 'source) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('pheno_instance, rdfType, 'phenotype),
+        t('pheno_instance, associated_with_taxon, 'taxon),
+        t('taxon, rdfsLabel, 'taxon_label),
+        t('pheno_instance, associated_with_gene, 'gene),
+        t('gene, rdfsLabel, 'gene_label)),
+        optional(bgp(
+          t('pheno_instance, dcSource, 'source))),
+        service(App.owlery, bgp(
+          t('phenotype, rdfsSubClassOf, ((has_part some (Count and (inheres_in some Class(entityIRI)))) or (has_part some (HasNumberOf and (TOWARDS value Individual(entityIRI))))).asOMN))))
   }
 
 }

@@ -6,17 +6,11 @@ import java.io.OutputStreamWriter
 
 import org.apache.log4j.Logger
 import org.phenoscape.kb.util.App
+import org.phenoscape.owl.Vocab._
+import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.owl.Vocab.DENOTES_EXHIBITING
-import org.phenoscape.owl.Vocab.EXHIBITS
-import org.phenoscape.owl.Vocab.HAS_MEMBER
-import org.phenoscape.owl.Vocab.IMPLIES_PRESENCE_OF
-import org.phenoscape.owl.Vocab.STANDARD_STATE
-import org.phenoscape.owl.Vocab.TOWARDS
-import org.phenoscape.owl.Vocab.rdfType
 import org.phenoscape.scowl.OWL._
 import org.semanticweb.owlapi.model.IRI
-import org.semanticweb.owlapi.model.OWLClassExpression
 
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.sparql.core.Var
@@ -28,14 +22,12 @@ import javax.ws.rs.GET
 import javax.ws.rs.Path
 import javax.ws.rs.Produces
 import javax.ws.rs.client.ClientBuilder
-import javax.ws.rs.core.Form
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.StreamingOutput
 
 @Path("report/data_coverage_figure_any_taxon")
 class DataCoverageFigureReportAnyTaxon {
 
-  private implicit val owlReasoner = App.reasoner
   val entities = Set(
     "anocleithrum" -> "http://purl.obolibrary.org/obo/UBERON_4000160",
     "basipterygium bone" -> "http://purl.obolibrary.org/obo/UBERON_2000623",
@@ -125,7 +117,8 @@ class DataCoverageFigureReportAnyTaxon {
       bgp(
         t('state, DENOTES_EXHIBITING / rdfType, 'phenotype),
         t('state, rdfType, STANDARD_STATE)),
-        subClassOf('phenotype, (IMPLIES_PRESENCE_OF some entityClass) or (TOWARDS value entityInd)))
+        service(App.owlery, bgp(
+          t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (TOWARDS value entityInd)).asOMN))))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
     query
   }
