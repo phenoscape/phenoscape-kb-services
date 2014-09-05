@@ -51,9 +51,11 @@ class EQForGene(@QueryParam("id") geneIDParam: String) {
     val allAnnotationsFuture = Future.sequence(for {
       annotationID <- annotations
     } yield {
+      val entitiesFuture = entitiesForAnnotation(annotationID)
+      val qualitiesFuture = qualitiesForAnnotation(annotationID)
       for {
-        entities <- entitiesForAnnotation(annotationID)
-        qualities <- qualitiesForAnnotation(annotationID)
+        entities <- entitiesFuture
+        qualities <- qualitiesFuture
       } yield new JSONObject(Map("entity" -> new JSONArray(entities.toList), "quality" -> new JSONArray(qualities.toList)))
     })
     new JSONArray(Await.result(allAnnotationsFuture, 10 minutes).toList).toString
