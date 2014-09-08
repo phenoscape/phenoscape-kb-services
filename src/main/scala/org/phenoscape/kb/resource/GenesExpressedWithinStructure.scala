@@ -22,10 +22,9 @@ import scala.util.Success
 import scala.util.Failure
 
 @Path("genes_expressed_in_structure")
-class GenesExpressedWithinStructure(@QueryParam("iri") iriParam: String) {
+class GenesExpressedWithinStructure(@QueryParam("iri") var iriParam: String) {
 
   private val entityInput: Try[IRI] = Try(IRI.create(iriParam))
-  private val iriOption: Option[String] = Option(iriParam)
 
   @GET
   @Produces(Array("text/tab-separated-values"))

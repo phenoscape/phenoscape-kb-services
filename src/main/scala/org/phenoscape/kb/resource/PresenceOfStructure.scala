@@ -38,7 +38,7 @@ import javax.ws.rs.core.Response
 import com.hp.hpl.jena.sparql.core.Var
 
 @Path("entity/presence")
-class PresenceOfStructure(@QueryParam("taxon") var taxonParam: String, @QueryParam("entity") var entityParam: String, @HeaderParam("Accept") acceptParam: String) {
+class PresenceOfStructure(@QueryParam("taxon") var taxonParam: String, @QueryParam("entity") var entityParam: String, @HeaderParam("Accept") var acceptParam: String) {
 
   private val entityInput: Try[IRI] = Try(IRI.create(entityParam))
   private val taxonInput: Try[IRI] = Try(IRI.create(taxonParam))

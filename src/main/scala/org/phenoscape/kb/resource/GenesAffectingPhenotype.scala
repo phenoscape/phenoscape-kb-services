@@ -30,7 +30,7 @@ import scala.util.Success
 import scala.util.Failure
 
 @Path("genes_affecting_phenotype")
-class GenesAffectingPhenotype(@QueryParam("entity") entityParam: String, @QueryParam("quality") qualityParam: String) {
+class GenesAffectingPhenotype(@QueryParam("entity") var entityParam: String, @QueryParam("quality") var qualityParam: String) {
 
   private val entityInput: Try[IRI] = Try(IRI.create(entityParam))
   private val qualityInput: Try[IRI] = Try(IRI.create(qualityParam))

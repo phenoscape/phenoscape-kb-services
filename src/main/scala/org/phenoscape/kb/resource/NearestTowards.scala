@@ -29,7 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
 
 @Path("annotation/towards")
-class NearestTowards(@QueryParam("annotation") annotationIDParam: String) {
+class NearestTowards(@QueryParam("annotation") var annotationIDParam: String) {
 
   private val annotationIDOption: Option[String] = Option(annotationIDParam)
   val factory = OWLManager.getOWLDataFactory

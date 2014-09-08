@@ -32,7 +32,7 @@ import scala.util.parsing.json.JSONObject
 import scala.concurrent.ExecutionContext
 
 @Path("gene/eq")
-class EQForGene(@QueryParam("id") geneIDParam: String) {
+class EQForGene(@QueryParam("id") var geneIDParam: String) {
 
   private val geneIDOption: Option[String] = Option(geneIDParam)
   val factory = OWLManager.getOWLDataFactory

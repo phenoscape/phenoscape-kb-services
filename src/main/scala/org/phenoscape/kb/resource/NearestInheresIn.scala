@@ -29,7 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
 
 @Path("annotation/inheres_in")
-class NearestInheresIn(@QueryParam("annotation") annotationIDParam: String) {
+class NearestInheresIn(@QueryParam("annotation") var annotationIDParam: String) {
 
   private val annotationIDOption: Option[String] = Option(annotationIDParam)
   val factory = OWLManager.getOWLDataFactory

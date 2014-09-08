@@ -31,7 +31,7 @@ import scala.util.Success
 import scala.util.Failure
 
 @Path("genes_affecting_count_phenotype")
-class GenesAffectingCountPhenotype(@QueryParam("iri") iriParam: String) {
+class GenesAffectingCountPhenotype(@QueryParam("iri") var iriParam: String) {
 
   private val entityInput: Try[IRI] = Try(IRI.create(iriParam))
   private val Count = Class("http://purl.obolibrary.org/obo/PATO_0000070")
