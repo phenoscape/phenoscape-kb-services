@@ -35,6 +35,7 @@ class GenesAffectingPhenotype(@QueryParam("entity") var entityParam: String, @Qu
   private val entityInput: Try[IRI] = Try(IRI.create(entityParam))
   private val qualityInput: Try[IRI] = Try(IRI.create(qualityParam))
 
+  @GET
   @Produces(Array("text/tab-separated-values"))
   def urlQuery(): Response = buildResponse match {
     case Success(response) => response
@@ -65,7 +66,8 @@ class GenesAffectingPhenotype(@QueryParam("entity") var entityParam: String, @Qu
         optional(bgp(
           t('pheno_instance, dcSource, 'source))),
         service(App.owlery, bgp(
-          t('phenotype, rdfsSubClassOf, ((has_part some (quality and (inheres_in_part_of some Class(entityIRI)))) or (has_part some (quality and (TOWARDS some Class(entityIRI)))) or (has_part some (quality and (TOWARDS value Individual(entityIRI))))).asOMN))))
+          t('phenotype, rdfsSubClassOf, ((has_part some (quality and (inheres_in_part_of some Class(entityIRI)))) or (has_part some (quality and (TOWARDS some Class(entityIRI)))) or (has_part some (quality and (TOWARDS value Individual(entityIRI))))).asOMN))),
+        App.BigdataRunPriorFirst)
   }
 
 }

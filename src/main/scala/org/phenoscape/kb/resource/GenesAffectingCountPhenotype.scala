@@ -1,34 +1,27 @@
 package org.phenoscape.kb.resource
 
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+
+import org.phenoscape.kb.util.App
+import org.phenoscape.owl.Vocab._
+import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
+import org.phenoscape.owlet.SPARQLComposer._
+import org.phenoscape.scowl.OWL._
+import org.semanticweb.owlapi.model.IRI
+
+import com.hp.hpl.jena.query.Query
+
 import javax.ws.rs.GET
 import javax.ws.rs.Path
 import javax.ws.rs.Produces
+import javax.ws.rs.client.ClientBuilder
+import javax.ws.rs.client.Entity
+import javax.ws.rs.core.Form
 import javax.ws.rs.core.MediaType
-import scala.collection.JavaConversions._
 import javax.ws.rs.core.Response
 import javax.ws.rs.QueryParam
-import javax.ws.rs.DefaultValue
-import org.phenoscape.kb.util.App
-import com.hp.hpl.jena.query.QueryFactory
-import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP
-import javax.ws.rs.HeaderParam
-import javax.ws.rs.client.ClientBuilder
-import javax.ws.rs.client.WebTarget
-import javax.ws.rs.core.Form
-import javax.ws.rs.client.Entity
-import javax.ws.rs.core.Response.ResponseBuilder
-import javax.ws.rs.POST
-import javax.ws.rs.Consumes
-import org.phenoscape.owl.Vocab._
-import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
-import org.phenoscape.scowl.OWL._
-import com.hp.hpl.jena.query.Query
-import org.semanticweb.owlapi.model.IRI
-import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.owl.Vocab
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
 
 @Path("genes_affecting_count_phenotype")
 class GenesAffectingCountPhenotype(@QueryParam("iri") var iriParam: String) {
@@ -67,7 +60,8 @@ class GenesAffectingCountPhenotype(@QueryParam("iri") var iriParam: String) {
         optional(bgp(
           t('pheno_instance, dcSource, 'source))),
         service(App.owlery, bgp(
-          t('phenotype, rdfsSubClassOf, ((has_part some (Count and (inheres_in some Class(entityIRI)))) or (has_part some (HasNumberOf and (TOWARDS value Individual(entityIRI))))).asOMN))))
+          t('phenotype, rdfsSubClassOf, ((has_part some (Count and (inheres_in some Class(entityIRI)))) or (has_part some (HasNumberOf and (TOWARDS value Individual(entityIRI))))).asOMN))),
+        App.BigdataRunPriorFirst)
   }
 
 }

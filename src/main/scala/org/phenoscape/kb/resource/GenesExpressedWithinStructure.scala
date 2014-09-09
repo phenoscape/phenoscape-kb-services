@@ -58,7 +58,8 @@ class GenesExpressedWithinStructure(@QueryParam("iri") var iriParam: String) {
         optional(bgp(
           t('expression, dcSource, 'source))),
         service(App.owlery, bgp(
-          t('entity, rdfsSubClassOf, (part_of some entity).asOMN))))
+          t('entity, rdfsSubClassOf, (part_of some entity).asOMN))),
+        App.BigdataRunPriorFirst)
   }
 
 }

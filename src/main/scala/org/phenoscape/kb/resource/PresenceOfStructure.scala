@@ -78,7 +78,8 @@ class PresenceOfStructure(@QueryParam("taxon") var taxonParam: String, @QueryPar
         t('matrix, rdfsLabel, 'matrix_label),
         t('matrix_char, MAY_HAVE_STATE_VALUE, 'state)),
         service(App.owlery, bgp(
-          t('phenotype, rdfsSubClassOf, (IMPLIES_PRESENCE_OF some entity).asOMN))))
+          t('phenotype, rdfsSubClassOf, (IMPLIES_PRESENCE_OF some entity).asOMN))),
+        App.BigdataRunPriorFirst)
   }
 
   lazy val logger = Logger.getLogger(this.getClass)

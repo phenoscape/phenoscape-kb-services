@@ -118,7 +118,8 @@ class DataCoverageFigureReportAnyTaxon {
         t('state, DENOTES_EXHIBITING / rdfType, 'phenotype),
         t('state, rdfType, STANDARD_STATE)),
         service(App.owlery, bgp(
-          t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (TOWARDS value entityInd)).asOMN))))
+          t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (TOWARDS value entityInd)).asOMN))),
+        App.BigdataRunPriorFirst)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
     query
   }

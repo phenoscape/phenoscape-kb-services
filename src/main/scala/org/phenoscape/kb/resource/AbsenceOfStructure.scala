@@ -66,7 +66,8 @@ class AbsenceOfStructure(@QueryParam("taxon") var taxonParam: String, @QueryPara
         t('matrix, rdfsLabel, 'matrix_label),
         t('matrix_char, MAY_HAVE_STATE_VALUE, 'state)),
         service(App.owlery, bgp(
-          t('phenotype, rdfsSubClassOf, (LacksAllPartsOfType and (TOWARDS value entity) and (inheres_in some MultiCellularOrganism)).asOMN))))
+          t('phenotype, rdfsSubClassOf, (LacksAllPartsOfType and (TOWARDS value entity) and (inheres_in some MultiCellularOrganism)).asOMN))),
+        App.BigdataRunPriorFirst)
   }
 
   lazy val logger = Logger.getLogger(this.getClass)
