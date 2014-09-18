@@ -1,5 +1,6 @@
 package org.phenoscape.kb
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 import org.phenoscape.kb.App.withOwlery
@@ -10,11 +11,22 @@ import org.phenoscape.scowl.OWL._
 import org.semanticweb.owlapi.model.IRI
 
 import com.hp.hpl.jena.query.Query
+import com.hp.hpl.jena.query.QuerySolution
 
 object Gene {
 
-  def affectingPhenotype(entity: IRI, quality: IRI): Future[Seq[String]] = {
-    App.executeSPARQLQuery(buildGeneForPhenotypeQuery(entity, quality), _.toString)
+  def affectingPhenotype(entity: IRI, quality: IRI): Future[String] = {
+    val header = "gene\tgeneLabel\ttaxon\tsource\n"
+    val result = App.executeSPARQLQuery(buildGeneForPhenotypeQuery(entity, quality), formatResult)
+    result.map(header + _.mkString("\n"))
+  }
+
+  private def formatResult(result: QuerySolution): String = {
+    val gene = result.getResource("gene").getURI
+    val geneLabel = result.getLiteral("gene_label").getLexicalForm
+    val taxon = result.getLiteral("taxon_label").getLexicalForm
+    val source = Option(result.getResource("source")).map(_.getURI).getOrElse("")
+    s"$gene\t$geneLabel\t$taxon\t$source"
   }
 
   private def buildGeneForPhenotypeQuery(entityIRI: IRI, qualityIRI: IRI): Query = {
@@ -33,8 +45,10 @@ object Gene {
           App.BigdataRunPriorFirst)
   }
 
-  def expressedWithinStructure(entity: IRI): Future[Seq[String]] = {
-    App.executeSPARQLQuery(buildExpressionQuery(entity), _.toString)
+  def expressedWithinStructure(entity: IRI): Future[String] = {
+    val header = "gene\tgeneLabel\ttaxon\tsource\n"
+    val result = App.executeSPARQLQuery(buildExpressionQuery(entity), formatResult)
+    result.map(header + _.mkString("\n"))
   }
 
   private def buildExpressionQuery(entityIRI: IRI): Query = {

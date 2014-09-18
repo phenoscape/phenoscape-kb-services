@@ -72,14 +72,21 @@ object Main extends App with SimpleRoutingApp {
                 PresenceAbsenceOfStructure.statesEntailingPresence(taxon, entity).map(_.toString)
               }
             }
-          } ~
-          path("expressed_genes") {
-            parameters('entity.as[IRI]) { entity =>
-              complete {
-                Gene.expressedWithinStructure(entity).map(_.toString)
-              }
-            }
           }
+      } ~
+      path("genes_expressed_in_structure") {
+        parameters('entity.as[IRI]) { entity =>
+          complete {
+            Gene.expressedWithinStructure(entity)
+          }
+        }
+      } ~
+      path("genes_affecting_phenotype") {
+        parameters('entity.as[IRI], 'quality.as[IRI]) { (entity, quality) =>
+          complete {
+            Gene.affectingPhenotype(entity, quality)
+          }
+        }
       } ~
       pathPrefix("report") {
         path("data_coverage_figure") {
@@ -87,11 +94,11 @@ object Main extends App with SimpleRoutingApp {
             DataCoverageFigureReport.query()
           }
         } ~
-        path("data_coverage_figure_any_taxon") {
-          complete {
-            DataCoverageFigureReportAnyTaxon.query()
+          path("data_coverage_figure_any_taxon") {
+            complete {
+              DataCoverageFigureReportAnyTaxon.query()
+            }
           }
-        }
       }
 
   }
