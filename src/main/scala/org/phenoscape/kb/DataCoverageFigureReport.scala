@@ -3,7 +3,6 @@ package org.phenoscape.kb
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-import org.phenoscape.kb.App
 import org.phenoscape.kb.App.withOwlery
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
