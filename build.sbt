@@ -19,9 +19,9 @@ packageSummary in Linux := "Phenoscape KB services"
 
 packageDescription := "A web api for the Phenoscape Knowledgebase"
 
-daemonUser in Linux := normalizedName.value // user which will execute the application
+daemonUser in Linux := phenoscape // user which will execute the application
 
-daemonGroup in Linux := normalizedName.value    // group which will execute the application
+daemonGroup in Linux := phenoscape    // group which will execute the application
 
 scalaVersion  := "2.10.3"
 
