@@ -3,7 +3,7 @@ import NativePackagerKeys._
 
 organization  := "org.phenoscape"
 
-name          := "kb-services"
+name          := "phenoscape-kb-services"
 
 version       := "0.1"
 
