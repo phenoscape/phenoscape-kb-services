@@ -1,11 +1,8 @@
-package org.phenoscape.kb.resource
+package org.phenoscape.kb
 
-import java.io.BufferedWriter
-import java.io.OutputStream
-import java.io.OutputStreamWriter
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-import org.apache.log4j.Logger
-import org.phenoscape.kb.util.App
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
@@ -14,19 +11,10 @@ import org.semanticweb.owlapi.model.IRI
 
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.sparql.core.Var
-import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP
 import com.hp.hpl.jena.sparql.expr.ExprVar
 import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
 
-import javax.ws.rs.GET
-import javax.ws.rs.Path
-import javax.ws.rs.Produces
-import javax.ws.rs.client.ClientBuilder
-import javax.ws.rs.core.Response
-import javax.ws.rs.core.StreamingOutput
-
-@Path("report/data_coverage_figure_any_taxon")
-class DataCoverageFigureReportAnyTaxon {
+object DataCoverageFigureReportAnyTaxon {
 
   val entities = Set(
     "anocleithrum" -> "http://purl.obolibrary.org/obo/UBERON_4000160",
@@ -88,25 +76,24 @@ class DataCoverageFigureReportAnyTaxon {
     "appendage girdle complex" -> "http://purl.obolibrary.org/obo/UBERON_0010707",
     "girdle skeleton" -> "http://purl.obolibrary.org/obo/UBERON_0010719")
 
-  @GET
-  @Produces(Array("text/tab-separated-values"))
-  def query(): Response = {
-    val client = ClientBuilder.newClient()
-    val target = client.target(App.endpoint)
-    val stream = new StreamingOutput() {
-      override def write(output: OutputStream) = {
-        val writer = new BufferedWriter(new OutputStreamWriter(output))
-        for ((entityLabel, entityIRI) <- entities) {
-          val query = buildQuery(entityIRI)
-          val queryEngine = new QueryEngineHTTP(App.endpoint, query);
-          val resultSet = queryEngine.execSelect
-          val result = if (resultSet.hasNext) resultSet.next.getLiteral("count") else "0"
-          writer.write(s"$entityLabel\t$result\n")
-          writer.flush()
-        }
+  def query(): Future[String] = {
+    val results = for {
+      (entityLabel, entityIRI) <- entities
+    } yield {
+      queryEntry(entityIRI).map { count =>
+        s"\t$entityLabel\t$count"
       }
     }
-    Response.ok(stream).build()
+    Future.sequence(results).map { entries =>
+      entries.mkString("\n")
+    }
+  }
+
+  private def queryEntry(entityIRI: String): Future[String] = {
+    val query = buildQuery(entityIRI)
+    for {
+      results <- App.executeSPARQLQuery(query)
+    } yield if (results.hasNext) results.next.getLiteral("count").getLexicalForm else "0"
   }
 
   //character states annotating the term or its parts
@@ -117,13 +104,11 @@ class DataCoverageFigureReportAnyTaxon {
       bgp(
         t('state, DENOTES_EXHIBITING / rdfType, 'phenotype),
         t('state, rdfType, STANDARD_STATE)),
-        service(App.owlery, bgp(
-          t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (TOWARDS value entityInd)).asOMN))),
-        App.BigdataRunPriorFirst)
+        App.withOwlery(
+          t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (TOWARDS value entityInd)).asOMN)),
+          App.BigdataRunPriorFirst)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
     query
   }
-
-  lazy val logger = Logger.getLogger(this.getClass)
 
 }

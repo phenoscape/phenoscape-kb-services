@@ -1,3 +1,12 @@
-.cache
-target
 .DS_Store
+/.idea/
+/project/boot/
+/project/plugins/project
+target/
+lib_managed/
+src_managed/
+test-output/
+*.iml
+.classpath_nb
+.cache
+src/main/resources/application.conf

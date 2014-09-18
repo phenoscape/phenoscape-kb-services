@@ -1,41 +1,23 @@
-package org.phenoscape.kb.resource
+package org.phenoscape.kb
 
-import java.io.BufferedWriter
-import java.io.OutputStream
-import java.io.OutputStreamWriter
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-import org.apache.log4j.Logger
-import org.phenoscape.kb.util.App
+import org.phenoscape.kb.App
+import org.phenoscape.kb.App.withOwlery
+import org.phenoscape.owl.Vocab._
+import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.owl.Vocab.DENOTES_EXHIBITING
-import org.phenoscape.owl.Vocab.EXHIBITS
-import org.phenoscape.owl.Vocab.HAS_MEMBER
-import org.phenoscape.owl.Vocab.IMPLIES_PRESENCE_OF
-import org.phenoscape.owl.Vocab.STANDARD_STATE
-import org.phenoscape.owl.Vocab.TOWARDS
-import org.phenoscape.owl.Vocab.rdfType
 import org.phenoscape.scowl.OWL._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClassExpression
-import org.phenoscape.owlet.OwletManchesterSyntaxDataType._
 
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.sparql.core.Var
-import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP
 import com.hp.hpl.jena.sparql.expr.ExprVar
 import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
 
-import javax.ws.rs.GET
-import javax.ws.rs.Path
-import javax.ws.rs.Produces
-import javax.ws.rs.client.ClientBuilder
-import javax.ws.rs.core.Form
-import javax.ws.rs.core.Response
-import javax.ws.rs.core.StreamingOutput
-import org.phenoscape.owl.Vocab._
-
-@Path("report/data_coverage_figure")
-class DataCoverageFigureReport {
+object DataCoverageFigureReport {
 
   val entities = Set(
     "anocleithrum" -> "http://purl.obolibrary.org/obo/UBERON_4000160",
@@ -159,32 +141,29 @@ class DataCoverageFigureReport {
     "Whatcheeriidae" -> "http://purl.obolibrary.org/obo/VTO_9031049",
     "Youngolepis" -> "http://purl.obolibrary.org/obo/VTO_9008383")
 
-  @GET
-  @Produces(Array("text/tab-separated-values"))
-  def query(): Response = {
-    val client = ClientBuilder.newClient()
-    val target = client.target(App.endpoint)
-    val stream = new StreamingOutput() {
-      override def write(output: OutputStream) = {
-        val writer = new BufferedWriter(new OutputStreamWriter(output))
-        for {
-          (entityLabel, entityIRI) <- entities
-          (taxonLabel, taxonIRI) <- taxa
-        } {
-          val query = buildQuery(Class(taxonIRI), entityIRI)
-          val queryEngine = new QueryEngineHTTP(App.endpoint, query);
-          val resultSet = queryEngine.execSelect
-          val result = if (resultSet.hasNext) resultSet.next.getLiteral("count") else "0"
-          writer.write(s"$taxonLabel\t$entityLabel\t$result\n")
-          writer.flush()
-        }
+  def query(): Future[String] = {
+    val results = for {
+      (entityLabel, entityIRI) <- entities
+      (taxonLabel, taxonIRI) <- taxa
+    } yield {
+      queryEntry(entityIRI, taxonIRI).map { count =>
+        s"$taxonLabel\t$entityLabel\t$count"
       }
     }
-    Response.ok(stream).build()
+    Future.sequence(results).map { entries =>
+      entries.mkString("\n")
+    }
+  }
+
+  private def queryEntry(entityIRI: String, taxonIRI: String): Future[String] = {
+    val query = buildQuery(Class(taxonIRI), entityIRI)
+    for {
+      results <- App.executeSPARQLQuery(query)
+    } yield if (results.hasNext) results.next.getLiteral("count").getLexicalForm else "0"
   }
 
   //character states annotating the term or its parts
-  def buildQuery(taxonClass: OWLClassExpression, entityIRI: String): Query = {
+  private def buildQuery(taxonClass: OWLClassExpression, entityIRI: String): Query = {
     val entityClass = Class(IRI.create(entityIRI))
     val entityInd = Individual(entityIRI)
     val query = select() from "http://kb.phenoscape.org/" where (
@@ -192,15 +171,13 @@ class DataCoverageFigureReport {
         t('taxon, HAS_MEMBER / EXHIBITS / rdfType, 'phenotype),
         t('state, DENOTES_EXHIBITING / rdfType, 'phenotype),
         t('state, rdfType, STANDARD_STATE)),
-        service(App.owlery, bgp(
-          t('taxon, rdfsSubClassOf, taxonClass.asOMN))),
-        service(App.owlery, bgp(
-          t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (TOWARDS value entityInd)).asOMN))),
-        App.BigdataRunPriorFirst)
+        withOwlery(
+          t('taxon, rdfsSubClassOf, taxonClass.asOMN)),
+          withOwlery(
+            t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (TOWARDS value entityInd)).asOMN)),
+            App.BigdataRunPriorFirst)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
     query
   }
-
-  lazy val logger = Logger.getLogger(this.getClass)
 
 }

@@ -1,0 +1,13 @@
+akka {
+  loglevel = INFO
+}
+
+spray.can.server {
+  request-timeout = infinite
+}
+
+kb-services {
+	port = 8082
+	kb.endpoint = "http://kb-dev.phenoscape.org/bigsparql"
+	owlery.endpoint = "http://pkb-new.nescent.org/owlery/kbs/phenoscape/sparql"
+}
