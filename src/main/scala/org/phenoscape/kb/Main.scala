@@ -24,7 +24,7 @@ import spray.routing.directives.ParamDefMagnet.apply
 
 object Main extends App with SimpleRoutingApp {
 
-  implicit val system = ActorSystem("owlery-system")
+  implicit val system = ActorSystem("phenoscape-kb-system")
   val factory = OWLManager.getOWLDataFactory
   val owlClass = OWLRDFVocabulary.OWL_CLASS.getIRI
   val rdfsLabel = factory.getRDFSLabel.getIRI
