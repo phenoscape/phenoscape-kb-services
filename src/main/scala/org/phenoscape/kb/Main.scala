@@ -63,14 +63,14 @@ object Main extends App with SimpleRoutingApp {
           path("evidence") {
             parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
               complete {
-                PresenceAbsenceOfStructure.statesEntailingAbsence(taxon, entity).map(_.toString)
+                PresenceAbsenceOfStructure.statesEntailingAbsence(taxon, entity)
               }
             }
           } ~
             pathEnd {
               parameters('entity.as[IRI]) { entity =>
                 complete {
-                  PresenceAbsenceOfStructure.taxaExhibitingAbsence(entity).map(_.toString)
+                  PresenceAbsenceOfStructure.taxaExhibitingAbsence(entity)
                 }
               }
             }
@@ -80,14 +80,14 @@ object Main extends App with SimpleRoutingApp {
             path("evidence") {
               parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
                 complete {
-                  PresenceAbsenceOfStructure.statesEntailingPresence(taxon, entity).map(_.toString)
+                  PresenceAbsenceOfStructure.statesEntailingPresence(taxon, entity)
                 }
               }
             } ~
               pathEnd {
                 parameters('entity.as[IRI]) { entity =>
                   complete {
-                    PresenceAbsenceOfStructure.taxaExhibitingPresence(entity).map(_.toString)
+                    PresenceAbsenceOfStructure.taxaExhibitingPresence(entity)
                   }
                 }
               }

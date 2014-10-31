@@ -17,6 +17,8 @@ import com.hp.hpl.jena.sparql.core.TriplePath
 import com.hp.hpl.jena.sparql.syntax.ElementService
 import spray.http.MediaTypes
 import spray.http.MediaType
+import com.hp.hpl.jena.query.ResultSetFormatter
+import java.io.ByteArrayOutputStream
 
 object App {
 
@@ -27,7 +29,7 @@ object App {
   val conf = ConfigFactory.load()
   val KBEndpoint = IRI.create(conf.getString("kb-services.kb.endpoint"))
   val OwleryEndpoint = IRI.create(conf.getString("kb-services.owlery.endpoint"))
-  
+
   val `application/ld+json` = MediaTypes.register(MediaType.custom("application/ld+json"))
 
   def withOwlery(triple: TriplePath): ElementService = service(App.OwleryEndpoint.toString, bgp(triple))
@@ -49,6 +51,14 @@ object App {
       queryEngine.close()
       results
     }
+  }
+
+  def resultSetToTSV(result: ResultSet): String = {
+    val outStream = new ByteArrayOutputStream()
+    ResultSetFormatter.outputAsTSV(outStream, result)
+    val tsv = outStream.toString("utf-8")
+    outStream.close()
+    tsv
   }
 
 }

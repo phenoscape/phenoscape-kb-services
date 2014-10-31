@@ -68,7 +68,7 @@ object EQForGene {
       val superclasses = HashMultiset.create[String]
       superSuperQualities.foreach(superclasses.add)
       val nearestQualities = superclasses.entrySet.filter(_.getCount == 1).map(_.getElement)
-      nearestQualities.toList
+      nearestQualities.toVector
     }
   }
 
@@ -104,7 +104,7 @@ object EQForGene {
       val superclasses = HashMultiset.create[String]
       entitySuperClasses.foreach(superclasses.add)
       val nearestEntities = superclasses.entrySet.filter(_.getCount == 1).map(_.getElement)
-      nearestEntities.toList
+      nearestEntities.toVector
     }
   }
 

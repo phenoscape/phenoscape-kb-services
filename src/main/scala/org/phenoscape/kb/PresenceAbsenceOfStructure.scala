@@ -1,31 +1,32 @@
 package org.phenoscape.kb
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 import org.apache.log4j.Logger
+import org.phenoscape.kb.App.withOwlery
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl.OWL._
 import org.semanticweb.owlapi.model.IRI
-import org.phenoscape.kb.App.withOwlery
 
 import com.hp.hpl.jena.query.Query
 
 object PresenceAbsenceOfStructure {
 
-  def statesEntailingAbsence(taxon: IRI, entity: IRI): Future[Seq[String]] =
-    App.executeSPARQLQuery(buildAbsenceQuery(taxon, entity), _.toString)
+  def statesEntailingAbsence(taxon: IRI, entity: IRI): Future[String] =
+    App.executeSPARQLQuery(buildAbsenceQuery(taxon, entity)).map(App.resultSetToTSV(_))
 
-  def statesEntailingPresence(taxon: IRI, entity: IRI): Future[Seq[String]] =
-    App.executeSPARQLQuery(buildPresenceQuery(taxon, entity), _.toString)
+  def statesEntailingPresence(taxon: IRI, entity: IRI): Future[String] =
+    App.executeSPARQLQuery(buildPresenceQuery(taxon, entity)).map(App.resultSetToTSV(_))
 
-  def taxaExhibitingPresence(entity: IRI): Future[Seq[String]] = {
-    App.executeSPARQLQuery(buildExhibitingPresenceQuery(entity), _.toString)
+  def taxaExhibitingPresence(entity: IRI): Future[String] = {
+    App.executeSPARQLQuery(buildExhibitingPresenceQuery(entity)).map(App.resultSetToTSV(_))
   }
 
-  def taxaExhibitingAbsence(entity: IRI): Future[Seq[String]] =
-    App.executeSPARQLQuery(buildExhibitingAbsenceQuery(entity), _.toString)
+  def taxaExhibitingAbsence(entity: IRI): Future[String] =
+    App.executeSPARQLQuery(buildExhibitingAbsenceQuery(entity)).map(App.resultSetToTSV(_))
 
   private def buildAbsenceQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
     val taxon = Class(taxonIRI)
