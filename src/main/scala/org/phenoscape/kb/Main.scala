@@ -59,19 +59,38 @@ object Main extends App with SimpleRoutingApp {
       }
     } ~
       pathPrefix("entity") {
-        path("absence") {
-          parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
-            complete {
-              PresenceAbsenceOfStructure.statesEntailingAbsence(taxon, entity).map(_.toString)
-            }
-          }
-        } ~
-          path("presence") {
+        pathPrefix("absence") {
+          path("evidence") {
             parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
               complete {
-                PresenceAbsenceOfStructure.statesEntailingPresence(taxon, entity).map(_.toString)
+                PresenceAbsenceOfStructure.statesEntailingAbsence(taxon, entity).map(_.toString)
               }
             }
+          } ~
+            pathEnd {
+              parameters('entity.as[IRI]) { entity =>
+                complete {
+                  PresenceAbsenceOfStructure.taxaExhibitingAbsence(entity).map(_.toString)
+                }
+              }
+            }
+
+        } ~
+          pathPrefix("presence") {
+            path("evidence") {
+              parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
+                complete {
+                  PresenceAbsenceOfStructure.statesEntailingPresence(taxon, entity).map(_.toString)
+                }
+              }
+            } ~
+              pathEnd {
+                parameters('entity.as[IRI]) { entity =>
+                  complete {
+                    PresenceAbsenceOfStructure.taxaExhibitingPresence(entity).map(_.toString)
+                  }
+                }
+              }
           }
       } ~
       path("genes_expressed_in_structure") {
