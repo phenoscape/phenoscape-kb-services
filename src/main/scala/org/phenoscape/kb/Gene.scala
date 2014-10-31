@@ -41,7 +41,7 @@ object Gene {
         optional(bgp(
           t('pheno_instance, dcSource, 'source))),
         withOwlery(
-          t('phenotype, rdfsSubClassOf, ((has_part some (quality and (inheres_in_part_of some Class(entityIRI)))) or (has_part some (quality and (TOWARDS some Class(entityIRI)))) or (has_part some (quality and (TOWARDS value Individual(entityIRI))))).asOMN)),
+          t('phenotype, rdfsSubClassOf, ((has_part some (quality and (inheres_in_part_of some Class(entityIRI)))) or (has_part some (quality and (towards some Class(entityIRI)))) or (has_part some (quality and (towards value Individual(entityIRI))))).asOMN)),
           App.BigdataRunPriorFirst)
   }
 
@@ -56,7 +56,7 @@ object Gene {
     select_distinct('gene, 'gene_label, 'taxon_label, 'source) from "http://kb.phenoscape.org/" where (
       bgp(
         t('structure, rdfType, 'entity),
-        t('expression, OCCURS_IN, 'structure),
+        t('expression, occurs_in, 'structure),
         t('expression, rdfType, GeneExpression),
         t('expression, associated_with_taxon, 'taxon),
         t('taxon, rdfsLabel, 'taxon_label),

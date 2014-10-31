@@ -167,13 +167,12 @@ object DataCoverageFigureReport {
     val entityInd = Individual(entityIRI)
     val query = select() from "http://kb.phenoscape.org/" where (
       bgp(
-        t('taxon, HAS_MEMBER / EXHIBITS / rdfType, 'phenotype),
-        t('state, DENOTES_EXHIBITING / rdfType, 'phenotype),
-        t('state, rdfType, STANDARD_STATE)),
+        t('taxon, exhibits_state, 'state),
+        t('state, describes_phenotype, 'phenotype)),
         withOwlery(
           t('taxon, rdfsSubClassOf, taxonClass.asOMN)),
           withOwlery(
-            t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (TOWARDS value entityInd)).asOMN)),
+            t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (towards value entityInd)).asOMN)),
             App.BigdataRunPriorFirst)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
     query

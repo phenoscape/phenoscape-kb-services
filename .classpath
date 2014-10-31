@@ -3,6 +3,7 @@
   <classpathentry output="target/scala-2.10/classes" kind="src" path="src/main/java"/>
   <classpathentry output="target/scala-2.10/test-classes" kind="src" path="src/test/scala"/>
   <classpathentry output="target/scala-2.10/test-classes" kind="src" path="src/test/java"/>
+  <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/io.spray/spray-can/bundles/spray-can-1.3.1.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/io.spray/spray-io/bundles/spray-io-1.3.1.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/io.spray/spray-util/bundles/spray-util-1.3.1.jar"/>
@@ -15,7 +16,6 @@
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/com.chuusai/shapeless_2.10/jars/shapeless_2.10-1.2.4.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/io.spray/spray-client/bundles/spray-client-1.3.1.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/io.spray/spray-json_2.10/bundles/spray-json_2.10-1.2.6.jar"/>
-  <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/com.typesafe.akka/akka-actor_2.10/jars/akka-actor_2.10-2.3.0.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/com.typesafe/config/bundles/config-1.2.0.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/net.sourceforge.owlapi/owlapi-distribution/bundles/owlapi-distribution-3.5.0.jar"/>
@@ -48,7 +48,7 @@
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.apache.httpcomponents/httpclient-cache/jars/httpclient-cache-4.2.6.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.slf4j/jcl-over-slf4j/jars/jcl-over-slf4j-1.7.6.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.phenoscape/scowl/jars/scowl-0.8.jar"/>
-  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.phenoscape/kb-owl-tools/jars/kb-owl-tools-1.0.1.jar"/>
+  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.phenoscape/kb-owl-tools/jars/kb-owl-tools-1.0.3.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.apache.commons/commons-lang3/jars/commons-lang3-3.1.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.jdom/jdom/jars/jdom-2.0.2.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/com.bigdata/bigdata/jars/bigdata-1.3.0.jar"/>
@@ -94,16 +94,17 @@
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.openrdf.sesame/sesame-repository-contextaware/jars/sesame-repository-contextaware-2.6.10.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/com.bigdata/dsi-utils/jars/dsi-utils-1.0.6-020610.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/com.bigdata/lgpl-utils/jars/lgpl-utils-1.0.6-020610.jar"/>
-  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-owlapi/jars/elk-owlapi-0.4.0.jar"/>
-  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-owl-model/jars/elk-owl-model-0.4.0.jar"/>
-  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-owl-implementation/jars/elk-owl-implementation-0.4.0.jar"/>
-  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-util-hashing/jars/elk-util-hashing-0.4.0.jar"/>
-  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-reasoner/jars/elk-reasoner-0.4.0.jar"/>
-  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-util-collections/jars/elk-util-collections-0.4.0.jar"/>
-  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-util-concurrent/jars/elk-util-concurrent-0.4.0.jar"/>
-  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-util-logging/jars/elk-util-logging-0.4.0.jar"/>
-  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-util-common/jars/elk-util-common-0.4.0.jar"/>
-  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-util-io/jars/elk-util-io-0.4.0.jar"/>
+  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.openrdf.sesame/sesame-rio-turtle/jars/sesame-rio-turtle-2.6.10.jar"/>
+  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-owlapi/jars/elk-owlapi-0.4.1.jar"/>
+  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-owl-model/jars/elk-owl-model-0.4.1.jar"/>
+  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-owl-implementation/jars/elk-owl-implementation-0.4.1.jar"/>
+  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-util-hashing/jars/elk-util-hashing-0.4.1.jar"/>
+  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-reasoner/jars/elk-reasoner-0.4.1.jar"/>
+  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-util-collections/jars/elk-util-collections-0.4.1.jar"/>
+  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-util-concurrent/jars/elk-util-concurrent-0.4.1.jar"/>
+  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-util-logging/jars/elk-util-logging-0.4.1.jar"/>
+  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-util-common/jars/elk-util-common-0.4.1.jar"/>
+  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.semanticweb.elk/elk-util-io/jars/elk-util-io-0.4.1.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.apache.ant/ant/jars/ant-1.8.2.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.apache.ant/ant-launcher/jars/ant-launcher-1.8.2.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/eu.trowl/trowlcore/jars/trowlcore-1.0.jar"/>
@@ -117,7 +118,6 @@
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.openrdf.sesame/sesame-repository-dataset/jars/sesame-repository-dataset-2.6.10.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.openrdf.sesame/sesame-rio-binary/jars/sesame-rio-binary-2.6.10.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.openrdf.sesame/sesame-rio-n3/jars/sesame-rio-n3-2.6.10.jar"/>
-  <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.openrdf.sesame/sesame-rio-turtle/jars/sesame-rio-turtle-2.6.10.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.openrdf.sesame/sesame-rio-rdfxml/jars/sesame-rio-rdfxml-2.6.10.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.openrdf.sesame/sesame-rio-trix/jars/sesame-rio-trix-2.6.10.jar"/>
   <classpathentry kind="lib" path="/Users/jim/.ivy2/cache/org.openrdf.sesame/sesame-rio-trig/jars/sesame-rio-trig-2.6.10.jar"/>

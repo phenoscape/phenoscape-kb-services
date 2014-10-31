@@ -14,27 +14,32 @@ import com.hp.hpl.jena.query.Query
 
 object PresenceAbsenceOfStructure {
 
-  def statesEntailingAbsence(taxon: IRI, entity: IRI): Future[Seq[String]] = {
+  def statesEntailingAbsence(taxon: IRI, entity: IRI): Future[Seq[String]] =
     App.executeSPARQLQuery(buildAbsenceQuery(taxon, entity), _.toString)
+
+  def statesEntailingPresence(taxon: IRI, entity: IRI): Future[Seq[String]] =
+    App.executeSPARQLQuery(buildPresenceQuery(taxon, entity), _.toString)
+
+  def taxaExhibitingPresence(entity: IRI): Future[Seq[String]] = {
+    App.executeSPARQLQuery(buildExhibitingPresenceQuery(entity), _.toString)
   }
 
-  def statesEntailingPresence(taxon: IRI, entity: IRI): Future[Seq[String]] = {
-    App.executeSPARQLQuery(buildPresenceQuery(taxon, entity), _.toString)
-  }
+  def taxaExhibitingAbsence(entity: IRI): Future[Seq[String]] =
+    App.executeSPARQLQuery(buildExhibitingAbsenceQuery(entity), _.toString)
 
   private def buildAbsenceQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
     val taxon = Class(taxonIRI)
     val entity = Individual(entityIRI)
     select_distinct('state, 'state_label, 'matrix_label) from "http://kb.phenoscape.org/" where (
       bgp(
-        t(taxon, HAS_MEMBER / EXHIBITS / rdfType, 'phenotype),
-        t('state, DENOTES_EXHIBITING / rdfType, 'phenotype),
+        t(taxon, exhibits_state, 'state),
+        t('state, describes_phenotype, 'phenotype),
         t('state, dcDescription, 'state_label),
-        t('matrix, HAS_CHARACTER, 'matrix_char),
+        t('matrix, has_character, 'matrix_char),
         t('matrix, rdfsLabel, 'matrix_label),
-        t('matrix_char, MAY_HAVE_STATE_VALUE, 'state)),
+        t('matrix_char, may_have_state_value, 'state)),
         withOwlery(
-          t('phenotype, rdfsSubClassOf, (LacksAllPartsOfType and (TOWARDS value entity) and (inheres_in some MultiCellularOrganism)).asOMN)),
+          t('phenotype, rdfsSubClassOf, (LacksAllPartsOfType and (towards value entity) and (inheres_in some MultiCellularOrganism)).asOMN)),
           App.BigdataRunPriorFirst)
   }
 
@@ -43,12 +48,34 @@ object PresenceAbsenceOfStructure {
     val entity = Class(entityIRI)
     select_distinct('state, 'state_label, 'matrix_label) from "http://kb.phenoscape.org/" where (
       bgp(
-        t(taxon, HAS_MEMBER / EXHIBITS / rdfType, 'phenotype),
-        t('state, DENOTES_EXHIBITING / rdfType, 'phenotype),
+        t(taxon, exhibits_state, 'state),
+        t('state, describes_phenotype, 'phenotype),
         t('state, dcDescription, 'state_label),
-        t('matrix, HAS_CHARACTER, 'matrix_char),
+        t('matrix, has_character, 'matrix_char),
         t('matrix, rdfsLabel, 'matrix_label),
-        t('matrix_char, MAY_HAVE_STATE_VALUE, 'state)),
+        t('matrix_char, may_have_state_value, 'state)),
+        withOwlery(
+          t('phenotype, rdfsSubClassOf, (IMPLIES_PRESENCE_OF some entity).asOMN)),
+          App.BigdataRunPriorFirst)
+  }
+
+  private def buildExhibitingAbsenceQuery(entityIRI: IRI): Query = {
+    val entity = Individual(entityIRI)
+    select_distinct('taxon, 'taxon_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('taxon, exhibits_state / describes_phenotype, 'phenotype),
+        t('taxon, rdfsLabel, 'taxon_label)),
+        withOwlery(
+          t('phenotype, rdfsSubClassOf, (LacksAllPartsOfType and (towards value entity) and (inheres_in some MultiCellularOrganism)).asOMN)),
+          App.BigdataRunPriorFirst)
+  }
+
+  private def buildExhibitingPresenceQuery(entityIRI: IRI): Query = {
+    val entity = Class(entityIRI)
+    select_distinct('taxon, 'taxon_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('taxon, exhibits_state / describes_phenotype, 'phenotype),
+        t('taxon, rdfsLabel, 'taxon_label)),
         withOwlery(
           t('phenotype, rdfsSubClassOf, (IMPLIES_PRESENCE_OF some entity).asOMN)),
           App.BigdataRunPriorFirst)

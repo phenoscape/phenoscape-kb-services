@@ -1,5 +1,5 @@
 <projectDescription>
-  <name>kb-services</name>
+  <name>phenoscape-kb-services</name>
   <buildSpec>
     <buildCommand>
       <name>org.scala-ide.sdt.core.scalabuilder</name>

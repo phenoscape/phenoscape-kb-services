@@ -10,3 +10,6 @@ test-output/
 .classpath_nb
 .cache
 src/main/resources/application.conf
+.classpath
+.project
+.settings
