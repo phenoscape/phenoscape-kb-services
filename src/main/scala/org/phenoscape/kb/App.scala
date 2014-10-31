@@ -45,7 +45,7 @@ object App {
     blocking {
       val queryEngine = new QueryEngineHTTP(App.KBEndpoint.toString, query)
       val resultSet = queryEngine.execSelect
-      val results = resultSet.map(resultMapper).toSeq
+      val results = resultSet.map(resultMapper).toVector
       queryEngine.close()
       results
     }
