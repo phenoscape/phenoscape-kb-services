@@ -46,7 +46,7 @@ libraryDependencies ++= {
     "com.typesafe.akka"      %%  "akka-testkit"        % akkaV   % "test",
     "org.specs2"             %%  "specs2-core"         % "2.3.7" % "test",
     "net.sourceforge.owlapi" %   "owlapi-distribution" % "3.5.0",
-    "org.phenoscape"         %   "owlet"               % "1.1.5",
+    "org.phenoscape"         %   "owlet"               % "1.1.7",
     "org.phenoscape"         %   "scowl"               % "0.8",
     "org.phenoscape"         %   "kb-owl-tools"        % "1.0.3",
     "commons-io"             %   "commons-io"          % "2.4",

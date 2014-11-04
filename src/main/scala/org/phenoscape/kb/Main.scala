@@ -59,23 +59,30 @@ object Main extends App with SimpleRoutingApp {
       }
     } ~
       pathPrefix("entity") {
-        pathPrefix("absence") {
-          path("evidence") {
-            parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
-              complete {
-                PresenceAbsenceOfStructure.statesEntailingAbsence(taxon, entity)
-              }
+        path("search") {
+          parameters('text, 'limit.as[Int]) { (text, limit) =>
+            complete {
+              Term.searchAnatomicalTerms(text, limit)
             }
-          } ~
-            pathEnd {
-              parameters('entity.as[IRI]) { entity =>
+          }
+        } ~
+          pathPrefix("absence") {
+            path("evidence") {
+              parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
                 complete {
-                  PresenceAbsenceOfStructure.taxaExhibitingAbsence(entity)
+                  PresenceAbsenceOfStructure.statesEntailingAbsence(taxon, entity)
                 }
               }
-            }
+            } ~
+              pathEnd {
+                parameters('entity.as[IRI]) { entity =>
+                  complete {
+                    PresenceAbsenceOfStructure.taxaExhibitingAbsence(entity)
+                  }
+                }
+              }
 
-        } ~
+          } ~
           pathPrefix("presence") {
             path("evidence") {
               parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
