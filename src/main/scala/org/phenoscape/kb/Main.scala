@@ -35,6 +35,12 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
 
   }
 
+  implicit object IRISeq extends Deserializer[String, Seq[IRI]] {
+
+    def apply(text: String): Deserialized[Seq[IRI]] = Right(text.split(",", -1).map(IRI.create))
+
+  }
+
   implicit object SimpleMapFromJSONString extends Deserializer[String, Map[String, String]] {
 
     def apply(text: String): Deserialized[Map[String, String]] = text.parseJson match {
@@ -58,7 +64,14 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
               Term.search(text, termType, property)
             }
           }
-        }
+        } ~
+          path("labels") {
+            parameters('iris.as[Seq[IRI]]) { (iris) =>
+              complete {
+                Term.labels(iris: _*)
+              }
+            }
+          }
       } ~
         pathPrefix("entity") {
           path("search") {

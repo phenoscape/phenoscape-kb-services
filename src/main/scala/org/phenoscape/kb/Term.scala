@@ -1,13 +1,11 @@
 package org.phenoscape.kb
 
 import scala.concurrent.Future
-
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl.OWL._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary.RDFS_LABEL
-
 import com.hp.hpl.jena.graph.NodeFactory
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.query.QuerySolution
@@ -16,13 +14,16 @@ import com.hp.hpl.jena.sparql.expr.ExprVar
 import com.hp.hpl.jena.sparql.syntax.ElementFilter
 import com.hp.hpl.jena.vocabulary.RDFS
 import com.hp.hpl.jena.vocabulary.OWL2
-
 import spray.http._
 import spray.httpx._
 import spray.httpx.SprayJsonSupport._
 import spray.httpx.marshalling._
 import spray.json.DefaultJsonProtocol._
 import spray.json._
+import com.hp.hpl.jena.sparql.expr.ExprList
+import com.hp.hpl.jena.sparql.expr.E_OneOf
+import scala.collection.JavaConversions._
+import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
 
 object Term {
 
@@ -43,6 +44,10 @@ object Term {
 
   def searchAnatomicalTerms(text: String, limit: Int): Future[Seq[TermSearchResult]] = {
     App.executeSPARQLQuery(buildAnatomicalTermQuery(text, limit), TermSearchResult.fromQuerySolution)
+  }
+
+  def labels(iris: IRI*): Future[Seq[TermSearchResult]] = {
+    App.executeSPARQLQuery(buildLabelsQuery(iris: _*), TermSearchResult.fromQuerySolution)
   }
 
   private def buildSearchQuery(text: String, termType: IRI, property: IRI): Query = {
@@ -72,6 +77,15 @@ object Term {
         new ElementFilter((new E_IsIRI(new ExprVar('term)))))
     query.addOrderBy('rank, Query.ORDER_ASCENDING)
     query.setLimit(limit)
+    query
+  }
+
+  private def buildLabelsQuery(iris: IRI*): Query = {
+    val nodes = iris.map(iri => new NodeValueNode(NodeFactory.createURI(iri.toString)))
+    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('term, rdfsLabel, 'term_label)),
+        new ElementFilter(new E_OneOf(new ExprVar('term), new ExprList(nodes))))
     query
   }
 
