@@ -22,7 +22,7 @@ import spray.routing.Directive.pimpApply
 import spray.routing.SimpleRoutingApp
 import spray.routing.directives.ParamDefMagnet.apply
 
-object Main extends App with SimpleRoutingApp {
+object Main extends App with SimpleRoutingApp with CORSDirectives {
 
   implicit val system = ActorSystem("phenoscape-kb-system")
   val factory = OWLManager.getOWLDataFactory
@@ -49,84 +49,87 @@ object Main extends App with SimpleRoutingApp {
 
   startServer(interface = "localhost", port = serverPort) {
 
-    pathPrefix("term") {
-      path("search") {
-        parameters('text, 'type.as[IRI].?(owlClass), 'property.?(rdfsLabel)) { (text, termType, property) =>
-          complete {
-            Term.search(text, termType, property)
-          }
-        }
-      }
-    } ~
-      pathPrefix("entity") {
+    corsFilter(List("*")) {
+
+      pathPrefix("term") {
         path("search") {
-          parameters('text, 'limit.as[Int]) { (text, limit) =>
+          parameters('text, 'type.as[IRI].?(owlClass), 'property.?(rdfsLabel)) { (text, termType, property) =>
             complete {
-              Term.searchAnatomicalTerms(text, limit)
+              Term.search(text, termType, property)
             }
           }
-        } ~
-          pathPrefix("absence") {
-            path("evidence") {
-              parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
-                complete {
-                  PresenceAbsenceOfStructure.statesEntailingAbsence(taxon, entity)
-                }
+        }
+      } ~
+        pathPrefix("entity") {
+          path("search") {
+            parameters('text, 'limit.as[Int]) { (text, limit) =>
+              complete {
+                Term.searchAnatomicalTerms(text, limit)
               }
-            } ~
-              pathEnd {
-                parameters('entity.as[IRI]) { entity =>
-                  complete {
-                    PresenceAbsenceOfStructure.taxaExhibitingAbsence(entity)
-                  }
-                }
-              }
-
+            }
           } ~
-          pathPrefix("presence") {
-            path("evidence") {
-              parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
-                complete {
-                  PresenceAbsenceOfStructure.statesEntailingPresence(taxon, entity)
-                }
-              }
-            } ~
-              pathEnd {
-                parameters('entity.as[IRI]) { entity =>
+            pathPrefix("absence") {
+              path("evidence") {
+                parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
                   complete {
-                    PresenceAbsenceOfStructure.taxaExhibitingPresence(entity)
+                    PresenceAbsenceOfStructure.statesEntailingAbsence(taxon, entity)
                   }
                 }
-              }
-          }
-      } ~
-      path("genes_expressed_in_structure") {
-        parameters('entity.as[IRI]) { entity =>
-          complete {
-            Gene.expressedWithinStructure(entity)
-          }
-        }
-      } ~
-      path("genes_affecting_phenotype") {
-        parameters('entity.as[IRI], 'quality.as[IRI]) { (entity, quality) =>
-          complete {
-            Gene.affectingPhenotype(entity, quality)
-          }
-        }
-      } ~
-      pathPrefix("report") {
-        path("data_coverage_figure") {
-          complete {
-            DataCoverageFigureReport.query()
-          }
+              } ~
+                pathEnd {
+                  parameters('entity.as[IRI]) { entity =>
+                    complete {
+                      PresenceAbsenceOfStructure.taxaExhibitingAbsence(entity)
+                    }
+                  }
+                }
+
+            } ~
+            pathPrefix("presence") {
+              path("evidence") {
+                parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
+                  complete {
+                    PresenceAbsenceOfStructure.statesEntailingPresence(taxon, entity)
+                  }
+                }
+              } ~
+                pathEnd {
+                  parameters('entity.as[IRI]) { entity =>
+                    complete {
+                      PresenceAbsenceOfStructure.taxaExhibitingPresence(entity)
+                    }
+                  }
+                }
+            }
         } ~
-          path("data_coverage_figure_any_taxon") {
+        path("genes_expressed_in_structure") {
+          parameters('entity.as[IRI]) { entity =>
             complete {
-              DataCoverageFigureReportAnyTaxon.query()
+              Gene.expressedWithinStructure(entity)
             }
           }
-      }
+        } ~
+        path("genes_affecting_phenotype") {
+          parameters('entity.as[IRI], 'quality.as[IRI]) { (entity, quality) =>
+            complete {
+              Gene.affectingPhenotype(entity, quality)
+            }
+          }
+        } ~
+        pathPrefix("report") {
+          path("data_coverage_figure") {
+            complete {
+              DataCoverageFigureReport.query()
+            }
+          } ~
+            path("data_coverage_figure_any_taxon") {
+              complete {
+                DataCoverageFigureReportAnyTaxon.query()
+              }
+            }
+        }
 
+    }
   }
 
 }
