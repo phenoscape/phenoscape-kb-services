@@ -8,7 +8,7 @@ import com.hp.hpl.jena.vocabulary.OWL2
 import com.hp.hpl.jena.vocabulary.RDFS
 
 
-object Vocab {
+object KBVocab {
   
    val BDSearchPrefix = "http://www.bigdata.com/rdf/search#"
    val BDSearch = IRI.create(s"${BDSearchPrefix}search")

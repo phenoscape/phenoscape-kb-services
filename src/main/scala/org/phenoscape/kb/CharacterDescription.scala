@@ -24,8 +24,8 @@ import com.hp.hpl.jena.sparql.expr.ExprList
 import com.hp.hpl.jena.sparql.expr.E_OneOf
 import scala.collection.JavaConversions._
 import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
-import org.phenoscape.kb.Vocab._
-import org.phenoscape.kb.Vocab.rdfsLabel
+import org.phenoscape.kb.KBVocab._
+import org.phenoscape.kb.KBVocab.rdfsLabel
 
 object CharacterDescription {
 
