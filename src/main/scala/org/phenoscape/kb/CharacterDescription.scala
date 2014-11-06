@@ -41,7 +41,7 @@ object CharacterDescription {
         t('state_desc, BDRank, 'rank),
         t('state, dcDescription, 'state_desc),
         t('state, rdfType, StandardState),
-        t('state, belongs_to_character, 'character),
+        t('character, may_have_state_value, 'state),
         t('matrix, has_character, 'character),
         t('matrix, rdfsLabel, 'matrix_label)))
     query.addOrderBy('rank, Query.ORDER_ASCENDING)
