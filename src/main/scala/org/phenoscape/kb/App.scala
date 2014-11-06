@@ -19,6 +19,8 @@ import spray.http.MediaTypes
 import spray.http.MediaType
 import com.hp.hpl.jena.query.ResultSetFormatter
 import java.io.ByteArrayOutputStream
+import spray.json.JsValue
+import spray.json.JsObject
 
 object App {
 

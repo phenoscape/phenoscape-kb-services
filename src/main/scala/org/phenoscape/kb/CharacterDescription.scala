@@ -34,13 +34,16 @@ object CharacterDescription {
   }
 
   def buildSearchQuery(text: String, limit: Int): Query = {
-    val query = select_distinct('state, 'state_desc) from "http://kb.phenoscape.org/" where (
+    val query = select_distinct('state, 'state_desc, 'matrix, 'matrix_label) from "http://kb.phenoscape.org/" where (
       bgp(
         t('state_desc, BDSearch, NodeFactory.createLiteral(text)),
         t('state_desc, BDMatchAllTerms, NodeFactory.createLiteral("true")),
         t('state_desc, BDRank, 'rank),
         t('state, dcDescription, 'state_desc),
-        t('state, rdfType, StandardState)))
+        t('state, rdfType, StandardState),
+        t('state, belongs_to_character, 'character),
+        t('matrix, has_character, 'character),
+        t('matrix, rdfsLabel, 'matrix_label)))
     query.addOrderBy('rank, Query.ORDER_ASCENDING)
     query.setLimit(limit)
     query
@@ -48,7 +51,10 @@ object CharacterDescription {
 
   def apply(result: QuerySolution): CharacterDescription = CharacterDescription(
     IRI.create(result.getResource("state").getURI),
-    result.getLiteral("state_desc").getLexicalForm)
+    result.getLiteral("state_desc").getLexicalForm,
+    CharacterMatrix(
+      IRI.create(result.getResource("matrix").getURI),
+      result.getLiteral("matrix_label").getLexicalForm))
 
   implicit val CharacterDescriptionsMarshaller = Marshaller.delegate[Seq[CharacterDescription], JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { results =>
     new JsObject(Map("results" -> results.map(_.toJSON).toJson))
@@ -56,10 +62,19 @@ object CharacterDescription {
 
 }
 
-case class CharacterDescription(iri: IRI, description: String) {
+case class CharacterDescription(iri: IRI, description: String, matrix: CharacterMatrix) {
+
+  def toJSON: JsValue = Map(
+    "@id" -> iri.toString.toJson,
+    "description" -> description.toJson,
+    "matrix" -> matrix.toJSON).toJson
+
+}
+
+case class CharacterMatrix(iri: IRI, label: String) {
 
   def toJSON: JsValue = {
-    Map("@id" -> iri.toString, "label" -> description).toJson
+    Map("@id" -> iri.toString, "label" -> label).toJson
   }
 
 }
