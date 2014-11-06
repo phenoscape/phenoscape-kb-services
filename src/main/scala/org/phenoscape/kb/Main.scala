@@ -5,6 +5,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Right
 
 import org.phenoscape.kb.Term.TermSearchResultsMarshaller
+import org.phenoscape.kb.Term.TermSearchResultMarshaller
+import org.phenoscape.kb.Term.IRIMarshaller
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary
@@ -65,6 +67,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             }
           }
         } ~
+          path("label") {
+            parameters('iri.as[IRI]) { (iri) =>
+              complete {
+                Term.label(iri).map(_.getOrElse(TermSearchResult(iri, "<unlabeled>")))
+              }
+            }
+          } ~
           path("labels") {
             parameters('iris.as[Seq[IRI]]) { (iris) =>
               complete {

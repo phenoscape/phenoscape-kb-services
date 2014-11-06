@@ -1,6 +1,7 @@
 package org.phenoscape.kb
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl.OWL._
@@ -37,11 +38,16 @@ object Term {
     App.executeSPARQLQuery(buildAnatomicalTermQuery(text, limit), TermSearchResult.fromQuerySolution)
   }
 
+  def label(iri: IRI): Future[Option[TermSearchResult]] = {
+    def convert(result: QuerySolution): TermSearchResult = TermSearchResult(iri, result.getLiteral("term_label").getLexicalForm)
+    App.executeSPARQLQuery(buildLabelQuery(iri), convert).map(_.headOption)
+  }
+
   def labels(iris: IRI*): Future[Seq[TermSearchResult]] = {
     App.executeSPARQLQuery(buildLabelsQuery(iris: _*), TermSearchResult.fromQuerySolution)
   }
 
-  private def buildSearchQuery(text: String, termType: IRI, property: IRI): Query = {
+  def buildSearchQuery(text: String, termType: IRI, property: IRI): Query = {
     val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
       bgp(
         t('term_label, BDSearch, NodeFactory.createLiteral(text)),
@@ -55,7 +61,7 @@ object Term {
     query
   }
 
-  private def buildAnatomicalTermQuery(text: String, limit: Int): Query = {
+  def buildAnatomicalTermQuery(text: String, limit: Int): Query = {
     val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
       bgp(
         t('matched_label, BDSearch, NodeFactory.createLiteral(text)),
@@ -71,7 +77,15 @@ object Term {
     query
   }
 
-  private def buildLabelsQuery(iris: IRI*): Query = {
+  def buildLabelQuery(iri: IRI): Query = {
+    val query = select('term_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t(iri, rdfsLabel, 'term_label)))
+    query.setLimit(1)
+    query
+  }
+
+  def buildLabelsQuery(iris: IRI*): Query = {
     val nodes = iris.map(iri => new NodeValueNode(NodeFactory.createURI(iri.toString)))
     val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
       bgp(
@@ -84,11 +98,19 @@ object Term {
     new JsObject(Map("results" -> results.map(_.toJSON).toJson))
   }
 
+  implicit val TermSearchResultMarshaller = Marshaller.delegate[TermSearchResult, JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { result =>
+    result.toJSON
+  }
+
+  implicit val IRIMarshaller = Marshaller.delegate[IRI, JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { iri =>
+    new JsObject(Map("@id" -> iri.toString.toJson))
+  }
+
 }
 
 case class TermSearchResult(iri: IRI, label: String) {
-  def toJSON: JsValue = {
-    Map("@id" -> iri.toString, "label" -> label).toJson
+  def toJSON: JsObject = {
+    Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
   }
 }
 
