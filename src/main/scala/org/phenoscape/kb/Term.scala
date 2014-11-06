@@ -24,19 +24,10 @@ import com.hp.hpl.jena.sparql.expr.ExprList
 import com.hp.hpl.jena.sparql.expr.E_OneOf
 import scala.collection.JavaConversions._
 import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
+import org.phenoscape.kb.Vocab._
+import org.phenoscape.kb.Vocab.rdfsLabel
 
 object Term {
-
-  private val BDSearchPrefix = "http://www.bigdata.com/rdf/search#"
-  private val BDSearch = IRI.create(s"${BDSearchPrefix}search")
-  private val BDMatchAllTerms = IRI.create(s"${BDSearchPrefix}matchAllTerms")
-  private val BDRank = IRI.create(s"${BDSearchPrefix}rank")
-  private val rdfsLabel = ObjectProperty(RDFS_LABEL.getIRI)
-  private val hasExactSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym")
-  private val hasRelatedSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym")
-  private val rdfsIsDefinedBy = ObjectProperty(RDFS.isDefinedBy.getURI)
-  private val owlClass = IRI.create(OWL2.Class.getURI)
-  private val Uberon = IRI.create("http://purl.obolibrary.org/obo/uberon.owl")
 
   def search(text: String, termType: IRI, property: IRI): Future[Seq[TermSearchResult]] = {
     App.executeSPARQLQuery(buildSearchQuery(text, termType, property), TermSearchResult.fromQuerySolution)

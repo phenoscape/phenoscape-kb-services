@@ -73,6 +73,15 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             }
           }
       } ~
+        pathPrefix("characterstate") {
+          path("search") {
+            parameters('text, 'limit.as[Int]) { (text, limit) =>
+              complete {
+                CharacterDescription.search(text, limit)
+              }
+            }
+          }
+        } ~
         pathPrefix("entity") {
           path("search") {
             parameters('text, 'limit.as[Int]) { (text, limit) =>
