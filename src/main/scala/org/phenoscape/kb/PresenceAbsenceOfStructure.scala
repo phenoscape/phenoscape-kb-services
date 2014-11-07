@@ -9,6 +9,8 @@ import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl.OWL._
+import org.phenoscape.kb.KBVocab._
+import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.semanticweb.owlapi.model.IRI
 
 import com.hp.hpl.jena.query.Query
@@ -41,7 +43,7 @@ object PresenceAbsenceOfStructure {
         t('matrix, rdfsLabel, 'matrix_label),
         t('matrix_char, may_have_state_value, 'state)),
         withOwlery(
-          t('phenotype, rdfsSubClassOf, (LacksAllPartsOfType and (towards value entity) and (inheres_in some MultiCellularOrganism)).asOMN)),
+          t('phenotype, owlEquivalentClass | rdfsSubClassOf, (LacksAllPartsOfType and (towards value entity) and (inheres_in some MultiCellularOrganism)).asOMN)),
           App.BigdataRunPriorFirst)
   }
 
@@ -57,7 +59,7 @@ object PresenceAbsenceOfStructure {
         t('matrix, rdfsLabel, 'matrix_label),
         t('matrix_char, may_have_state_value, 'state)),
         withOwlery(
-          t('phenotype, rdfsSubClassOf, (IMPLIES_PRESENCE_OF some entity).asOMN)),
+          t('phenotype, owlEquivalentClass | rdfsSubClassOf, (IMPLIES_PRESENCE_OF some entity).asOMN)),
           App.BigdataRunPriorFirst)
   }
 
@@ -68,7 +70,7 @@ object PresenceAbsenceOfStructure {
         t('taxon, exhibits_state / describes_phenotype, 'phenotype),
         t('taxon, rdfsLabel, 'taxon_label)),
         withOwlery(
-          t('phenotype, rdfsSubClassOf, (LacksAllPartsOfType and (towards value entity) and (inheres_in some MultiCellularOrganism)).asOMN)),
+          t('phenotype, owlEquivalentClass | rdfsSubClassOf, (LacksAllPartsOfType and (towards value entity) and (inheres_in some MultiCellularOrganism)).asOMN)),
           App.BigdataRunPriorFirst)
     query.setLimit(limit)
     query
@@ -81,7 +83,7 @@ object PresenceAbsenceOfStructure {
         t('taxon, exhibits_state / describes_phenotype, 'phenotype),
         t('taxon, rdfsLabel, 'taxon_label)),
         withOwlery(
-          t('phenotype, rdfsSubClassOf, (IMPLIES_PRESENCE_OF some entity).asOMN)),
+          t('phenotype, owlEquivalentClass | rdfsSubClassOf, (IMPLIES_PRESENCE_OF some entity).asOMN)),
           App.BigdataRunPriorFirst)
     query.setLimit(limit)
     query

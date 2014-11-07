@@ -19,6 +19,7 @@ object KBVocab {
    val hasRelatedSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym")
    val rdfsIsDefinedBy = ObjectProperty(RDFS.isDefinedBy.getURI)
    val owlClass = IRI.create(OWL2.Class.getURI)
+   val owlEquivalentClass = ObjectProperty(OWL2.equivalentClass.getURI)
    val Uberon = IRI.create("http://purl.obolibrary.org/obo/uberon.owl")
 
 }
