@@ -4,8 +4,8 @@ import scala.collection.immutable.Map
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Right
 
-import org.phenoscape.kb.Term.TermSearchResultsMarshaller
-import org.phenoscape.kb.Term.TermSearchResultMarshaller
+import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import org.phenoscape.kb.Term.JSONResultItemMarshaller
 import org.phenoscape.kb.Term.IRIMarshaller
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
@@ -14,15 +14,12 @@ import org.semanticweb.owlapi.vocab.OWLRDFVocabulary
 import com.typesafe.config.ConfigFactory
 
 import akka.actor.ActorSystem
-import spray.httpx.marshalling.ToResponseMarshallable.isMarshallable
-import spray.httpx.unmarshalling.Deserialized
-import spray.httpx.unmarshalling.Deserializer
-import spray.json.JsObject
-import spray.json.deserializationError
-import spray.json.pimpString
-import spray.routing.Directive.pimpApply
+import spray.httpx.marshalling._
+import spray.httpx.unmarshalling._
+import spray.json._
+import spray.routing._
 import spray.routing.SimpleRoutingApp
-import spray.routing.directives.ParamDefMagnet.apply
+import spray.routing.directives._
 
 object Main extends App with SimpleRoutingApp with CORSDirectives {
 
@@ -58,7 +55,6 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
   startServer(interface = "localhost", port = serverPort) {
 
     corsFilter(List("*")) {
-
       pathPrefix("term") {
         path("search") {
           parameters('text, 'type.as[IRI].?(owlClass), 'property.?(rdfsLabel)) { (text, termType, property) =>
@@ -108,9 +104,9 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               } ~
                 pathEnd {
-                  parameters('entity.as[IRI]) { entity =>
+                  parameters('entity.as[IRI], 'limit.as[Int]) { (entity, limit) =>
                     complete {
-                      PresenceAbsenceOfStructure.taxaExhibitingAbsence(entity)
+                      PresenceAbsenceOfStructure.taxaExhibitingAbsence(entity, limit)
                     }
                   }
                 }
@@ -125,9 +121,9 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               } ~
                 pathEnd {
-                  parameters('entity.as[IRI]) { entity =>
+                  parameters('entity.as[IRI], 'limit.as[Int]) { (entity, limit) =>
                     complete {
-                      PresenceAbsenceOfStructure.taxaExhibitingPresence(entity)
+                      PresenceAbsenceOfStructure.taxaExhibitingPresence(entity, limit)
                     }
                   }
                 }

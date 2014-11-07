@@ -25,7 +25,7 @@ daemonGroup in Linux := "phenoscape"    // group which will execute the applicat
 
 scalaVersion  := "2.10.4"
 
-scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8")
+scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
 
 resolvers += "Phenoscape Maven repository" at "http://phenoscape.svn.sourceforge.net/svnroot/phenoscape/trunk/maven/repository"
 

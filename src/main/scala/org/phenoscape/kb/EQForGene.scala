@@ -5,6 +5,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.parsing.json.JSONArray
 import scala.util.parsing.json.JSONObject
+import scala.language.postfixOps
 
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owl.Vocab

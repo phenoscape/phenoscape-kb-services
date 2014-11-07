@@ -94,11 +94,11 @@ object Term {
     query
   }
 
-  implicit val TermSearchResultsMarshaller = Marshaller.delegate[Seq[TermSearchResult], JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { results =>
+  implicit val JSONResultItemsMarshaller = Marshaller.delegate[Seq[JSONResultItem], JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { results =>
     new JsObject(Map("results" -> results.map(_.toJSON).toJson))
   }
 
-  implicit val TermSearchResultMarshaller = Marshaller.delegate[TermSearchResult, JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { result =>
+  implicit val JSONResultItemMarshaller = Marshaller.delegate[JSONResultItem, JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { result =>
     result.toJSON
   }
 
@@ -108,10 +108,12 @@ object Term {
 
 }
 
-case class TermSearchResult(iri: IRI, label: String) {
+case class TermSearchResult(iri: IRI, label: String) extends JSONResultItem {
+
   def toJSON: JsObject = {
     Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
   }
+
 }
 
 object TermSearchResult {

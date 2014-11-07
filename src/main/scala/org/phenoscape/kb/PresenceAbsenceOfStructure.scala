@@ -12,6 +12,7 @@ import org.phenoscape.scowl.OWL._
 import org.semanticweb.owlapi.model.IRI
 
 import com.hp.hpl.jena.query.Query
+import com.hp.hpl.jena.query.QuerySolution
 
 object PresenceAbsenceOfStructure {
 
@@ -21,14 +22,14 @@ object PresenceAbsenceOfStructure {
   def statesEntailingPresence(taxon: IRI, entity: IRI): Future[String] =
     App.executeSPARQLQuery(buildPresenceQuery(taxon, entity)).map(App.resultSetToTSV(_))
 
-  def taxaExhibitingPresence(entity: IRI): Future[String] = {
-    App.executeSPARQLQuery(buildExhibitingPresenceQuery(entity)).map(App.resultSetToTSV(_))
+  def taxaExhibitingPresence(entity: IRI, limit: Int): Future[Seq[Taxon]] = {
+    App.executeSPARQLQuery(buildExhibitingPresenceQuery(entity, limit), resultToTaxon)
   }
 
-  def taxaExhibitingAbsence(entity: IRI): Future[String] =
-    App.executeSPARQLQuery(buildExhibitingAbsenceQuery(entity)).map(App.resultSetToTSV(_))
+  def taxaExhibitingAbsence(entity: IRI, limit: Int): Future[Seq[Taxon]] =
+    App.executeSPARQLQuery(buildExhibitingAbsenceQuery(entity, limit), resultToTaxon)
 
-  private def buildAbsenceQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
+  def buildAbsenceQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
     val taxon = Class(taxonIRI)
     val entity = Individual(entityIRI)
     select_distinct('state, 'state_label, 'matrix_label) from "http://kb.phenoscape.org/" where (
@@ -44,7 +45,7 @@ object PresenceAbsenceOfStructure {
           App.BigdataRunPriorFirst)
   }
 
-  private def buildPresenceQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
+  def buildPresenceQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
     val taxon = Class(taxonIRI)
     val entity = Class(entityIRI)
     select_distinct('state, 'state_label, 'matrix_label) from "http://kb.phenoscape.org/" where (
@@ -60,28 +61,36 @@ object PresenceAbsenceOfStructure {
           App.BigdataRunPriorFirst)
   }
 
-  private def buildExhibitingAbsenceQuery(entityIRI: IRI): Query = {
+  def buildExhibitingAbsenceQuery(entityIRI: IRI, limit: Int): Query = {
     val entity = Individual(entityIRI)
-    select_distinct('taxon, 'taxon_label) from "http://kb.phenoscape.org/" where (
+    val query = select_distinct('taxon, 'taxon_label) from "http://kb.phenoscape.org/" where (
       bgp(
         t('taxon, exhibits_state / describes_phenotype, 'phenotype),
         t('taxon, rdfsLabel, 'taxon_label)),
         withOwlery(
           t('phenotype, rdfsSubClassOf, (LacksAllPartsOfType and (towards value entity) and (inheres_in some MultiCellularOrganism)).asOMN)),
           App.BigdataRunPriorFirst)
+    query.setLimit(limit)
+    query
   }
 
-  private def buildExhibitingPresenceQuery(entityIRI: IRI): Query = {
+  def buildExhibitingPresenceQuery(entityIRI: IRI, limit: Int): Query = {
     val entity = Class(entityIRI)
-    select_distinct('taxon, 'taxon_label) from "http://kb.phenoscape.org/" where (
+    val query = select_distinct('taxon, 'taxon_label) from "http://kb.phenoscape.org/" where (
       bgp(
         t('taxon, exhibits_state / describes_phenotype, 'phenotype),
         t('taxon, rdfsLabel, 'taxon_label)),
         withOwlery(
           t('phenotype, rdfsSubClassOf, (IMPLIES_PRESENCE_OF some entity).asOMN)),
           App.BigdataRunPriorFirst)
+    query.setLimit(limit)
+    query
   }
 
-  lazy val logger = Logger.getLogger(this.getClass)
+  private def resultToTaxon(result: QuerySolution): Taxon = Taxon(
+    IRI.create(result.getResource("taxon").getURI),
+    result.getLiteral("taxon_label").getLexicalForm)
+
+  private lazy val logger = Logger.getLogger(this.getClass)
 
 }
