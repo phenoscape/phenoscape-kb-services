@@ -64,14 +64,10 @@ object PresenceAbsenceOfStructure {
   }
 
   def buildExhibitingAbsenceQuery(entityIRI: IRI, limit: Int): Query = {
-    val entity = Individual(entityIRI)
     val query = select_distinct('taxon, 'taxon_label) from "http://kb.phenoscape.org/" where (
       bgp(
-        t('taxon, exhibits_state / describes_phenotype, 'phenotype),
-        t('taxon, rdfsLabel, 'taxon_label)),
-        withOwlery(
-          t('phenotype, owlEquivalentClass | rdfsSubClassOf, (LacksAllPartsOfType and (towards value entity) and (inheres_in some MultiCellularOrganism)).asOMN)),
-          App.BigdataRunPriorFirst)
+        t('taxon, has_absence_of, entityIRI),
+        t('taxon, rdfsLabel, 'taxon_label)))
     query.setLimit(limit)
     query
   }
@@ -80,11 +76,8 @@ object PresenceAbsenceOfStructure {
     val entity = Class(entityIRI)
     val query = select_distinct('taxon, 'taxon_label) from "http://kb.phenoscape.org/" where (
       bgp(
-        t('taxon, exhibits_state / describes_phenotype, 'phenotype),
-        t('taxon, rdfsLabel, 'taxon_label)),
-        withOwlery(
-          t('phenotype, owlEquivalentClass | rdfsSubClassOf, (IMPLIES_PRESENCE_OF some entity).asOMN)),
-          App.BigdataRunPriorFirst)
+        t('taxon, has_presence_of, entityIRI),
+        t('taxon, rdfsLabel, 'taxon_label)))
     query.setLimit(limit)
     query
   }

@@ -55,29 +55,34 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
   startServer(interface = "localhost", port = serverPort) {
 
     corsFilter(List("*")) {
-      pathPrefix("term") {
-        path("search") {
-          parameters('text, 'type.as[IRI].?(owlClass), 'property.?(rdfsLabel)) { (text, termType, property) =>
-            complete {
-              Term.search(text, termType, property)
-            }
-          }
-        } ~
-          path("label") {
-            parameters('iri.as[IRI]) { (iri) =>
+      path("kb" / "annotation_summary") {
+        complete {
+          KB.annotationSummary
+        }
+      } ~
+        pathPrefix("term") {
+          path("search") {
+            parameters('text, 'type.as[IRI].?(owlClass), 'property.?(rdfsLabel)) { (text, termType, property) =>
               complete {
-                Term.label(iri).map(_.getOrElse(TermSearchResult(iri, "<unlabeled>")))
+                Term.search(text, termType, property)
               }
             }
           } ~
-          path("labels") {
-            parameters('iris.as[Seq[IRI]]) { (iris) =>
-              complete {
-                Term.labels(iris: _*)
+            path("label") {
+              parameters('iri.as[IRI]) { (iri) =>
+                complete {
+                  Term.label(iri).map(_.getOrElse(TermSearchResult(iri, "<unlabeled>")))
+                }
+              }
+            } ~
+            path("labels") {
+              parameters('iris.as[Seq[IRI]]) { (iris) =>
+                complete {
+                  Term.labels(iris: _*)
+                }
               }
             }
-          }
-      } ~
+        } ~
         pathPrefix("characterstate") {
           path("search") {
             parameters('text, 'limit.as[Int]) { (text, limit) =>
