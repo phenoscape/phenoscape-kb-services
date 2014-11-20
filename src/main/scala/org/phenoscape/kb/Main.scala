@@ -7,6 +7,7 @@ import scala.util.Right
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 import org.phenoscape.kb.Term.JSONResultItemMarshaller
 import org.phenoscape.kb.Term.IRIMarshaller
+import org.phenoscape.kb.PhenexDataSet.DataSetMarshaller
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary
