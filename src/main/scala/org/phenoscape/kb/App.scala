@@ -41,7 +41,7 @@ object App {
 
   val `application/ld+json` = MediaTypes.register(MediaType.custom("application/ld+json"))
 
-  def withOwlery(triple: TriplePath): ElementService = service(App.OwleryEndpoint.toString, bgp(triple))
+  def withOwlery(triple: TripleOrPath): ElementService = service(App.OwleryEndpoint.toString, bgp(triple))
 
   def executeSPARQLQuery(query: Query): Future[ResultSet] = Future {
     blocking {

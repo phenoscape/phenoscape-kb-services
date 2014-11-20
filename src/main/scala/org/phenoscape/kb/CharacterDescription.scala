@@ -43,8 +43,7 @@ object CharacterDescription {
         t('state, rdfType, StandardState),
         t('character, may_have_state_value, 'state),
         t('matrix, has_character, 'character),
-        t('matrix, rdfsLabel, 'matrix_label)))
-    query.addOrderBy('rank, Query.ORDER_ASCENDING)
+        t('matrix, rdfsLabel, 'matrix_label))) order_by asc('rank)
     query.setLimit(limit)
     query
   }

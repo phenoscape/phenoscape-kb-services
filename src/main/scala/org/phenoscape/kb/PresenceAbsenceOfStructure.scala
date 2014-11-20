@@ -15,6 +15,13 @@ import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.query.QuerySolution
 import org.semanticweb.owlapi.model.OWLClassExpression
 import org.phenoscape.model.DataSet
+import com.hp.hpl.jena.sparql.path.P_Link
+import com.hp.hpl.jena.sparql.expr.ExprList
+import com.hp.hpl.jena.sparql.expr.ExprVar
+import com.hp.hpl.jena.sparql.expr.E_OneOf
+import com.hp.hpl.jena.sparql.syntax.ElementFilter
+import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
+import scala.collection.JavaConversions._
 
 object PresenceAbsenceOfStructure {
 
@@ -38,13 +45,15 @@ object PresenceAbsenceOfStructure {
 
   def buildMatrixQuery(entityClass: OWLClassExpression, taxonClass: OWLClassExpression): Query = {
     construct(
-      t('taxon, has_presence_of, 'entity),
+      t('taxon, 'relation, 'entity),
       t('taxon, rdfsLabel, 'taxon_label)) from "http://kb.phenoscape.org/" where (
         bgp(
-          t('taxon, has_presence_of, 'entity),
+          t('taxon, 'relation, 'entity),
           t('taxon, rdfsLabel, 'taxon_label),
           t('entity, rdfsSubClassOf, entityClass.asOMN),
-          t('taxon, rdfsSubClassOf, taxonClass.asOMN)))
+          t('taxon, rdfsSubClassOf, taxonClass.asOMN)),
+          new ElementFilter(new E_OneOf(new ExprVar('relation),
+            new ExprList(List(new NodeValueNode(has_presence_of), new NodeValueNode(has_absence_of))))))
   }
 
   def expandMatrixQuery(query: Query): Future[Query] = {
