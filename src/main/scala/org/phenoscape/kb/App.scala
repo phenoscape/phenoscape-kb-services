@@ -15,18 +15,25 @@ import com.hp.hpl.jena.query.QuerySolution
 import scala.collection.JavaConversions._
 import com.hp.hpl.jena.sparql.core.TriplePath
 import com.hp.hpl.jena.sparql.syntax.ElementService
-import spray.http.MediaTypes
-import spray.http.MediaType
+import spray.http._
 import com.hp.hpl.jena.query.ResultSetFormatter
 import java.io.ByteArrayOutputStream
 import spray.json.JsValue
 import spray.json.JsObject
+import spray.client.pipelining._
+import spray.httpx.unmarshalling._
+import spray.httpx.marshalling._
+import Main.system
+import com.hp.hpl.jena.query.QueryFactory
+import spray.can.Http
+import com.hp.hpl.jena.rdf.model.Model
 
 object App {
 
   private val Prior = IRI.create("http://www.bigdata.com/queryHints#Prior")
   private val RunFirst = IRI.create("http://www.bigdata.com/queryHints#runFirst")
   val BigdataRunPriorFirst = bgp(t(Prior, RunFirst, "true" ^^ XSDDatatype.XSDboolean))
+  val `application/sparql-query` = MediaTypes.register(MediaType.custom("application/sparql-query"))
 
   val conf = ConfigFactory.load()
   val KBEndpoint = IRI.create(conf.getString("kb-services.kb.endpoint"))
@@ -54,6 +61,15 @@ object App {
       results
     }
   }
+  
+  def executeSPARQLConstructQuery(query: Query): Future[Model] = Future {
+    blocking {
+      val queryEngine = new QueryEngineHTTP(App.KBEndpoint.toString, query)
+      val model = queryEngine.execConstruct()
+      queryEngine.close()
+      model
+    }
+  }
 
   def resultSetToTSV(result: ResultSet): String = {
     val outStream = new ByteArrayOutputStream()
@@ -61,6 +77,14 @@ object App {
     val tsv = outStream.toString("utf-8")
     outStream.close()
     tsv
+  }
+
+  private implicit val SPARQLQueryMarshaller = Marshaller.delegate[Query, String](`application/sparql-query`, MediaTypes.`text/plain`)(_.toString)
+  private implicit val SPARQLQueryBodyUnmarshaller = Unmarshaller.delegate[String, Query](`application/sparql-query`)(QueryFactory.create)
+
+  def expandWithOwlet(query: Query): Future[Query] = {
+    val pipeline = sendReceive ~> unmarshal[Query]
+    pipeline(Post("http://pkb-new.nescent.org/owlery/kbs/phenoscape/expand", query))
   }
 
 }

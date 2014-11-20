@@ -83,6 +83,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
               }
             }
         } ~
+        path("matrix") {
+          parameters('entity.as[IRI], 'taxon.as[IRI]) { (entity, taxon) =>
+            complete {
+              PresenceAbsenceOfStructure.presenceAbsenceMatrix(factory.getOWLClass(entity), factory.getOWLClass(taxon))
+            }
+          }
+        } ~
         pathPrefix("characterstate") {
           path("search") {
             parameters('text, 'limit.as[Int]) { (text, limit) =>

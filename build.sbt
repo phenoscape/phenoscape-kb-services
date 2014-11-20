@@ -33,6 +33,8 @@ resolvers += "Bigdata repository" at "http://www.systap.com/maven/releases"
 
 resolvers += "NXParser repository" at "http://nxparser.googlecode.com/svn/repository"
 
+resolvers += "BBOP repository" at "http://code.berkeleybop.org/maven/repository"
+
 libraryDependencies ++= {
   val akkaV = "2.3.0"
   val sprayV = "1.3.1"
@@ -49,10 +51,12 @@ libraryDependencies ++= {
     "org.phenoscape"         %   "owlet"               % "1.2",
     "org.phenoscape"         %   "scowl"               % "0.8",
     "org.phenoscape"         %   "kb-owl-tools"        % "1.0.4",
+    "org.phenoscape"         %   "phenex"              % "1.15.4",
     "commons-io"             %   "commons-io"          % "2.4",
     "org.apache.jena"        %   "apache-jena-libs"    % "2.11.2",
     "com.google.guava"       %   "guava"               % "16.0.1",
-    "org.scalaz"             %   "scalaz-core_2.10"    % "7.1.0"
+    "org.scalaz"             %   "scalaz-core_2.10"    % "7.1.0",
+    "org.bbop"               %   "oboformat"           % "0.5.5"
   )
 }
 

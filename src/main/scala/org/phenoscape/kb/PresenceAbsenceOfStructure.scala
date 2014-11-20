@@ -2,7 +2,6 @@ package org.phenoscape.kb
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 import org.apache.log4j.Logger
 import org.phenoscape.kb.App.withOwlery
 import org.phenoscape.owl.Vocab._
@@ -12,9 +11,10 @@ import org.phenoscape.scowl.OWL._
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.semanticweb.owlapi.model.IRI
-
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.query.QuerySolution
+import org.semanticweb.owlapi.model.OWLClassExpression
+import org.phenoscape.model.DataSet
 
 object PresenceAbsenceOfStructure {
 
@@ -30,6 +30,26 @@ object PresenceAbsenceOfStructure {
 
   def taxaExhibitingAbsence(entity: IRI, limit: Int): Future[Seq[Taxon]] =
     App.executeSPARQLQuery(buildExhibitingAbsenceQuery(entity, limit), resultToTaxon)
+
+  def presenceAbsenceMatrix(entityClass: OWLClassExpression, taxonClass: OWLClassExpression): Future[String] = for {
+    query <- App.expandWithOwlet(buildMatrixQuery(entityClass, taxonClass))
+    model <- App.executeSPARQLConstructQuery(query)
+  } yield model.size.toString
+
+  def buildMatrixQuery(entityClass: OWLClassExpression, taxonClass: OWLClassExpression): Query = {
+    construct(
+      t('taxon, has_presence_of, 'entity),
+      t('taxon, rdfsLabel, 'taxon_label)) from "http://kb.phenoscape.org/" where (
+        bgp(
+          t('taxon, has_presence_of, 'entity),
+          t('taxon, rdfsLabel, 'taxon_label),
+          t('entity, rdfsSubClassOf, entityClass.asOMN),
+          t('taxon, rdfsSubClassOf, taxonClass.asOMN)))
+  }
+
+  def expandMatrixQuery(query: Query): Future[Query] = {
+    App.expandWithOwlet(query)
+  }
 
   def buildAbsenceQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
     val taxon = Class(taxonIRI)
