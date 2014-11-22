@@ -3,7 +3,6 @@ package org.phenoscape.kb
 import scala.collection.immutable.Map
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Right
-
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 import org.phenoscape.kb.Term.JSONResultItemMarshaller
 import org.phenoscape.kb.Term.IRIMarshaller
@@ -11,9 +10,8 @@ import org.phenoscape.kb.PhenexDataSet.DataSetMarshaller
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary
-
+import org.phenoscape.kb.OWLFormats.ManchesterSyntaxClassExpression
 import com.typesafe.config.ConfigFactory
-
 import akka.actor.ActorSystem
 import spray.httpx.marshalling._
 import spray.httpx.unmarshalling._
@@ -21,6 +19,7 @@ import spray.json._
 import spray.routing._
 import spray.routing.SimpleRoutingApp
 import spray.routing.directives._
+import org.semanticweb.owlapi.model.OWLClassExpression
 
 object Main extends App with SimpleRoutingApp with CORSDirectives {
 
@@ -84,10 +83,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
               }
             }
         } ~
-        path("matrix") {
-          parameters('entity.as[IRI], 'taxon.as[IRI]) { (entity, taxon) =>
+        path("ontotrace") {
+          parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression]) { (entity, taxon) =>
             complete {
-              PresenceAbsenceOfStructure.presenceAbsenceMatrix(factory.getOWLClass(entity), factory.getOWLClass(taxon))
+              PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon)
             }
           }
         } ~
@@ -168,7 +167,6 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
               }
             }
         }
-
     }
   }
 
