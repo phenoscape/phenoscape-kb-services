@@ -30,21 +30,35 @@ import org.phenoscape.kb.KBVocab.rdfsLabel
 
 object Term {
 
-  def search(text: String, termType: IRI, property: IRI): Future[Seq[TermSearchResult]] = {
-    App.executeSPARQLQuery(buildSearchQuery(text, termType, property), TermSearchResult.fromQuerySolution)
+  def search(text: String, termType: IRI, property: IRI): Future[Seq[MinimalTerm]] = {
+    App.executeSPARQLQuery(buildSearchQuery(text, termType, property), Term.fromMinimalQuerySolution)
   }
 
-  def searchAnatomicalTerms(text: String, limit: Int): Future[Seq[TermSearchResult]] = {
-    App.executeSPARQLQuery(buildAnatomicalTermQuery(text, limit), TermSearchResult.fromQuerySolution)
+  def searchAnatomicalTerms(text: String, limit: Int): Future[Seq[MinimalTerm]] = {
+    App.executeSPARQLQuery(buildAnatomicalTermQuery(text, limit), Term.fromMinimalQuerySolution)
   }
 
-  def label(iri: IRI): Future[Option[TermSearchResult]] = {
-    def convert(result: QuerySolution): TermSearchResult = TermSearchResult(iri, result.getLiteral("term_label").getLexicalForm)
+  def label(iri: IRI): Future[Option[MinimalTerm]] = {
+    def convert(result: QuerySolution): MinimalTerm = MinimalTerm(iri, result.getLiteral("term_label").getLexicalForm)
     App.executeSPARQLQuery(buildLabelQuery(iri), convert).map(_.headOption)
   }
 
-  def labels(iris: IRI*): Future[Seq[TermSearchResult]] = {
-    App.executeSPARQLQuery(buildLabelsQuery(iris: _*), TermSearchResult.fromQuerySolution)
+  def labels(iris: IRI*): Future[Seq[MinimalTerm]] = {
+    App.executeSPARQLQuery(buildLabelsQuery(iris: _*), Term.fromMinimalQuerySolution)
+  }
+
+  def withIRI(iri: IRI): Future[Option[Term]] = {
+    App.executeSPARQLQuery(buildTermQuery(iri), Term.fromQuerySolution(_)(iri)).map(_.headOption)
+
+  }
+
+  def buildTermQuery(iri: IRI): Query = {
+    select('label, 'definition) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t(iri, rdfsLabel, 'label)),
+        optional(
+          bgp(
+            t(iri, definition, 'definition))))
   }
 
   def buildSearchQuery(text: String, termType: IRI, property: IRI): Query = {
@@ -106,9 +120,21 @@ object Term {
     new JsObject(Map("@id" -> iri.toString.toJson))
   }
 
+  def fromQuerySolution(result: QuerySolution)(iri: IRI): Term = Term(iri,
+    result.getLiteral("label").getLexicalForm,
+    Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""))
+
+  def fromQuerySolution2(iri: IRI)(result: QuerySolution): Term = Term(iri,
+    result.getLiteral("label").getLexicalForm,
+    Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""))
+
+  def fromMinimalQuerySolution(result: QuerySolution): MinimalTerm = MinimalTerm(
+    IRI.create(result.getResource("term").getURI),
+    result.getLiteral("term_label").getLexicalForm)
+
 }
 
-case class TermSearchResult(iri: IRI, label: String) extends JSONResultItem {
+case class Term(iri: IRI, label: String, definition: String) extends JSONResultItem {
 
   def toJSON: JsObject = {
     Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
@@ -116,10 +142,10 @@ case class TermSearchResult(iri: IRI, label: String) extends JSONResultItem {
 
 }
 
-object TermSearchResult {
+case class MinimalTerm(iri: IRI, label: String) extends JSONResultItem {
 
-  def fromQuerySolution(result: QuerySolution): TermSearchResult = TermSearchResult(
-    IRI.create(result.getResource("term").getURI),
-    result.getLiteral("term_label").getLexicalForm)
+  def toJSON: JsObject = {
+    Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
+  }
 
 }

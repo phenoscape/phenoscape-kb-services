@@ -71,7 +71,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             path("label") {
               parameters('iri.as[IRI]) { (iri) =>
                 complete {
-                  Term.label(iri).map(_.getOrElse(TermSearchResult(iri, "<unlabeled>")))
+                  Term.label(iri).map(_.getOrElse(MinimalTerm(iri, "<unlabeled>")))
                 }
               }
             } ~
@@ -79,6 +79,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
               parameters('iris.as[Seq[IRI]]) { (iris) =>
                 complete {
                   Term.labels(iris: _*)
+                }
+              }
+            } ~
+            pathEnd {
+              parameters('iri.as[IRI]) { iri =>
+                complete {
+                  Term.withIRI(iri)
                 }
               }
             }

@@ -17,6 +17,7 @@ object KBVocab {
    val rdfsLabel = ObjectProperty(RDFS_LABEL.getIRI)
    val hasExactSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym")
    val hasRelatedSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym")
+   val definition = ObjectProperty("http://purl.obolibrary.org/obo/IAO_0000115")
    val rdfsIsDefinedBy = ObjectProperty(RDFS.isDefinedBy.getURI)
    val owlClass = IRI.create(OWL2.Class.getURI)
    val owlEquivalentClass = ObjectProperty(OWL2.equivalentClass.getURI)
