@@ -137,7 +137,7 @@ object Term {
 case class Term(iri: IRI, label: String, definition: String) extends JSONResultItem {
 
   def toJSON: JsObject = {
-    Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
+    Map("@id" -> iri.toString, "label" -> label, "definition" -> definition).toJson.asJsObject
   }
 
 }
