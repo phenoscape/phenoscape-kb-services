@@ -15,7 +15,9 @@ import com.typesafe.config.ConfigFactory
 import akka.actor.ActorSystem
 import spray.httpx.marshalling._
 import spray.httpx.unmarshalling._
+import spray.httpx.SprayJsonSupport._
 import spray.json._
+import spray.json.DefaultJsonProtocol._
 import spray.routing._
 import spray.routing.SimpleRoutingApp
 import spray.routing.directives._
@@ -147,6 +149,15 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   }
                 }
             }
+        } ~
+        pathPrefix("gene") {
+          path("eq") {
+            parameters('id.as[IRI]) { iri =>
+              complete {
+                EQForGene.query(iri)
+              }
+            }
+          }
         } ~
         path("genes_expressed_in_structure") {
           parameters('entity.as[IRI]) { entity =>

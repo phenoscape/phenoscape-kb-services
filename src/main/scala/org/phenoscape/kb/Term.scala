@@ -49,7 +49,6 @@ object Term {
 
   def withIRI(iri: IRI): Future[Option[Term]] = {
     App.executeSPARQLQuery(buildTermQuery(iri), Term.fromQuerySolution(_)(iri)).map(_.headOption)
-
   }
 
   def buildTermQuery(iri: IRI): Query = {
@@ -121,10 +120,6 @@ object Term {
   }
 
   def fromQuerySolution(result: QuerySolution)(iri: IRI): Term = Term(iri,
-    result.getLiteral("label").getLexicalForm,
-    Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""))
-
-  def fromQuerySolution2(iri: IRI)(result: QuerySolution): Term = Term(iri,
     result.getLiteral("label").getLexicalForm,
     Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""))
 

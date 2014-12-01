@@ -33,6 +33,11 @@ object CharacterDescription {
     App.executeSPARQLQuery(buildSearchQuery(text, limit), CharacterDescription(_))
   }
 
+  def withIRI(iri: IRI): Future[Option[CharacterDescription]] = {
+    //App.executeSPARQLQuery(buildCharacterDescriptionQuery(iri), Term.fromQuerySolution(_)(iri)).map(_.headOption)
+    ???
+  }
+
   def buildSearchQuery(text: String, limit: Int): Query = {
     val query = select_distinct('state, 'state_desc, 'matrix, 'matrix_label) from "http://kb.phenoscape.org/" where (
       bgp(
@@ -48,8 +53,23 @@ object CharacterDescription {
     query
   }
 
+  def buildCharacterDescriptionQuery(iri: IRI): Query = {
+    select_distinct('state_desc, 'matrix, 'matrix_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t(iri, dcDescription, 'state_desc),
+        t('character, may_have_state_value, iri),
+        t('matrix, has_character, 'character),
+        t('matrix, rdfsLabel, 'matrix_label)))
+  }
+
   def apply(result: QuerySolution): CharacterDescription = CharacterDescription(
     IRI.create(result.getResource("state").getURI),
+    result.getLiteral("state_desc").getLexicalForm,
+    CharacterMatrix(
+      IRI.create(result.getResource("matrix").getURI),
+      result.getLiteral("matrix_label").getLexicalForm))
+
+  def fromQuerySolution(result: QuerySolution)(iri: IRI): CharacterDescription = CharacterDescription(iri,
     result.getLiteral("state_desc").getLexicalForm,
     CharacterMatrix(
       IRI.create(result.getResource("matrix").getURI),

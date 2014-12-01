@@ -5,6 +5,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.parsing.json.JSONArray
 import scala.util.parsing.json.JSONObject
+import spray.json.DefaultJsonProtocol._
+import spray.json._
 import scala.language.postfixOps
 
 import org.phenoscape.owl.NamedRestrictionGenerator
@@ -27,9 +29,7 @@ object EQForGene {
   val UBERON = IRI.create("http://purl.obolibrary.org/obo/uberon.owl")
   val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
 
-  def query(geneIDParam: String): Future[JSONArray] = {
-    val geneIDOption: Option[String] = Option(geneIDParam)
-    val geneID = geneIDOption.getOrElse(???)
+  def query(geneID: IRI): Future[JsArray] = {
     val result = for {
       annotations <- annotationsForGene(geneID)
     } yield {
@@ -41,19 +41,18 @@ object EQForGene {
         for {
           entities <- entitiesFuture
           qualities <- qualitiesFuture
-        } yield new JSONObject(Map("entity" -> new JSONArray(entities.toList), "quality" -> new JSONArray(qualities.toList)))
+        } yield Map("entity" -> entities, "quality" -> qualities).toJson
       })
-      allAnnotationsFuture.map(annotations => new JSONArray(annotations.toList))
+      allAnnotationsFuture.map(annotations => JsArray(annotations.toList))
     }
     result.flatMap(identity) //FIXME this method is a bit messy
   }
 
-  def annotationsForGene(geneID: String): Future[Iterable[String]] = {
+  def annotationsForGene(geneID: IRI): Future[Iterable[String]] = {
     App.executeSPARQLQuery(annotationsQuery(geneID), _.getResource("annotation").getURI)
   }
 
-  def annotationsQuery(geneID: String): Query = {
-    val geneIRI = IRI.create(geneID)
+  def annotationsQuery(geneIRI: IRI): Query = {
     select_distinct('annotation) from "http://kb.phenoscape.org/" where (
       bgp(
         t('annotation, rdfType, Vocab.AnnotatedPhenotype),
