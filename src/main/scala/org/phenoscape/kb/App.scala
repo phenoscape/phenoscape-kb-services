@@ -55,8 +55,8 @@ object App {
   def executeSPARQLQuery[T](query: Query, resultMapper: QuerySolution => T): Future[Seq[T]] = Future {
     blocking {
       val queryEngine = new QueryEngineHTTP(App.KBEndpoint.toString, query)
-      val resultSet = queryEngine.execSelect
-      val results = resultSet.map(resultMapper).toVector
+      val resultSet = ResultSetFactory.copyResults(queryEngine.execSelect)
+      val results = resultSet.map(resultMapper).toSeq
       queryEngine.close()
       results
     }
