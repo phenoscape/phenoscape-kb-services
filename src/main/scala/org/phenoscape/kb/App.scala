@@ -1,6 +1,5 @@
 package org.phenoscape.kb
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.blocking
 import org.phenoscape.owlet.SPARQLComposer._
@@ -24,6 +23,7 @@ import spray.client.pipelining._
 import spray.httpx.unmarshalling._
 import spray.httpx.marshalling._
 import Main.system
+import system.dispatcher
 import com.hp.hpl.jena.query.QueryFactory
 import spray.can.Http
 import com.hp.hpl.jena.rdf.model.Model
@@ -34,6 +34,7 @@ object App {
   private val RunFirst = IRI.create("http://www.bigdata.com/queryHints#runFirst")
   val BigdataRunPriorFirst = bgp(t(Prior, RunFirst, "true" ^^ XSDDatatype.XSDboolean))
   val `application/sparql-query` = MediaTypes.register(MediaType.custom("application/sparql-query"))
+  val `application/sparql-results+xml` = MediaTypes.register(MediaType.custom("application/sparql-results+xml"))
 
   val conf = ConfigFactory.load()
   val KBEndpoint = IRI.create(conf.getString("kb-services.kb.endpoint"))
@@ -43,25 +44,14 @@ object App {
 
   def withOwlery(triple: TripleOrPath): ElementService = service(App.OwleryEndpoint.toString, bgp(triple))
 
-  def executeSPARQLQuery(query: Query): Future[ResultSet] = Future {
-    blocking {
-      val queryEngine = new QueryEngineHTTP(App.KBEndpoint.toString, query)
-      val resultSet = ResultSetFactory.copyResults(queryEngine.execSelect)
-      queryEngine.close()
-      resultSet
-    }
+  def executeSPARQLQuery(query: Query): Future[ResultSet] = sparqlQuery(Post(App.KBEndpoint.toString, query))
+
+  def executeSPARQLQuery[T](query: Query, resultMapper: QuerySolution => T): Future[Seq[T]] = for {
+    resultSet <- sparqlQuery(Post(App.KBEndpoint.toString, query))
+  } yield {
+    resultSet.map(resultMapper).toSeq
   }
 
-  def executeSPARQLQuery[T](query: Query, resultMapper: QuerySolution => T): Future[Seq[T]] = Future {
-    blocking {
-      val queryEngine = new QueryEngineHTTP(App.KBEndpoint.toString, query)
-      val resultSet = ResultSetFactory.copyResults(queryEngine.execSelect)
-      val results = resultSet.map(resultMapper).toSeq
-      queryEngine.close()
-      results
-    }
-  }
-  
   def executeSPARQLConstructQuery(query: Query): Future[Model] = Future {
     blocking {
       val queryEngine = new QueryEngineHTTP(App.KBEndpoint.toString, query)
@@ -81,10 +71,13 @@ object App {
 
   private implicit val SPARQLQueryMarshaller = Marshaller.delegate[Query, String](`application/sparql-query`, MediaTypes.`text/plain`)(_.toString)
   private implicit val SPARQLQueryBodyUnmarshaller = Unmarshaller.delegate[String, Query](`application/sparql-query`)(QueryFactory.create)
+  private implicit val SPARQLResultsXMLUnmarshaller = Unmarshaller.delegate[String, ResultSet](`application/sparql-results+xml`)(ResultSetFactory.fromXML)
 
   def expandWithOwlet(query: Query): Future[Query] = {
     val pipeline = sendReceive ~> unmarshal[Query]
     pipeline(Post("http://pkb-new.nescent.org/owlery/kbs/phenoscape/expand", query))
   }
+
+  val sparqlQuery: HttpRequest => Future[ResultSet] = addHeader(HttpHeaders.Accept(`application/sparql-results+xml`)) ~> sendReceive ~> unmarshal[ResultSet]
 
 }

@@ -18,6 +18,8 @@ import org.semanticweb.owlapi.model.IRI
 
 import com.google.common.collect.HashMultiset
 import com.hp.hpl.jena.query.Query
+import akka.util.Timeout
+import scala.concurrent.duration._
 
 object EQForGene {
 
@@ -28,6 +30,7 @@ object EQForGene {
   val inheresInSome = NamedRestrictionGenerator.getClassRelationIRI(Vocab.inheres_in.getIRI)
   val UBERON = IRI.create("http://purl.obolibrary.org/obo/uberon.owl")
   val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
+  implicit val timeout = Timeout(10 minutes)
 
   def query(geneID: IRI): Future[JsArray] = {
     val result = for {
