@@ -106,6 +106,22 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 CharacterDescription.search(text, limit)
               }
             }
+          } ~
+            path("query") {
+              parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'limit.as[Int], 'offset.as[Int]) { (entity, taxon, limit, offset) =>
+                complete {
+                  CharacterDescription.query(entity, taxon, Nil, limit, offset)
+                }
+              }
+            }
+        } ~
+        pathPrefix("taxon") {
+          path("query") {
+            parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'limit.as[Int], 'offset.as[Int]) { (entity, taxon, limit, offset) =>
+              complete {
+                Taxon.query(entity, taxon, Nil, limit, offset)
+              }
+            }
           }
         } ~
         pathPrefix("entity") {

@@ -26,6 +26,11 @@ import scala.collection.JavaConversions._
 import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
+import org.phenoscape.kb.Main.system.dispatcher
+import org.semanticweb.owlapi.model.OWLClassExpression
+import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
+import com.hp.hpl.jena.graph.Node
+import org.semanticweb.owlapi.apibinding.OWLManager
 
 object CharacterDescription {
 
@@ -33,9 +38,43 @@ object CharacterDescription {
     App.executeSPARQLQuery(buildSearchQuery(text, limit), CharacterDescription(_))
   }
 
+  def query(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[Seq[CharacterDescription]] = for {
+    query <- App.expandWithOwlet(buildQuery(entity, taxon, publications, limit, offset))
+    descriptions <- App.executeSPARQLQuery(query, CharacterDescription(_))
+  } yield {
+    descriptions
+  }
+
   def withIRI(iri: IRI): Future[Option[CharacterDescription]] = {
-    //App.executeSPARQLQuery(buildCharacterDescriptionQuery(iri), Term.fromQuerySolution(_)(iri)).map(_.headOption)
-    ???
+    App.executeSPARQLQuery(buildCharacterDescriptionQuery(iri), fromQuerySolution(_)(iri)).map(_.headOption)
+  }
+
+  def buildQuery(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
+    val query = TaxonEQAnnotation.buildQuery(entity, taxon, publications)
+    query.addResultVar('state)
+    query.addResultVar('state_desc)
+    query.addResultVar('matrix)
+    query.addResultVar('matrix_label)
+    query.setOffset(offset)
+    query.setLimit(limit)
+    query.addOrderBy('state_desc)
+    query.addOrderBy('state)
+    query
+
+    //    val entityPatterns = if (entity == OWLThing) Nil else
+    //      t('state, ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
+    //    val filters = if (publications.isEmpty) Nil else
+    //      new ElementFilter(new E_OneOf(new ExprVar('matrix), new ExprList(publications.map(new NodeValueNode(_)).toList))) :: Nil
+    //    val query = select_distinct('state, 'state_desc, 'matrix, 'matrix_label) from "http://kb.phenoscape.org/" where (
+    //      bgp(
+    //        t('state, dcDescription, 'state_desc) ::
+    //          t('character, may_have_state_value, 'state) ::
+    //          t('matrix, has_character, 'character) ::
+    //          t('matrix, rdfsLabel, 'matrix_label) ::
+    //          entityPatterns: _*) ::
+    //        filters: _*) order_by ('state_desc, 'state) limit (limit)
+    //    query.setOffset(offset)
+    //    query
   }
 
   def buildSearchQuery(text: String, limit: Int): Query = {
