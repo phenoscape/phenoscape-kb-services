@@ -33,14 +33,15 @@ object TaxonEQAnnotation {
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         t('state, dcDescription, 'state_desc) ::
-          t('state, ps_entity_term, 'annotated_entity) ::
-          t('state, ps_quality_term, 'annotated_quality) ::
+          t('state, describes_phenotype, 'phenotype) ::
+          t('phenotype, ps_entity_term, 'annotated_entity) ::
+          t('phenotype, ps_quality_term, 'annotated_quality) ::
           t('matrix, has_character / may_have_state_value, 'state) ::
           t('matrix, rdfsLabel, 'matrix_label) ::
           t('taxon, exhibits_state, 'state) ::
           t('taxon, rdfsLabel, 'taxon_label) ::
           entityPatterns: _*) ::
-        optional(bgp(t('state, ps_related_entity_term, 'annotated_related_entity))) ::
+        optional(bgp(t('phenotype, ps_related_entity_term, 'annotated_related_entity))) ::
         filters: _*)
   }
 
