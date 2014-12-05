@@ -2,8 +2,14 @@ akka {
   loglevel = INFO
 }
 
-spray.can.server {
-  request-timeout = infinite
+
+spray.can {
+	server {
+		request-timeout = infinite
+	}
+	client {
+		request-timeout = infinite
+	}
 }
 
 kb-services {
