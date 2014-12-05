@@ -72,12 +72,9 @@ object CharacterDescription {
       bgp(
         t('state, dcDescription, 'state_desc) ::
           t('state, describes_phenotype, 'phenotype) ::
-          t('phenotype, ps_entity_term, 'annotated_entity) ::
-          t('phenotype, ps_quality_term, 'annotated_quality) ::
           t('matrix, has_character / may_have_state_value, 'state) ::
           t('matrix, rdfsLabel, 'matrix_label) ::
           entityPatterns: _*) ::
-        optional(bgp(t('phenotype, ps_related_entity_term, 'annotated_related_entity))) ::
         filters: _*)
 
     query.addResultVar('state)
@@ -101,12 +98,9 @@ object CharacterDescription {
       bgp(
         t('state, dcDescription, 'state_desc) ::
           t('state, describes_phenotype, 'phenotype) ::
-          t('phenotype, ps_entity_term, 'annotated_entity) ::
-          t('phenotype, ps_quality_term, 'annotated_quality) ::
           t('matrix, has_character / may_have_state_value, 'state) ::
           t('matrix, rdfsLabel, 'matrix_label) ::
           entityPatterns: _*) ::
-        optional(bgp(t('phenotype, ps_related_entity_term, 'annotated_related_entity))) ::
         filters: _*)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
     query

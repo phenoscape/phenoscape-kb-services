@@ -108,9 +108,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             }
           } ~
             path("query") {
-              parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'limit.as[Int], 'offset.as[Int]) { (entity, taxon, limit, offset) =>
+              parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'limit.as[Int], 'offset.as[Int], 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
                 complete {
-                  CharacterDescription.query(entity, taxon, Nil, limit, offset)
+                  if (total) CharacterDescription.queryTotal(entity, taxon, Nil, limit, offset)
+                  else CharacterDescription.query(entity, taxon, Nil, limit, offset)
                 }
               }
             }
