@@ -30,6 +30,8 @@ import com.hp.hpl.jena.rdf.model.Model
 import org.apache.jena.riot.RDFDataMgr
 import com.hp.hpl.jena.rdf.model.ModelFactory
 import java.io.ByteArrayInputStream
+import akka.util.Timeout
+import scala.concurrent.duration._
 
 object App {
 
@@ -43,6 +45,7 @@ object App {
   val conf = ConfigFactory.load()
   val KBEndpoint = IRI.create(conf.getString("kb-services.kb.endpoint"))
   val OwleryEndpoint = IRI.create(conf.getString("kb-services.owlery.endpoint"))
+  implicit val timeout = Timeout(10.minutes)
 
   val `application/ld+json` = MediaTypes.register(MediaType.custom("application/ld+json"))
 
