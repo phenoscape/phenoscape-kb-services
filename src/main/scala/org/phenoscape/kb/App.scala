@@ -68,6 +68,10 @@ object App {
     tsv
   }
 
+  def resultCount(resultSet: ResultSet): Int =
+    if (resultSet.hasNext) resultSet.next.getLiteral("count").getInt
+    else 0
+
   private implicit val SPARQLQueryMarshaller = Marshaller.delegate[Query, String](`application/sparql-query`, MediaTypes.`text/plain`)(_.toString)
   private implicit val SPARQLQueryBodyUnmarshaller = Unmarshaller.delegate[String, Query](`application/sparql-query`)(QueryFactory.create)
   private implicit val SPARQLResultsXMLUnmarshaller = Unmarshaller.delegate[String, ResultSet](`application/sparql-results+xml`)(ResultSetFactory.fromXML)

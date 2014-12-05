@@ -31,6 +31,8 @@ import org.semanticweb.owlapi.model.OWLClassExpression
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import com.hp.hpl.jena.graph.Node
 import org.semanticweb.owlapi.apibinding.OWLManager
+import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
+import com.hp.hpl.jena.sparql.core.Var
 
 object CharacterDescription {
 
@@ -43,6 +45,13 @@ object CharacterDescription {
     descriptions <- App.executeSPARQLQuery(query, CharacterDescription(_))
   } yield {
     descriptions
+  }
+
+  def queryTotal(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[ResultCount] = for {
+    query <- App.expandWithOwlet(buildTotalQuery(entity, taxon, publications, limit, offset))
+    result <- App.executeSPARQLQuery(query)
+  } yield {
+    ResultCount(result)
   }
 
   def withIRI(iri: IRI): Future[Option[CharacterDescription]] = {
@@ -60,21 +69,12 @@ object CharacterDescription {
     query.addOrderBy('state_desc)
     query.addOrderBy('state)
     query
+  }
 
-    //    val entityPatterns = if (entity == OWLThing) Nil else
-    //      t('state, ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
-    //    val filters = if (publications.isEmpty) Nil else
-    //      new ElementFilter(new E_OneOf(new ExprVar('matrix), new ExprList(publications.map(new NodeValueNode(_)).toList))) :: Nil
-    //    val query = select_distinct('state, 'state_desc, 'matrix, 'matrix_label) from "http://kb.phenoscape.org/" where (
-    //      bgp(
-    //        t('state, dcDescription, 'state_desc) ::
-    //          t('character, may_have_state_value, 'state) ::
-    //          t('matrix, has_character, 'character) ::
-    //          t('matrix, rdfsLabel, 'matrix_label) ::
-    //          entityPatterns: _*) ::
-    //        filters: _*) order_by ('state_desc, 'state) limit (limit)
-    //    query.setOffset(offset)
-    //    query
+  def buildTotalQuery(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
+    val query = TaxonEQAnnotation.buildQuery(entity, taxon, publications)
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
+    query
   }
 
   def buildSearchQuery(text: String, limit: Int): Query = {

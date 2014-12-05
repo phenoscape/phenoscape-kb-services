@@ -26,6 +26,8 @@ import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.query.QuerySolution
+import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
+import com.hp.hpl.jena.sparql.core.Var
 
 object Taxon {
 
@@ -36,6 +38,13 @@ object Taxon {
     descriptions
   }
 
+  def queryTotal(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[ResultCount] = for {
+    query <- App.expandWithOwlet(buildTotalQuery(entity, taxon, publications, limit, offset))
+    result <- App.executeSPARQLQuery(query)
+  } yield {
+    ResultCount(result)
+  }
+
   def buildQuery(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
     val query = TaxonEQAnnotation.buildQuery(entity, taxon, publications)
     query.addResultVar('taxon)
@@ -44,6 +53,12 @@ object Taxon {
     query.setLimit(limit)
     query.addOrderBy('taxon_label)
     query.addOrderBy('taxon)
+    query
+  }
+
+  def buildTotalQuery(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
+    val query = TaxonEQAnnotation.buildQuery(entity, taxon, publications)
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
     query
   }
 

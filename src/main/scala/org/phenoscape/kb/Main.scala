@@ -117,9 +117,11 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
         } ~
         pathPrefix("taxon") {
           path("query") {
-            parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'limit.as[Int], 'offset.as[Int]) { (entity, taxon, limit, offset) =>
+            parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'limit.as[Int], 'offset.as[Int], 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
               complete {
-                Taxon.query(entity, taxon, Nil, limit, offset)
+                if (total) Taxon.queryTotal(entity, taxon, Nil, limit, offset)
+                else Taxon.query(entity, taxon, Nil, limit, offset)
+
               }
             }
           }

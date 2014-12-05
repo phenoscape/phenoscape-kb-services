@@ -51,7 +51,7 @@ object KB {
       bgp(
         t('character, rdfType, StandardCharacter)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("character"))))
-    App.executeSPARQLQuery(query).map(count)
+    App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   def stateCount: Future[Int] = {
@@ -59,7 +59,7 @@ object KB {
       bgp(
         t('state, rdfType, StandardState)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
-    App.executeSPARQLQuery(query).map(count)
+    App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   def annotatedCharacterCount: Future[Int] = {
@@ -69,7 +69,7 @@ object KB {
         t('character, may_have_state_value, 'state),
         t('state, describes_phenotype, 'phenotype)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("character"))))
-    App.executeSPARQLQuery(query).map(count)
+    App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   def annotatedStateCount: Future[Int] = {
@@ -78,7 +78,7 @@ object KB {
         t('state, rdfType, StandardState),
         t('state, describes_phenotype, 'phenotype)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
-    App.executeSPARQLQuery(query).map(count)
+    App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   def taxonCount: Future[Int] = {
@@ -88,7 +88,7 @@ object KB {
         t('taxon, rdfType, Taxon)),
         new ElementFilter(new E_NotExists(triplesBlock(bgp(t('taxon, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
-    App.executeSPARQLQuery(query).map(count)
+    App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   private def triplesBlock(elements: Element*): ElementGroup = {
@@ -105,7 +105,7 @@ object KB {
         new ElementFilter(new E_Exists(triplesBlock(bgp(t('taxon, exhibits_state / describes_phenotype, 'phenotype))))),
         new ElementFilter(new E_NotExists(triplesBlock(bgp(t('taxon, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
-    App.executeSPARQLQuery(query).map(count)
+    App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   def matrixCount: Future[Int] = {
@@ -113,7 +113,7 @@ object KB {
       bgp(
         t('matrix, rdfType, CharacterStateDataMatrix)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("matrix"))))
-    App.executeSPARQLQuery(query).map(count)
+    App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   def annotatedMatrixCount: Future[Int] = {
@@ -122,12 +122,8 @@ object KB {
         t('matrix, rdfType, CharacterStateDataMatrix)),
         new ElementFilter(new E_Exists(triplesBlock(bgp(t('matrix, has_character / may_have_state_value / describes_phenotype, 'phenotype))))))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("matrix"))))
-    App.executeSPARQLQuery(query).map(count)
+    App.executeSPARQLQuery(query).map(ResultCount.count)
   }
-
-  private def count(resultSet: ResultSet): Int =
-    if (resultSet.hasNext) resultSet.next.getLiteral("count").getInt
-    else 0
 
 }
 
