@@ -59,7 +59,7 @@ object Taxon {
       bgp(
         t('state, describes_phenotype, 'phenotype) ::
           t('matrix, has_character / may_have_state_value, 'state) ::
-          t('taxon, exhibits_state / describes_phenotype, 'state) ::
+          t('taxon, exhibits_state, 'state) ::
           t('taxon, rdfsLabel, 'taxon_label) ::
           entityPatterns: _*) ::
         filters: _*)
