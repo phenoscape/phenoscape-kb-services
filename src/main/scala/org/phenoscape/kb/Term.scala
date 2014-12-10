@@ -39,7 +39,7 @@ object Term {
   }
 
   def searchOntologyTerms(text: String, definedBy: IRI, limit: Int): Future[Seq[MinimalTerm]] = {
-    App.executeSPARQLQuery(buildAnatomicalTermQuery(text, definedBy, limit), Term.fromMinimalQuerySolution)
+    App.executeSPARQLQuery(buildOntologyTermQuery(text, definedBy, limit), Term.fromMinimalQuerySolution)
   }
 
   def label(iri: IRI): Future[Option[MinimalTerm]] = {
@@ -84,7 +84,7 @@ object Term {
     block
   }
 
-  def buildAnatomicalTermQuery(text: String, definedBy: IRI, limit: Int): Query = {
+  def buildOntologyTermQuery(text: String, definedBy: IRI, limit: Int): Query = {
     val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
       bgp(
         t('matched_label, BDSearch, NodeFactory.createLiteral(text)),
@@ -95,7 +95,7 @@ object Term {
         t('term, rdfsIsDefinedBy, definedBy),
         t('term, rdfType, owlClass)),
         new ElementFilter((new E_IsIRI(new ExprVar('term)))),
-        new ElementFilter(new E_NotExists(triplesBlock(bgp(t('taxon, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
+        new ElementFilter(new E_NotExists(triplesBlock(bgp(t('term, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
     query.addOrderBy('rank, Query.ORDER_ASCENDING)
     if (limit > 0) query.setLimit(limit)
     query
