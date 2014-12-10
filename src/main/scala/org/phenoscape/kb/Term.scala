@@ -27,6 +27,10 @@ import scala.collection.JavaConversions._
 import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
+import com.hp.hpl.jena.datatypes.xsd.XSDDatatype
+import com.hp.hpl.jena.sparql.expr.E_NotExists
+import com.hp.hpl.jena.sparql.syntax.ElementGroup
+import com.hp.hpl.jena.sparql.syntax.Element
 
 object Term {
 
@@ -34,8 +38,8 @@ object Term {
     App.executeSPARQLQuery(buildSearchQuery(text, termType, property), Term.fromMinimalQuerySolution)
   }
 
-  def searchAnatomicalTerms(text: String, limit: Int): Future[Seq[MinimalTerm]] = {
-    App.executeSPARQLQuery(buildAnatomicalTermQuery(text, limit), Term.fromMinimalQuerySolution)
+  def searchOntologyTerms(text: String, definedBy: IRI, limit: Int): Future[Seq[MinimalTerm]] = {
+    App.executeSPARQLQuery(buildAnatomicalTermQuery(text, definedBy, limit), Term.fromMinimalQuerySolution)
   }
 
   def label(iri: IRI): Future[Option[MinimalTerm]] = {
@@ -73,8 +77,14 @@ object Term {
     query.setLimit(100)
     query
   }
+  
+  private def triplesBlock(elements: Element*): ElementGroup = {
+    val block = new ElementGroup()
+    elements.foreach(block.addElement)
+    block
+  }
 
-  def buildAnatomicalTermQuery(text: String, limit: Int): Query = {
+  def buildAnatomicalTermQuery(text: String, definedBy: IRI, limit: Int): Query = {
     val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
       bgp(
         t('matched_label, BDSearch, NodeFactory.createLiteral(text)),
@@ -82,11 +92,12 @@ object Term {
         t('matched_label, BDRank, 'rank),
         t('term, rdfsLabel | (hasExactSynonym | hasRelatedSynonym), 'matched_label),
         t('term, rdfsLabel, 'term_label),
-        t('term, rdfsIsDefinedBy, Uberon),
+        t('term, rdfsIsDefinedBy, definedBy),
         t('term, rdfType, owlClass)),
-        new ElementFilter((new E_IsIRI(new ExprVar('term)))))
+        new ElementFilter((new E_IsIRI(new ExprVar('term)))),
+        new ElementFilter(new E_NotExists(triplesBlock(bgp(t('taxon, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
     query.addOrderBy('rank, Query.ORDER_ASCENDING)
-    query.setLimit(limit)
+    if (limit > 0) query.setLimit(limit)
     query
   }
 

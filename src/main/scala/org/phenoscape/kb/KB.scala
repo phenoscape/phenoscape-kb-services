@@ -28,10 +28,9 @@ import spray.httpx.SprayJsonSupport._
 import spray.httpx.marshalling._
 import spray.http._
 import spray.httpx._
+import org.phenoscape.kb.KBVocab._
 
 object KB {
-
-  private val owlDeprecated = ObjectProperty(OWL2.deprecated.getURI)
 
   def annotationSummary: Future[KBAnnotationSummary] = {
     val matrices = annotatedMatrixCount

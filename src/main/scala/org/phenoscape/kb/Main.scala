@@ -22,6 +22,7 @@ import spray.routing._
 import spray.routing.SimpleRoutingApp
 import spray.routing.directives._
 import org.semanticweb.owlapi.model.OWLClassExpression
+import org.phenoscape.kb.KBVocab._
 
 object Main extends App with SimpleRoutingApp with CORSDirectives {
 
@@ -70,6 +71,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
               }
             }
           } ~
+            path("search_classes") {
+              parameters('text, 'definedBy.as[IRI], 'limit.as[Int].?(0)) { (text, definedBy, limit) =>
+                complete {
+                  Term.searchOntologyTerms(text, definedBy, limit)
+                }
+              }
+            } ~
             path("label") {
               parameters('iri.as[IRI]) { (iri) =>
                 complete {
@@ -131,7 +139,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
           path("search") {
             parameters('text, 'limit.as[Int]) { (text, limit) =>
               complete {
-                Term.searchAnatomicalTerms(text, limit)
+                Term.searchOntologyTerms(text, Uberon, limit)
               }
             }
           } ~

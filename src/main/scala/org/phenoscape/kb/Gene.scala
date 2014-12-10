@@ -1,19 +1,46 @@
 package org.phenoscape.kb
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import org.phenoscape.kb.Main.system.dispatcher
+import scala.collection.JavaConversions._
 import scala.concurrent.Future
-
 import org.phenoscape.kb.App.withOwlery
 import org.phenoscape.owl.Vocab._
+import org.phenoscape.kb.KBVocab._
+import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl.OWL._
 import org.semanticweb.owlapi.model.IRI
-
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.query.QuerySolution
+import com.hp.hpl.jena.sparql.expr.ExprVar
+import com.hp.hpl.jena.sparql.expr.ExprList
+import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
+import com.hp.hpl.jena.sparql.expr.E_OneOf
+import org.semanticweb.owlapi.model.OWLClassExpression
+import com.hp.hpl.jena.sparql.syntax.ElementFilter
 
 object Gene {
+
+  def buildQuery(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, limit: Int = 20, offset: Int = 0): Query = {
+    val entityPatterns = if (entity == OWLThing) Nil else
+      t('phenotype, 'pred, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
+    val query = select_distinct() from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('state, describes_phenotype, 'phenotype) ::
+          t('matrix, has_character / may_have_state_value, 'state) ::
+          t('taxon, exhibits_state, 'state) ::
+          t('taxon, rdfsLabel, 'taxon_label) ::
+          entityPatterns: _*))
+
+    query.addResultVar('taxon)
+    query.addResultVar('taxon_label)
+    query.setOffset(offset)
+    query.setLimit(limit)
+    query.addOrderBy('taxon_label)
+    query.addOrderBy('taxon)
+    query
+  }
 
   def affectingPhenotype(entity: IRI, quality: IRI): Future[String] = {
     val header = "gene\tgeneLabel\ttaxon\tsource\n"
@@ -70,3 +97,5 @@ object Gene {
   }
 
 }
+
+case class Gene(iri: IRI, label: String)
