@@ -49,25 +49,26 @@ object Taxon {
   }
 
   def buildQuery(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
-    //val query = TaxonEQAnnotation.buildQuery(entity, taxon, publications)
-
     val entityPatterns = if (entity == OWLThing) Nil else
       t('phenotype, ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
-    val filters = if (publications.isEmpty) Nil else
-      new ElementFilter(new E_OneOf(new ExprVar('matrix), new ExprList(publications.map(new NodeValueNode(_)).toList))) :: Nil
+    val (publicationFilters, publicationPatterns) = if (publications.isEmpty) (Nil, Nil) else
+      (new ElementFilter(new E_OneOf(new ExprVar('matrix), new ExprList(publications.map(new NodeValueNode(_)).toList))) :: Nil,
+        t('matrix, has_character / may_have_state_value, 'state) :: Nil)
+    val taxonPatterns = if (taxon == OWLThing) Nil else
+      t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
     val query = select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         t('state, describes_phenotype, 'phenotype) ::
-          t('matrix, has_character / may_have_state_value, 'state) ::
           t('taxon, exhibits_state, 'state) ::
           t('taxon, rdfsLabel, 'taxon_label) ::
-          entityPatterns: _*) ::
-        filters: _*)
-
+          entityPatterns ++
+          publicationPatterns ++
+          taxonPatterns: _*) ::
+        publicationFilters: _*)
     query.addResultVar('taxon)
     query.addResultVar('taxon_label)
     query.setOffset(offset)
-    query.setLimit(limit)
+    if (limit > 0) query.setLimit(limit)
     query.addOrderBy('taxon_label)
     query.addOrderBy('taxon)
     query
