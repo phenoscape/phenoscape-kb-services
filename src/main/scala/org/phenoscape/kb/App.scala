@@ -71,7 +71,7 @@ object App {
   private implicit val SPARQLQueryMarshaller = Marshaller.delegate[Query, String](`application/sparql-query`, MediaTypes.`text/plain`)(_.toString)
   private implicit val SPARQLQueryBodyUnmarshaller = Unmarshaller.delegate[String, Query](`application/sparql-query`)(QueryFactory.create)
   private implicit val SPARQLResultsXMLUnmarshaller = Unmarshaller.delegate[String, ResultSet](`application/sparql-results+xml`)(ResultSetFactory.fromXML)
-  private implicit val RDFXMLUnmarshaller = Unmarshaller.delegate[String, Model]() { text =>
+  private implicit val RDFXMLUnmarshaller = Unmarshaller.delegate[String, Model](`application/rdf+xml`) { text =>
     val model = ModelFactory.createDefaultModel
     model.read(new ByteArrayInputStream(text.getBytes), null)
     model
