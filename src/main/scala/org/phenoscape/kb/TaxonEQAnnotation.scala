@@ -25,8 +25,8 @@ object TaxonEQAnnotation {
   val ps_quality_term = ObjectProperty(quality_term.getIRI)
   val ps_related_entity_term = ObjectProperty(related_entity_term.getIRI)
 
-  def buildQuery(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, publications: Iterable[IRI] = Nil): Query = {
-    val entityPatterns = if (entity == OWLThing) Nil else
+  def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
+    val entityPatterns = if (entity == owlThing) Nil else
       t('phenotype, ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
     val filters = if (publications.isEmpty) Nil else
       new ElementFilter(new E_OneOf(new ExprVar('matrix), new ExprList(publications.map(new NodeValueNode(_)).toList))) :: Nil

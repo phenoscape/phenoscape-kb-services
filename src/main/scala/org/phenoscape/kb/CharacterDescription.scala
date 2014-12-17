@@ -43,14 +43,14 @@ object CharacterDescription {
     App.executeSPARQLQuery(buildSearchQuery(text, limit), CharacterDescription(_))
   }
 
-  def query(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[Seq[CharacterDescription]] = for {
+  def query(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[Seq[CharacterDescription]] = for {
     query <- App.expandWithOwlet(buildQuery(entity, taxon, publications, limit, offset))
     descriptions <- App.executeSPARQLQuery(query, CharacterDescription(_))
   } yield {
     descriptions
   }
 
-  def queryTotal(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[ResultCount] = for {
+  def queryTotal(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[ResultCount] = for {
     query <- App.expandWithOwlet(buildTotalQuery(entity, taxon, publications, limit, offset))
     result <- App.executeSPARQLQuery(query)
   } yield {
@@ -61,10 +61,10 @@ object CharacterDescription {
     App.executeSPARQLQuery(buildCharacterDescriptionQuery(iri), fromQuerySolution(_)(iri)).map(_.headOption)
   }
 
-  def buildQuery(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
+  def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
     //val query = TaxonEQAnnotation.buildQuery(entity, taxon, publications)
 
-    val entityPatterns = if (entity == OWLThing) Nil else
+    val entityPatterns = if (entity == owlThing) Nil else
       t('phenotype, TaxonEQAnnotation.ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
     val filters = if (publications.isEmpty) Nil else
       new ElementFilter(new E_OneOf(new ExprVar('matrix), new ExprList(publications.map(new NodeValueNode(_)).toList))) :: Nil
@@ -88,9 +88,9 @@ object CharacterDescription {
     query
   }
 
-  def buildTotalQuery(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
+  def buildTotalQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
     //val query = TaxonEQAnnotation.buildQuery(entity, taxon, publications)
-    val entityPatterns = if (entity == OWLThing) Nil else
+    val entityPatterns = if (entity == owlThing) Nil else
       t('phenotype, TaxonEQAnnotation.ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
     val filters = if (publications.isEmpty) Nil else
       new ElementFilter(new E_OneOf(new ExprVar('matrix), new ExprList(publications.map(new NodeValueNode(_)).toList))) :: Nil

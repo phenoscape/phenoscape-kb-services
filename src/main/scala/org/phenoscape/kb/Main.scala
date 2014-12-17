@@ -116,7 +116,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             }
           } ~
             path("query") {
-              parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'limit.as[Int], 'offset.as[Int], 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
+              parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
                 complete {
                   if (total) CharacterDescription.queryTotal(entity, taxon, Nil, limit, offset)
                   else CharacterDescription.query(entity, taxon, Nil, limit, offset)
@@ -126,7 +126,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
         } ~
         pathPrefix("taxon") {
           path("query") {
-            parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'limit.as[Int], 'offset.as[Int], 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
+            parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
               complete {
                 if (total) Taxon.queryTotal(entity, taxon, Nil)
                 else Taxon.query(entity, taxon, Nil, limit, offset)

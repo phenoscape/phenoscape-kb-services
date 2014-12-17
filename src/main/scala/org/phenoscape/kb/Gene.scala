@@ -22,8 +22,8 @@ import com.hp.hpl.jena.sparql.syntax.ElementFilter
 
 object Gene {
 
-  def buildQuery(entity: OWLClassExpression = OWLThing, taxon: OWLClassExpression = OWLThing, limit: Int = 20, offset: Int = 0): Query = {
-    val entityPatterns = if (entity == OWLThing) Nil else
+  def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, limit: Int = 20, offset: Int = 0): Query = {
+    val entityPatterns = if (entity == owlThing) Nil else
       t('phenotype, 'pred, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
     val query = select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
