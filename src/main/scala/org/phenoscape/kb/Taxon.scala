@@ -56,7 +56,7 @@ object Taxon {
         t('matrix, has_character / may_have_state_value, 'state) :: Nil)
     val taxonPatterns = if (taxon == owlThing) Nil else
       t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
-    val query = select_distinct() from "http://kb.phenoscape.org/" where (
+    select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         t('state, describes_phenotype, 'phenotype) ::
           t('taxon, exhibits_state, 'state) ::
@@ -65,7 +65,6 @@ object Taxon {
           publicationPatterns ++
           taxonPatterns: _*) ::
         publicationFilters: _*)
-    query
   }
 
   def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {

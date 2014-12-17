@@ -61,22 +61,26 @@ object CharacterDescription {
     App.executeSPARQLQuery(buildCharacterDescriptionQuery(iri), fromQuerySolution(_)(iri)).map(_.headOption)
   }
 
-  def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
-    //val query = TaxonEQAnnotation.buildQuery(entity, taxon, publications)
-
+  def buildBasicQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
     val entityPatterns = if (entity == owlThing) Nil else
-      t('phenotype, TaxonEQAnnotation.ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
+      t('phenotype, ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
+    val taxonPatterns = if (taxon == owlThing) Nil else
+      t('taxon, exhibits_state, 'state) :: t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
     val filters = if (publications.isEmpty) Nil else
       new ElementFilter(new E_OneOf(new ExprVar('matrix), new ExprList(publications.map(new NodeValueNode(_)).toList))) :: Nil
-    val query = select_distinct() from "http://kb.phenoscape.org/" where (
+    select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         t('state, dcDescription, 'state_desc) ::
           t('state, describes_phenotype, 'phenotype) ::
           t('matrix, has_character / may_have_state_value, 'state) ::
           t('matrix, rdfsLabel, 'matrix_label) ::
-          entityPatterns: _*) ::
+          entityPatterns ++
+          taxonPatterns: _*) ::
         filters: _*)
+  }
 
+  def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
+    val query = buildBasicQuery(entity, taxon, publications)
     query.addResultVar('state)
     query.addResultVar('state_desc)
     query.addResultVar('matrix)
@@ -89,19 +93,7 @@ object CharacterDescription {
   }
 
   def buildTotalQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
-    //val query = TaxonEQAnnotation.buildQuery(entity, taxon, publications)
-    val entityPatterns = if (entity == owlThing) Nil else
-      t('phenotype, TaxonEQAnnotation.ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
-    val filters = if (publications.isEmpty) Nil else
-      new ElementFilter(new E_OneOf(new ExprVar('matrix), new ExprList(publications.map(new NodeValueNode(_)).toList))) :: Nil
-    val query = select_distinct() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('state, dcDescription, 'state_desc) ::
-          t('state, describes_phenotype, 'phenotype) ::
-          t('matrix, has_character / may_have_state_value, 'state) ::
-          t('matrix, rdfsLabel, 'matrix_label) ::
-          entityPatterns: _*) ::
-        filters: _*)
+    val query = buildBasicQuery(entity, taxon, publications)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
     query
   }
