@@ -12,6 +12,7 @@ import spray.httpx.marshalling._
 import spray.json.DefaultJsonProtocol._
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.scowl.OWL._
+import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.owlet.SPARQLComposer._
@@ -68,6 +69,7 @@ object Taxon {
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         t('taxon, rdfsLabel, 'taxon_label) ::
+        t('taxon, rdfType, Vocab.Taxon) ::
           publicationPatterns ++
           taxonPatterns: _*) ::
         new ElementFilter(new E_Exists(triplesBlock(bgp(
