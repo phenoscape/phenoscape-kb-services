@@ -31,6 +31,9 @@ import com.hp.hpl.jena.sparql.core.Var
 import TaxonEQAnnotation.ps_entity_term
 import TaxonEQAnnotation.ps_quality_term
 import TaxonEQAnnotation.ps_related_entity_term
+import com.hp.hpl.jena.sparql.expr.E_Exists
+import com.hp.hpl.jena.sparql.syntax.ElementGroup
+import com.hp.hpl.jena.sparql.syntax.Element
 
 object Taxon {
 
@@ -48,6 +51,12 @@ object Taxon {
     ResultCount(result)
   }
 
+  private def triplesBlock(elements: Element*): ElementGroup = {
+    val block = new ElementGroup()
+    elements.foreach(block.addElement)
+    block
+  }
+
   private def buildBasicQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
     val entityPatterns = if (entity == owlThing) Nil else
       t('phenotype, ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
@@ -58,12 +67,13 @@ object Taxon {
       t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
-        t('state, describes_phenotype, 'phenotype) ::
-          t('taxon, exhibits_state, 'state) ::
-          t('taxon, rdfsLabel, 'taxon_label) ::
-          entityPatterns ++
+        t('taxon, rdfsLabel, 'taxon_label) ::
           publicationPatterns ++
           taxonPatterns: _*) ::
+        new ElementFilter(new E_Exists(triplesBlock(bgp(
+          t('taxon, exhibits_state, 'state) ::
+            t('state, describes_phenotype, 'phenotype) ::
+            entityPatterns: _*)))) ::
         publicationFilters: _*)
   }
 
