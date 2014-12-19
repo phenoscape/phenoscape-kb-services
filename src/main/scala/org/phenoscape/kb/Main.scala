@@ -47,7 +47,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
 
     def apply(text: String): Deserialized[Map[String, String]] = text.parseJson match {
       case o: JsObject => Right(o.fields.map { case (key, value) => key -> value.toString })
-      case _ => deserializationError("JSON object expected")
+      case _           => deserializationError("JSON object expected")
     }
 
   }
@@ -184,7 +184,15 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 EQForGene.query(iri)
               }
             }
-          }
+          } ~
+            path("query") {
+              parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
+                complete {
+                  if (total) Gene.queryTotal(entity, taxon)
+                  else Gene.query(entity, taxon, limit, offset)
+                }
+              }
+            }
         } ~
         path("genes_expressed_in_structure") {
           parameters('entity.as[IRI]) { entity =>

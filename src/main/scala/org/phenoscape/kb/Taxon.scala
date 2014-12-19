@@ -3,7 +3,6 @@ package org.phenoscape.kb
 import scala.concurrent.Future
 import org.phenoscape.kb.Main.system.dispatcher
 import org.semanticweb.owlapi.model.IRI
-import spray.json.DefaultJsonProtocol._
 import spray.json._
 import spray.http._
 import spray.httpx._
@@ -12,7 +11,6 @@ import spray.httpx.marshalling._
 import spray.json.DefaultJsonProtocol._
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.scowl.OWL._
-import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.owlet.SPARQLComposer._
@@ -32,9 +30,6 @@ import com.hp.hpl.jena.sparql.core.Var
 import TaxonEQAnnotation.ps_entity_term
 import TaxonEQAnnotation.ps_quality_term
 import TaxonEQAnnotation.ps_related_entity_term
-import com.hp.hpl.jena.sparql.expr.E_Exists
-import com.hp.hpl.jena.sparql.syntax.ElementGroup
-import com.hp.hpl.jena.sparql.syntax.Element
 
 object Taxon {
 
@@ -52,12 +47,6 @@ object Taxon {
     ResultCount(result)
   }
 
-  private def triplesBlock(elements: Element*): ElementGroup = {
-    val block = new ElementGroup()
-    elements.foreach(block.addElement)
-    block
-  }
-
   private def buildBasicQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
     val entityPatterns = if (entity == owlThing) Nil else
       t('phenotype, ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
@@ -68,14 +57,12 @@ object Taxon {
       t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
-        t('taxon, rdfsLabel, 'taxon_label) ::
-        t('taxon, rdfType, Vocab.Taxon) ::
+        t('state, describes_phenotype, 'phenotype) ::
+          t('taxon, exhibits_state, 'state) ::
+          t('taxon, rdfsLabel, 'taxon_label) ::
+          entityPatterns ++
           publicationPatterns ++
           taxonPatterns: _*) ::
-        new ElementFilter(new E_Exists(triplesBlock(bgp(
-          t('taxon, exhibits_state, 'state) ::
-            t('state, describes_phenotype, 'phenotype) ::
-            entityPatterns: _*)))) ::
         publicationFilters: _*)
   }
 
@@ -99,10 +86,6 @@ object Taxon {
   def apply(result: QuerySolution): Taxon = Taxon(
     IRI.create(result.getResource("taxon").getURI),
     result.getLiteral("taxon_label").getLexicalForm)
-
-  implicit val CharacterDescriptionsMarshaller = Marshaller.delegate[Seq[CharacterDescription], JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { results =>
-    new JsObject(Map("results" -> results.map(_.toJSON).toJson))
-  }
 
 }
 

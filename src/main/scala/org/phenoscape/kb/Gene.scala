@@ -19,26 +19,61 @@ import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
 import com.hp.hpl.jena.sparql.expr.E_OneOf
 import org.semanticweb.owlapi.model.OWLClassExpression
 import com.hp.hpl.jena.sparql.syntax.ElementFilter
+import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
+import com.hp.hpl.jena.sparql.core.Var
+import spray.json._
+import spray.http._
+import spray.httpx._
+import spray.httpx.SprayJsonSupport._
+import spray.httpx.marshalling._
+import spray.json.DefaultJsonProtocol._
 
 object Gene {
 
-  def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, limit: Int = 20, offset: Int = 0): Query = {
+  def query(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, limit: Int = 20, offset: Int = 0): Future[Seq[Gene]] = for {
+    query <- App.expandWithOwlet(buildQuery(entity, taxon, limit, offset))
+    descriptions <- App.executeSPARQLQuery(query, Gene(_))
+  } yield {
+    descriptions
+  }
+
+  def queryTotal(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing): Future[ResultCount] = for {
+    query <- App.expandWithOwlet(buildTotalQuery(entity, taxon))
+    result <- App.executeSPARQLQuery(query)
+  } yield {
+    ResultCount(result)
+  }
+
+  def buildBasicQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, limit: Int = 20, offset: Int = 0): Query = {
+    //TODO allowing expressions makes it impossible to look for absences using the entity as an Individual... fix?
     val entityPatterns = if (entity == owlThing) Nil else
-      t('phenotype, 'pred, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
+      t('annotation, rdfType, 'phenotype) :: t('phenotype, rdfsSubClassOf, ((has_part some (inheres_in some entity)) or (has_part some (towards some entity))).asOMN) :: Nil
+    val taxonPatterns = if (taxon == owlThing) Nil else
+      t('annotation, associated_with_taxon, 'taxon) :: t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
     val query = select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
-        t('state, describes_phenotype, 'phenotype) ::
-          t('matrix, has_character / may_have_state_value, 'state) ::
-          t('taxon, exhibits_state, 'state) ::
-          t('taxon, rdfsLabel, 'taxon_label) ::
+        t('annotation, rdfType, AnnotatedPhenotype) ::
+          t('annotation, associated_with_gene, 'gene) ::
+          t('gene, rdfsLabel, 'gene_label) ::
+          taxonPatterns ++
           entityPatterns: _*))
+    query
+  }
 
-    query.addResultVar('taxon)
-    query.addResultVar('taxon_label)
+  def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, limit: Int = 20, offset: Int = 0): Query = {
+    val query = buildBasicQuery(entity, taxon)
+    query.addResultVar('gene)
+    query.addResultVar('gene_label)
     query.setOffset(offset)
-    query.setLimit(limit)
-    query.addOrderBy('taxon_label)
-    query.addOrderBy('taxon)
+    if (limit > 0) query.setLimit(limit)
+    query.addOrderBy('gene_label)
+    query.addOrderBy('gene)
+    query
+  }
+
+  def buildTotalQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing): Query = {
+    val query = buildBasicQuery(entity, taxon)
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("gene"))))
     query
   }
 
@@ -96,6 +131,16 @@ object Gene {
           App.BigdataRunPriorFirst)
   }
 
+  def apply(result: QuerySolution): Gene = Gene(
+    IRI.create(result.getResource("gene").getURI),
+    result.getLiteral("gene_label").getLexicalForm)
+
 }
 
-case class Gene(iri: IRI, label: String)
+case class Gene(iri: IRI, label: String) extends JSONResultItem {
+
+  def toJSON: JsObject = {
+    Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
+  }
+
+}
