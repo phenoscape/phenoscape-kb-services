@@ -23,6 +23,7 @@ import spray.routing.SimpleRoutingApp
 import spray.routing.directives._
 import org.semanticweb.owlapi.model.OWLClassExpression
 import org.phenoscape.kb.KBVocab._
+import spray.http.HttpHeaders
 
 object Main extends App with SimpleRoutingApp with CORSDirectives {
 
@@ -102,8 +103,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
         } ~
         path("ontotrace") {
           parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression]) { (entity, taxon) =>
-            complete {
-              PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon)
+            respondWithHeader(HttpHeaders.`Content-Disposition`("attachment", Map("filename" -> "ontotrace.xml"))) {
+              complete {
+                PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon)
+              }
             }
           }
         } ~
