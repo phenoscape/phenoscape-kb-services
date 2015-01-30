@@ -37,6 +37,8 @@ import scala.language.implicitConversions
 import org.phenoscape.owl.util.OBOUtil
 import java.net.URI
 import org.obo.datamodel.impl.OBOClassImpl
+import java.text.SimpleDateFormat
+import java.util.Calendar
 
 object PresenceAbsenceOfStructure {
 
@@ -106,12 +108,14 @@ object PresenceAbsenceOfStructure {
       val currentState = dataset.getStateForTaxon(matrixTaxon, character)
       val stateToAssign = currentState match {
         case polymorphic: MultipleState => addStateToMultiState(polymorphic, state)
-        case `state` => state
-        case null => state
-        case _ => new MultipleState(Set(currentState, state), MODE.POLYMORPHIC)
+        case `state`                    => state
+        case null                       => state
+        case _                          => new MultipleState(Set(currentState, state), MODE.POLYMORPHIC)
       }
       dataset.setStateForTaxon(matrixTaxon, character, stateToAssign)
     }
+    val date = new SimpleDateFormat("y-M-d").format(Calendar.getInstance.getTime)
+    dataset.setPublicationNotes(s"Generated from the Phenoscape Knowledgebase on $date by Ontotrace query:\n* taxa: ${taxonClass.asOMN.getLiteralLexicalForm}\n* entities: ${entityClass.asOMN.getLiteralLexicalForm}")
     dataset
   }
 
