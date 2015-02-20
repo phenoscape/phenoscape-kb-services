@@ -30,6 +30,8 @@ object EQForGene {
   val inheresInSome = NamedRestrictionGenerator.getClassRelationIRI(Vocab.inheres_in.getIRI)
   val UBERON = IRI.create("http://purl.obolibrary.org/obo/uberon.owl")
   val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
+  val has_part_inhering_in = IRI.create("http://purl.org/phenoscape/vocab.owl#has_part_inhering_in") //TODO remove this once phenoscape-owl-tools release is updated
+  val has_part_inhering_in_some = NamedRestrictionGenerator.getClassRelationIRI(has_part_inhering_in)
   implicit val timeout = Timeout(10 minutes)
 
   def query(geneID: IRI): Future[JsArray] = {
@@ -123,7 +125,7 @@ object EQForGene {
     select_distinct('description) from "http://kb.phenoscape.org/" where (
       bgp(
         t(annotationIRI, rdfType / (rdfsSubClassOf*), 'description),
-        t('description, inheresInSome, 'bearer),
+        t('description, has_part_inhering_in_some, 'bearer),
         t('bearer, rdfsIsDefinedBy, UBERON)))
   }
 
@@ -132,7 +134,7 @@ object EQForGene {
     select_distinct('bearer) from "http://kb.phenoscape.org/" where (
       bgp(
         t(termIRI, rdfsSubClassOf*, 'description),
-        t('description, inheresInSome, 'bearer),
+        t('description, has_part_inhering_in_some, 'bearer),
         t('bearer, rdfsIsDefinedBy, UBERON)))
   }
 
