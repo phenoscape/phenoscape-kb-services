@@ -48,7 +48,7 @@ object EQForGene {
           qualities <- qualitiesFuture
         } yield Map("entity" -> entities, "quality" -> qualities).toJson
       })
-      allAnnotationsFuture.map(annotations => JsArray(annotations.toList))
+      allAnnotationsFuture.map(annotations => JsArray(annotations.toVector))
     }
     result.flatMap(identity) //FIXME this method is a bit messy
   }
