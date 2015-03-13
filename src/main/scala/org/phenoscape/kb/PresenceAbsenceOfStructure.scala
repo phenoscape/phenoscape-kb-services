@@ -57,11 +57,10 @@ object PresenceAbsenceOfStructure {
   def taxaExhibitingAbsence(entity: IRI, limit: Int): Future[Seq[Taxon]] =
     App.executeSPARQLQuery(buildExhibitingAbsenceQuery(entity, limit), resultToTaxon)
 
-  def presenceAbsenceMatrix(entityClass: OWLClassExpression, taxonClass: OWLClassExpression): Future[DataSet] = for {
+  def presenceAbsenceMatrix(entityClass: OWLClassExpression, taxonClass: OWLClassExpression, variableOnly: Boolean): Future[DataSet] = for {
     query <- App.expandWithOwlet(buildMatrixQuery(entityClass, taxonClass))
     model <- App.executeSPARQLConstructQuery(query)
   } yield {
-    val variableOnly = true
     val dataset = new DataSet()
     val characters: mutable.Map[String, Character] = mutable.Map()
     val states: mutable.Map[String, State] = mutable.Map()

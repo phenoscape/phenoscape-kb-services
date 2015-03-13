@@ -102,10 +102,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             }
         } ~
         path("ontotrace") {
-          parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression]) { (entity, taxon) =>
+          parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'variable_only.as[Boolean].?(true)) { (entity, taxon, variableOnly) =>
             respondWithHeader(HttpHeaders.`Content-Disposition`("attachment", Map("filename" -> "ontotrace.xml"))) {
               complete {
-                PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon)
+                PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon, variableOnly)
               }
             }
           }
