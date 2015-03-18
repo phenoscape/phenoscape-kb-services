@@ -21,7 +21,7 @@ object Similarity {
   private val has_subsumer = ObjectProperty("http://purl.org/phenoscape/vocab.owl#has_subsumer")
   private val for_query_profile = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_query_profile")
   private val for_corpus_profile = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_corpus_profile")
-  private val corpus_frequency = ObjectProperty("http://purl.org/phenoscape/vocab.owl#corpus_frequency")
+  private val has_ic = ObjectProperty("http://purl.org/phenoscape/vocab.owl#has_ic")
 
   def evolutionaryProfilesSimilarToGene(gene: IRI): Future[Seq[SimilarityMatch]] =
     App.executeSPARQLQuery(geneToTaxonProfileQuery(gene), constructMatchFor(gene))
@@ -39,14 +39,14 @@ object Similarity {
         t('taxon, has_phenotypic_profile, 'taxon_profile))) order_by desc('score) limit 20
 
   def comparisonSubsumersQuery(gene: IRI, taxon: IRI): Query =
-    select_distinct('subsumer, 'frequency) where (
+    select_distinct('subsumer, 'ic) where (
       bgp(
         t(gene, has_phenotypic_profile, 'gene_profile),
         t(taxon, has_phenotypic_profile, 'taxon_profile),
         t('comparison, for_query_profile, 'gene_profile),
         t('comparison, for_query_profile, 'taxon_profile),
         t('comparison, has_subsumer, 'subsumer),
-        t('subsumer, corpus_frequency, 'frequency)))
+        t('subsumer, has_ic, 'ic)))
 
   def constructMatchFor(gene: IRI): QuerySolution => SimilarityMatch =
     (result: QuerySolution) => SimilarityMatch(gene,
@@ -65,11 +65,11 @@ case class SimilarityMatch(geneProfile: IRI, corpusProfile: IRI, score: Double) 
 
 }
 
-case class Subsumer(iri: IRI, corpusFrequency: Int) extends JSONResultItem {
+case class Subsumer(iri: IRI, ic: Double) extends JSONResultItem {
 
   def toJSON: JsObject = {
     Map("@id" -> iri.toString.toJson,
-      "corpus_frequency" -> corpusFrequency.toJson).toJson.asJsObject
+      "ic" -> ic.toJson).toJson.asJsObject
   }
 
 }
@@ -78,6 +78,6 @@ object Subsumer {
 
   def apply(result: QuerySolution): Subsumer = Subsumer(
     IRI.create(result.getResource("subsumer").getURI),
-    result.getLiteral("score").getInt)
+    result.getLiteral("ic").getDouble)
 
 }
