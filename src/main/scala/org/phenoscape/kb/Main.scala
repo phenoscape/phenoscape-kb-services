@@ -110,6 +110,22 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             }
           }
         } ~
+        path("similarity") {
+          path("query") {
+            parameters('iri.as[IRI]) { (query) =>
+              complete {
+                Similarity.evolutionaryProfilesSimilarToGene(query)
+              }
+            }
+          } ~
+            path("best_subsumers") {
+              parameters('query_iri.as[IRI], 'corpus_iri.as[IRI]) { (queryItem, corpusItem) =>
+                complete {
+                  Similarity.bestSubsumersForComparison(queryItem, corpusItem)
+                }
+              }
+            }
+        } ~
         pathPrefix("characterstate") {
           path("search") {
             parameters('text, 'limit.as[Int]) { (text, limit) =>
