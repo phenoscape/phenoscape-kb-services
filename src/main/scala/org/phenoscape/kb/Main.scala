@@ -110,7 +110,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             }
           }
         } ~
-        path("similarity") {
+        pathPrefix("similarity") {
           path("query") {
             parameters('iri.as[IRI]) { (query) =>
               complete {
