@@ -44,7 +44,7 @@ object Similarity {
         t(gene, has_phenotypic_profile, 'gene_profile),
         t(taxon, has_phenotypic_profile, 'taxon_profile),
         t('comparison, for_query_profile, 'gene_profile),
-        t('comparison, for_query_profile, 'taxon_profile),
+        t('comparison, for_corpus_profile, 'taxon_profile),
         t('comparison, has_subsumer, 'subsumer),
         t('subsumer, has_ic, 'ic)))
 
