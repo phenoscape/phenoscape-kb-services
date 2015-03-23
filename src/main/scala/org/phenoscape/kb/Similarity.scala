@@ -1,6 +1,7 @@
 package org.phenoscape.kb
 
 import org.phenoscape.owl.Vocab._
+import org.phenoscape.owl.Vocab
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl.OWL._
 import org.semanticweb.owlapi.model.IRI
@@ -14,6 +15,9 @@ import spray.httpx.SprayJsonSupport._
 import spray.httpx.marshalling._
 import spray.json.DefaultJsonProtocol._
 import org.phenoscape.kb.Main.system.dispatcher
+import org.semanticweb.owlapi.model.OWLNamedIndividual
+import org.semanticweb.owlapi.model.OWLClass
+import scala.language.postfixOps
 
 object Similarity {
 
@@ -22,12 +26,17 @@ object Similarity {
   private val for_query_profile = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_query_profile")
   private val for_corpus_profile = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_corpus_profile")
   private val has_ic = ObjectProperty("http://purl.org/phenoscape/vocab.owl#has_ic")
+  private val has_phenotypic_profile = ObjectProperty(Vocab.has_phenotypic_profile)
+  private val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
 
   def evolutionaryProfilesSimilarToGene(gene: IRI): Future[Seq[SimilarityMatch]] =
     App.executeSPARQLQuery(geneToTaxonProfileQuery(gene), constructMatchFor(gene))
 
   def bestSubsumersForComparison(gene: IRI, taxon: IRI): Future[Seq[Subsumer]] =
     App.executeSPARQLQuery(comparisonSubsumersQuery(gene, taxon), Subsumer(_))
+
+  def subsumedAnnotations(instance: OWLNamedIndividual, subsumer: OWLClass): Future[Seq[IRI]] =
+    App.executeSPARQLQuery(subsumedAnnotationsQuery(instance, subsumer), result => IRI.create(result.getResource("annotation").getURI))
 
   def geneToTaxonProfileQuery(gene: IRI): Query =
     select_distinct('taxon, 'score) where (
@@ -47,6 +56,12 @@ object Similarity {
         t('comparison, for_corpus_profile, 'taxon_profile),
         t('comparison, has_subsumer, 'subsumer),
         t('subsumer, has_ic, 'ic)))
+
+  def subsumedAnnotationsQuery(instance: OWLNamedIndividual, subsumer: OWLClass): Query =
+    select_distinct('annotation) where (
+      bgp(
+        t(instance, has_phenotypic_profile / rdfType, 'annotation),
+        t('annotation, rdfsSubClassOf*, subsumer)))
 
   def constructMatchFor(gene: IRI): QuerySolution => SimilarityMatch =
     (result: QuerySolution) => SimilarityMatch(gene,

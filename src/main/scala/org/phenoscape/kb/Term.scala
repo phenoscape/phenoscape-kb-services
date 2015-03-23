@@ -77,7 +77,7 @@ object Term {
     query.setLimit(100)
     query
   }
-  
+
   private def triplesBlock(elements: Element*): ElementGroup = {
     val block = new ElementGroup()
     elements.foreach(block.addElement)
@@ -128,6 +128,10 @@ object Term {
 
   implicit val IRIMarshaller = Marshaller.delegate[IRI, JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { iri =>
     new JsObject(Map("@id" -> iri.toString.toJson))
+  }
+
+  implicit val IRIsMarshaller = Marshaller.delegate[Seq[IRI], JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { results =>
+    new JsObject(Map("results" -> results.map(_.toString.toJson).toJson))
   }
 
   def fromQuerySolution(result: QuerySolution)(iri: IRI): Term = Term(iri,

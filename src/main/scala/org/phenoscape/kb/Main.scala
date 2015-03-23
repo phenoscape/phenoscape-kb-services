@@ -6,6 +6,7 @@ import scala.util.Right
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 import org.phenoscape.kb.Term.JSONResultItemMarshaller
 import org.phenoscape.kb.Term.IRIMarshaller
+import org.phenoscape.kb.Term.IRIsMarshaller
 import org.phenoscape.kb.PhenexDataSet.DataSetMarshaller
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
@@ -24,6 +25,8 @@ import spray.routing.directives._
 import org.semanticweb.owlapi.model.OWLClassExpression
 import org.phenoscape.kb.KBVocab._
 import spray.http.HttpHeaders
+import org.semanticweb.owlapi.model.OWLClass
+import org.semanticweb.owlapi.model.OWLNamedIndividual
 
 object Main extends App with SimpleRoutingApp with CORSDirectives {
 
@@ -41,6 +44,18 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
   implicit object IRISeq extends Deserializer[String, Seq[IRI]] {
 
     def apply(text: String): Deserialized[Seq[IRI]] = Right(text.split(",", -1).map(IRI.create))
+
+  }
+
+  implicit object OWLClassValue extends Deserializer[String, OWLClass] {
+
+    def apply(text: String): Deserialized[OWLClass] = Right(factory.getOWLClass(IRI.create(text)))
+
+  }
+
+  implicit object OWLNamedIndividualValue extends Deserializer[String, OWLNamedIndividual] {
+
+    def apply(text: String): Deserialized[OWLNamedIndividual] = Right(factory.getOWLNamedIndividual(IRI.create(text)))
 
   }
 
@@ -122,6 +137,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
               parameters('query_iri.as[IRI], 'corpus_iri.as[IRI]) { (queryItem, corpusItem) =>
                 complete {
                   Similarity.bestSubsumersForComparison(queryItem, corpusItem)
+                }
+              }
+            } ~
+            path("subsumed_annotations") {
+              parameters('subsumer.as[OWLClass], 'instance.as[OWLNamedIndividual]) { (subsumer, instance) =>
+                complete {
+                  Similarity.subsumedAnnotations(instance, subsumer)
                 }
               }
             }
