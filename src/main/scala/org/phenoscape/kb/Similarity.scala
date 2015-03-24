@@ -39,13 +39,14 @@ object Similarity {
     App.executeSPARQLQuery(subsumedAnnotationsQuery(instance, subsumer), result => IRI.create(result.getResource("annotation").getURI))
 
   def geneToTaxonProfileQuery(gene: IRI): Query =
-    select_distinct('taxon, 'score) where (
+    select_distinct('taxon, 'taxon_label, 'score) where (
       bgp(
         t(gene, has_phenotypic_profile, 'gene_profile),
         t('comparison, for_query_profile, 'gene_profile),
         t('comparison, combined_score, 'score),
         t('comparison, for_corpus_profile, 'taxon_profile),
-        t('taxon, has_phenotypic_profile, 'taxon_profile))) order_by desc('score) limit 20
+        t('taxon, has_phenotypic_profile, 'taxon_profile),
+        t('taxon, rdfsLabel, 'taxon_label))) order_by desc('score) limit 20
 
   def comparisonSubsumersQuery(gene: IRI, taxon: IRI): Query =
     select_distinct('subsumer, 'ic) where (
@@ -64,17 +65,16 @@ object Similarity {
         t('annotation, rdfsSubClassOf*, subsumer)))
 
   def constructMatchFor(gene: IRI): QuerySolution => SimilarityMatch =
-    (result: QuerySolution) => SimilarityMatch(gene,
-      IRI.create(result.getResource("taxon").getURI),
+    (result: QuerySolution) => SimilarityMatch(MinimalTerm(IRI.create(result.getResource("taxon").getURI), result.getLiteral("taxon_label").getLexicalForm),
       result.getLiteral("score").getDouble)
 
 }
 
-case class SimilarityMatch(geneProfile: IRI, corpusProfile: IRI, score: Double) extends JSONResultItem {
+case class SimilarityMatch(corpusProfile: MinimalTerm, score: Double) extends JSONResultItem {
 
   def toJSON: JsObject = {
-    Map("query_profile" -> geneProfile.toString.toJson,
-      "match_profile" -> corpusProfile.toString.toJson,
+    Map(
+      "match_profile" -> corpusProfile.toJSON,
       "score" -> score.toJson).toJson.asJsObject
   }
 
