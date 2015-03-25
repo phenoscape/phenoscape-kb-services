@@ -38,8 +38,10 @@ object Similarity {
     subsumers <- Future.sequence(results)
   } yield subsumers
 
-  def subsumedAnnotations(instance: OWLNamedIndividual, subsumer: OWLClass): Future[Seq[IRI]] =
-    App.executeSPARQLQuery(subsumedAnnotationsQuery(instance, subsumer), result => IRI.create(result.getResource("annotation").getURI))
+  def subsumedAnnotations(instance: OWLNamedIndividual, subsumer: OWLClass): Future[Seq[MinimalTerm]] = for {
+    results <- App.executeSPARQLQuery(subsumedAnnotationsQuery(instance, subsumer), result => Term.computedLabel(IRI.create(result.getResource("annotation").getURI)))
+    annotations <- Future.sequence(results)
+  } yield annotations
 
   def geneToTaxonProfileQuery(gene: IRI): Query =
     select_distinct('taxon, 'taxon_label, 'score) where (
