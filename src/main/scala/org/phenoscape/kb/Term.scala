@@ -31,8 +31,17 @@ import com.hp.hpl.jena.datatypes.xsd.XSDDatatype
 import com.hp.hpl.jena.sparql.expr.E_NotExists
 import com.hp.hpl.jena.sparql.syntax.ElementGroup
 import com.hp.hpl.jena.sparql.syntax.Element
+import org.phenoscape.owl.util.ExpressionUtil
+import java.util.regex.Pattern
+import org.semanticweb.owlapi.apibinding.OWLManager
+import org.semanticweb.owlapi.model.OWLEntity
+import org.semanticweb.owlapi.util.ShortFormProvider
+import uk.ac.manchester.cs.owl.owlapi.mansyntaxrenderer.ManchesterOWLSyntaxOWLObjectRendererImpl
+import org.semanticweb.owlapi.model.OWLObject
 
 object Term {
+
+  private val factory = OWLManager.getOWLDataFactory
 
   def search(text: String, termType: IRI, property: IRI): Future[Seq[MinimalTerm]] = {
     App.executeSPARQLQuery(buildSearchQuery(text, termType, property), Term.fromMinimalQuerySolution)
@@ -49,6 +58,44 @@ object Term {
 
   def labels(iris: IRI*): Future[Seq[MinimalTerm]] = {
     App.executeSPARQLQuery(buildLabelsQuery(iris: _*), Term.fromMinimalQuerySolution)
+  }
+
+  def computedLabel(iri: IRI): Future[MinimalTerm] = (for {
+    labelOpt <- label(iri)
+  } yield {
+    labelOpt.map(Future.successful)
+      .getOrElse(computeLabelForAnonymousTerm(iri))
+  }).flatMap(identity)
+
+  def computeLabelForAnonymousTerm(iri: IRI): Future[MinimalTerm] = iri.toString match {
+    case expression if expression.startsWith(ExpressionUtil.namedExpressionPrefix) || expression.startsWith(ExpressionUtil.namedSubClassPrefix) =>
+      labelForNamedExpression(iri)
+    case negation if negation.startsWith("http://phenoscape.org/not/") =>
+      computedLabel(IRI.create(negation.replaceFirst(Pattern.quote("http://phenoscape.org/not/"), ""))).map { term =>
+        MinimalTerm(iri, s"not ${term.label}")
+      }
+    case absence if absence.startsWith("http://phenoscape.org/not_has_part/") =>
+      computedLabel(IRI.create(absence.replaceFirst(Pattern.quote("http://phenoscape.org/not_has_part/"), ""))).map { term =>
+        MinimalTerm(iri, s"absence of ${term.label}")
+      }
+    case _ => Future.successful(MinimalTerm(iri, iri.toString))
+  }
+
+  def labelForNamedExpression(iri: IRI): Future[MinimalTerm] =
+    ExpressionUtil.expressionForName(Class(iri)).map { expression =>
+      for {
+        terms <- Future.sequence(expression.getSignature.map(term => computedLabel(term.getIRI)))
+        blah = terms.map(term => term.iri -> term.label).toMap
+      } yield {
+        val renderer = createEntityRenderer(new LabelMapProvider(blah))
+        MinimalTerm(iri, renderer(expression))
+      }
+    }.getOrElse(Future.successful(MinimalTerm(iri, iri.toString)))
+
+  private def createEntityRenderer(shortFormProvider: ShortFormProvider): OWLObject => String = {
+    val renderer = new ManchesterOWLSyntaxOWLObjectRendererImpl()
+    renderer.setShortFormProvider(shortFormProvider)
+    entity => renderer.render(entity).replaceAll("\n", " ").replaceAll("\\s+", " ")
   }
 
   def withIRI(iri: IRI): Future[Option[Term]] = {
@@ -157,5 +204,13 @@ case class MinimalTerm(iri: IRI, label: String) extends JSONResultItem {
   def toJSON: JsObject = {
     Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
   }
+
+}
+
+class LabelMapProvider(labels: Map[IRI, String]) extends ShortFormProvider {
+
+  def getShortForm(entity: OWLEntity): String = labels.getOrElse(entity.getIRI, entity.getIRI.toString)
+
+  def dispose(): Unit = Unit
 
 }

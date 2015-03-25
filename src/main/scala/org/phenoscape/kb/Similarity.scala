@@ -18,6 +18,7 @@ import org.phenoscape.kb.Main.system.dispatcher
 import org.semanticweb.owlapi.model.OWLNamedIndividual
 import org.semanticweb.owlapi.model.OWLClass
 import scala.language.postfixOps
+import scala.collection.JavaConversions._
 
 object Similarity {
 
@@ -32,8 +33,10 @@ object Similarity {
   def evolutionaryProfilesSimilarToGene(gene: IRI): Future[Seq[SimilarityMatch]] =
     App.executeSPARQLQuery(geneToTaxonProfileQuery(gene), constructMatchFor(gene))
 
-  def bestSubsumersForComparison(gene: IRI, taxon: IRI): Future[Seq[Subsumer]] =
-    App.executeSPARQLQuery(comparisonSubsumersQuery(gene, taxon), Subsumer(_))
+  def bestSubsumersForComparison(gene: IRI, taxon: IRI): Future[Seq[Subsumer]] = for {
+    results <- App.executeSPARQLQuery(comparisonSubsumersQuery(gene, taxon), Subsumer.fromQuery(_))
+    subsumers <- Future.sequence(results)
+  } yield subsumers
 
   def subsumedAnnotations(instance: OWLNamedIndividual, subsumer: OWLClass): Future[Seq[IRI]] =
     App.executeSPARQLQuery(subsumedAnnotationsQuery(instance, subsumer), result => IRI.create(result.getResource("annotation").getURI))
@@ -80,10 +83,10 @@ case class SimilarityMatch(corpusProfile: MinimalTerm, score: Double) extends JS
 
 }
 
-case class Subsumer(iri: IRI, ic: Double) extends JSONResultItem {
+case class Subsumer(term: MinimalTerm, ic: Double) extends JSONResultItem {
 
   def toJSON: JsObject = {
-    Map("@id" -> iri.toString.toJson,
+    Map("term" -> term.toJSON,
       "ic" -> ic.toJson).toJson.asJsObject
   }
 
@@ -91,8 +94,9 @@ case class Subsumer(iri: IRI, ic: Double) extends JSONResultItem {
 
 object Subsumer {
 
-  def apply(result: QuerySolution): Subsumer = Subsumer(
-    IRI.create(result.getResource("subsumer").getURI),
-    result.getLiteral("ic").getDouble)
+  def fromQuery(result: QuerySolution): Future[Subsumer] = {
+    val iri = IRI.create(result.getResource("subsumer").getURI)
+    Term.computedLabel(iri).map(term => Subsumer(term, result.getLiteral("ic").getDouble))
+  }
 
 }
