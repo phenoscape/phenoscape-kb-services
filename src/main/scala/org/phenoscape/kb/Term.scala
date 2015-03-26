@@ -61,11 +61,28 @@ object Term {
   }
 
   def computedLabel(iri: IRI): Future[MinimalTerm] = (for {
-    labelOpt <- label(iri)
+    stateLabelOpt <- stateLabelForPhenotype(iri)
   } yield {
-    labelOpt.map(Future.successful)
-      .getOrElse(computeLabelForAnonymousTerm(iri))
+    stateLabelOpt.map(Future.successful).getOrElse {
+      (for {
+        labelOpt <- label(iri)
+      } yield {
+        labelOpt.map(Future.successful).getOrElse {
+          computeLabelForAnonymousTerm(iri)
+        }
+      }).flatMap(identity)
+    }
   }).flatMap(identity)
+
+  def stateLabelForPhenotype(phenotype: IRI): Future[Option[MinimalTerm]] = {
+    val query = select_distinct('state, 'state_desc) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('state, dcDescription, 'state_desc),
+        t('state, describes_phenotype, phenotype)))
+    for {
+      res <- App.executeSPARQLQuery(query, result => MinimalTerm(phenotype, result.getLiteral("state_desc").getLexicalForm))
+    } yield res.headOption
+  }
 
   def computeLabelForAnonymousTerm(iri: IRI): Future[MinimalTerm] = iri.toString match {
     case expression if expression.startsWith(ExpressionUtil.namedExpressionPrefix) || expression.startsWith(ExpressionUtil.namedSubClassPrefix) =>
