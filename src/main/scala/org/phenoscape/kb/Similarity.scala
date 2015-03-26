@@ -19,6 +19,9 @@ import org.semanticweb.owlapi.model.OWLNamedIndividual
 import org.semanticweb.owlapi.model.OWLClass
 import scala.language.postfixOps
 import scala.collection.JavaConversions._
+import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
+import com.hp.hpl.jena.sparql.expr.ExprVar
+import com.hp.hpl.jena.sparql.core.Var
 
 object Similarity {
 
@@ -42,6 +45,14 @@ object Similarity {
     results <- App.executeSPARQLQuery(subsumedAnnotationsQuery(instance, subsumer), result => Term.computedLabel(IRI.create(result.getResource("annotation").getURI)))
     annotations <- Future.sequence(results)
   } yield annotations
+
+  def profileSize(profileSubject: IRI): Future[Int] = {
+    val query = select() where (
+      bgp(
+        t(profileSubject, has_phenotypic_profile / rdfType, 'annotation)))
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("annotation"))))
+    App.executeSPARQLQuery(query).map(ResultCount.count)
+  }
 
   def geneToTaxonProfileQuery(gene: IRI): Query =
     select_distinct('taxon, 'taxon_label, 'score) where (

@@ -146,6 +146,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   Similarity.subsumedAnnotations(instance, subsumer)
                 }
               }
+            } ~
+            path("profile_size") {
+              parameters('iri.as[IRI]) { (iri) =>
+                complete {
+                  Similarity.profileSize(iri).map(ResultCount(_))
+                }
+              }
             }
         } ~
         pathPrefix("characterstate") {
