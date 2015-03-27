@@ -4,6 +4,7 @@ import org.phenoscape.kb.Main.system.dispatcher
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import org.phenoscape.kb.App.withOwlery
+import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
@@ -27,8 +28,14 @@ import spray.httpx._
 import spray.httpx.SprayJsonSupport._
 import spray.httpx.marshalling._
 import spray.json.DefaultJsonProtocol._
+import com.hp.hpl.jena.sparql.expr.E_IsIRI
+import com.hp.hpl.jena.graph.NodeFactory
 
 object Gene {
+
+  def search(text: String): Future[Seq[Gene]] = {
+    App.executeSPARQLQuery(buildSearchQuery(text), Gene(_))
+  }
 
   def query(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, limit: Int = 20, offset: Int = 0): Future[Seq[Gene]] = for {
     query <- App.expandWithOwlet(buildQuery(entity, taxon, limit, offset))
@@ -42,6 +49,20 @@ object Gene {
     result <- App.executeSPARQLQuery(query)
   } yield {
     ResultCount(result)
+  }
+
+  def buildSearchQuery(text: String): Query = {
+    val searchText = if (text.endsWith("*")) text else s"$text*"
+    val query = select_distinct('gene, 'gene_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('gene_label, BDSearch, NodeFactory.createLiteral(searchText)),
+        t('gene_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
+        t('gene_label, BDRank, 'rank),
+        t('gene, rdfsLabel, 'gene_label),
+        t('gene, rdfType, Vocab.Gene)))
+    query.addOrderBy('rank, Query.ORDER_ASCENDING)
+    query.setLimit(100)
+    query
   }
 
   def buildBasicQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, limit: Int = 20, offset: Int = 0): Query = {

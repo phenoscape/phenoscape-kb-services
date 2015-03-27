@@ -226,13 +226,20 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             }
         } ~
         pathPrefix("gene") {
-          path("eq") {
-            parameters('id.as[IRI]) { iri =>
+          path("search") {
+            parameters('text) { (text) =>
               complete {
-                EQForGene.query(iri)
+                Gene.search(text)
               }
             }
           } ~
+            path("eq") {
+              parameters('id.as[IRI]) { iri =>
+                complete {
+                  EQForGene.query(iri)
+                }
+              }
+            } ~
             path("query") {
               parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
                 complete {
