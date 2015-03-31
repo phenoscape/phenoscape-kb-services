@@ -33,6 +33,13 @@ import com.hp.hpl.jena.graph.NodeFactory
 
 object Gene {
 
+  //FIXME this is a temporary hack until genes are directly associated with taxa in the KB
+  val geneIDPrefixToTaxon = Map(
+    "http://zfin.org" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_7955"), "zebrafish"),
+    "http://www.informatics.jax.org" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_10090"), "mouse"),
+    "http://xenbase.org" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_8353"), "frog"),
+    "http://www.ncbi.nlm.nih.gov" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_9606"), "human"))
+
   def search(text: String): Future[Seq[Gene]] = {
     App.executeSPARQLQuery(buildSearchQuery(text), Gene(_))
   }
@@ -152,16 +159,23 @@ object Gene {
           App.BigdataRunPriorFirst)
   }
 
-  def apply(result: QuerySolution): Gene = Gene(
-    IRI.create(result.getResource("gene").getURI),
-    result.getLiteral("gene_label").getLexicalForm)
+  def apply(result: QuerySolution): Gene = {
+    val geneURI = result.getResource("gene").getURI
+    val taxon = geneIDPrefixToTaxon.collectFirst {
+      case (prefix, taxon) if geneURI.startsWith(prefix) => taxon
+    }.getOrElse(Taxon(factory.getOWLThing.getIRI, "unknown"))
+    Gene(
+      IRI.create(geneURI),
+      result.getLiteral("gene_label").getLexicalForm,
+      taxon)
+  }
 
 }
 
-case class Gene(iri: IRI, label: String) extends JSONResultItem {
+case class Gene(iri: IRI, label: String, taxon: Taxon) extends JSONResultItem {
 
   def toJSON: JsObject = {
-    Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
+    Map("@id" -> iri.toString.toJson, "label" -> label.toJson, "taxon" -> taxon.toJSON).toJson.asJsObject
   }
 
 }
