@@ -54,6 +54,14 @@ object Similarity {
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
+  def corpusSize: Future[Int] = {
+    val query = select() where (
+      bgp(
+        t('comparison, for_corpus_profile, 'taxon_profile)))
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon_profile"))))
+    App.executeSPARQLQuery(query).map(ResultCount.count)
+  }
+
   def geneToTaxonProfileQuery(gene: IRI, resultLimit: Int, resultOffset: Int): Query = {
     val query = select_distinct('taxon, 'taxon_label, 'score) where (
       bgp(

@@ -153,6 +153,11 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   Similarity.profileSize(iri).map(ResultCount(_))
                 }
               }
+            } ~
+            path("corpus_size") {
+              complete {
+                Similarity.corpusSize.map(ResultCount(_))
+              }
             }
         } ~
         pathPrefix("characterstate") {
