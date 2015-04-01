@@ -127,9 +127,9 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
         } ~
         pathPrefix("similarity") {
           path("query") {
-            parameters('iri.as[IRI]) { (query) =>
+            parameters('iri.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0)) { (query, limit, offset) =>
               complete {
-                Similarity.evolutionaryProfilesSimilarToGene(query)
+                Similarity.evolutionaryProfilesSimilarToGene(query, limit, offset)
               }
             }
           } ~

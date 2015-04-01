@@ -33,8 +33,8 @@ object Similarity {
   private val has_phenotypic_profile = ObjectProperty(Vocab.has_phenotypic_profile)
   private val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
 
-  def evolutionaryProfilesSimilarToGene(gene: IRI): Future[Seq[SimilarityMatch]] =
-    App.executeSPARQLQuery(geneToTaxonProfileQuery(gene), constructMatchFor(gene))
+  def evolutionaryProfilesSimilarToGene(gene: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[SimilarityMatch]] =
+    App.executeSPARQLQuery(geneToTaxonProfileQuery(gene, limit, offset), constructMatchFor(gene))
 
   def bestSubsumersForComparison(gene: IRI, taxon: IRI): Future[Seq[Subsumer]] = for {
     results <- App.executeSPARQLQuery(comparisonSubsumersQuery(gene, taxon), Subsumer.fromQuery(_))
@@ -54,15 +54,18 @@ object Similarity {
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
-  def geneToTaxonProfileQuery(gene: IRI): Query =
-    select_distinct('taxon, 'taxon_label, 'score) where (
+  def geneToTaxonProfileQuery(gene: IRI, resultLimit: Int, resultOffset: Int): Query = {
+    val query = select_distinct('taxon, 'taxon_label, 'score) where (
       bgp(
         t(gene, has_phenotypic_profile, 'gene_profile),
         t('comparison, for_query_profile, 'gene_profile),
         t('comparison, combined_score, 'score),
         t('comparison, for_corpus_profile, 'taxon_profile),
         t('taxon, has_phenotypic_profile, 'taxon_profile),
-        t('taxon, rdfsLabel, 'taxon_label))) order_by desc('score) limit 20
+        t('taxon, rdfsLabel, 'taxon_label))) order_by desc('score) limit resultLimit
+    query.setOffset(resultOffset)
+    query
+  }
 
   def comparisonSubsumersQuery(gene: IRI, taxon: IRI): Query =
     select_distinct('subsumer, 'ic) where (
