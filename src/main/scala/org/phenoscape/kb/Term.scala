@@ -116,7 +116,7 @@ object Term {
   }
 
   def withIRI(iri: IRI): Future[Option[Term]] = {
-    App.executeSPARQLQuery(buildTermQuery(iri), Term.fromQuerySolution(_)(iri)).map(_.headOption)
+    App.executeSPARQLQuery(buildTermQuery(iri), Term.fromQuerySolution(iri)).map(_.headOption)
   }
 
   def buildTermQuery(iri: IRI): Query = {
@@ -198,7 +198,7 @@ object Term {
     new JsObject(Map("results" -> results.map(_.toString.toJson).toJson))
   }
 
-  def fromQuerySolution(result: QuerySolution)(iri: IRI): Term = Term(iri,
+  def fromQuerySolution(iri: IRI)(result: QuerySolution): Term = Term(iri,
     result.getLiteral("label").getLexicalForm,
     Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""))
 

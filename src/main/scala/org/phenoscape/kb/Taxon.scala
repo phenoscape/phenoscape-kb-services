@@ -33,6 +33,9 @@ import TaxonEQAnnotation.ps_related_entity_term
 
 object Taxon {
 
+  def withIRI(iri: IRI): Future[Option[Taxon]] =
+    App.executeSPARQLQuery(buildTaxonQuery(iri), Taxon.fromIRIQuery(iri)).map(_.headOption)
+
   def query(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = for {
     query <- App.expandWithOwlet(buildQuery(entity, taxon, publications, limit, offset))
     descriptions <- App.executeSPARQLQuery(query, Taxon(_))
@@ -83,9 +86,17 @@ object Taxon {
     query
   }
 
+  def buildTaxonQuery(iri: IRI): Query =
+    select('label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t(iri, rdfsLabel, 'label),
+        t(iri, rdfsIsDefinedBy, VTO)))
+
   def apply(result: QuerySolution): Taxon = Taxon(
     IRI.create(result.getResource("taxon").getURI),
     result.getLiteral("taxon_label").getLexicalForm)
+
+  def fromIRIQuery(iri: IRI)(result: QuerySolution): Taxon = Taxon(iri, result.getLiteral("label").getLexicalForm)
 
 }
 

@@ -23,5 +23,6 @@ object KBVocab {
   val owlDeprecated = ObjectProperty(OWL2.deprecated.getURI)
   val owlThing = OWLManager.getOWLDataFactory.getOWLThing
   val Uberon = IRI.create("http://purl.obolibrary.org/obo/uberon.owl")
+  val VTO = IRI.create("http://purl.obolibrary.org/obo/vto.owl")
 
 }

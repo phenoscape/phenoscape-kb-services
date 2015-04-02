@@ -186,7 +186,14 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
 
               }
             }
-          }
+          } ~
+            pathEnd {
+              parameters('iri.as[IRI]) { iri =>
+                complete {
+                  Taxon.withIRI(iri)
+                }
+              }
+            }
         } ~
         pathPrefix("entity") {
           path("search") {

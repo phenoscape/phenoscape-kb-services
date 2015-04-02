@@ -54,6 +54,7 @@ object Similarity {
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
+  //FIXME this query is way too slow
   def corpusSize: Future[Int] = {
     val query = select() where (
       bgp(
