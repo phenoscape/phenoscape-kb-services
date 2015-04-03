@@ -149,9 +149,10 @@ object Term {
   }
 
   def buildOntologyTermQuery(text: String, definedBy: IRI, limit: Int): Query = {
+    val searchText = if (text.endsWith("*")) text else s"$text*"
     val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
       bgp(
-        t('matched_label, BDSearch, NodeFactory.createLiteral(text)),
+        t('matched_label, BDSearch, NodeFactory.createLiteral(searchText)),
         t('matched_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
         t('matched_label, BDRank, 'rank),
         t('term, rdfsLabel | (hasExactSynonym | hasRelatedSynonym), 'matched_label),
