@@ -71,7 +71,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
   implicit object SeqFromJSONString extends Deserializer[String, Seq[String]] {
 
     def apply(text: String): Deserialized[Seq[String]] = text.parseJson match {
-      case a: JsArray => Right(a.elements.map(_.toString))
+      case a: JsArray => Right(a.elements.map(_.convertTo[String]))
       case _          => deserializationError("JSON array expected")
     }
 
