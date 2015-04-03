@@ -102,9 +102,9 @@ object Term {
     ExpressionUtil.expressionForName(Class(iri)).map { expression =>
       for {
         terms <- Future.sequence(expression.getSignature.map(term => computedLabel(term.getIRI)))
-        blah = terms.map(term => term.iri -> term.label).toMap
+        labelMap = terms.map(term => term.iri -> term.label).toMap
       } yield {
-        val renderer = createEntityRenderer(new LabelMapProvider(blah))
+        val renderer = createEntityRenderer(new LabelMapProvider(labelMap))
         MinimalTerm(iri, renderer(expression))
       }
     }.getOrElse(Future.successful(MinimalTerm(iri, iri.toString)))

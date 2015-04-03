@@ -68,6 +68,15 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
 
   }
 
+  implicit object SeqFromJSONString extends Deserializer[String, Seq[String]] {
+
+    def apply(text: String): Deserialized[Seq[String]] = text.parseJson match {
+      case a: JsArray => Right(a.elements.map(_.toString))
+      case _          => deserializationError("JSON array expected")
+    }
+
+  }
+
   val conf = ConfigFactory.load()
   val serverPort = conf.getInt("kb-services.port")
 
@@ -171,7 +180,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             path("query") {
               parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
                 complete {
-                  if (total) CharacterDescription.queryTotal(entity, taxon, Nil, limit, offset)
+                  if (total) CharacterDescription.queryTotal(entity, taxon, Nil)
                   else CharacterDescription.query(entity, taxon, Nil, limit, offset)
                 }
               }
@@ -187,6 +196,14 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
               }
             }
           } ~
+            path("variation_profile") {
+              parameters('taxon.as[Seq[String]].?(Seq.empty[String]), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (taxa, limit, offset, total) =>
+                complete {
+                  if (total) CharacterDescription.queryVariationProfileTotal(taxa.map(IRI.create)).map(ResultCount(_))
+                  else CharacterDescription.queryVariationProfile(taxa.map(IRI.create), limit, offset)
+                }
+              }
+            } ~
             pathEnd {
               parameters('iri.as[IRI]) { iri =>
                 complete {

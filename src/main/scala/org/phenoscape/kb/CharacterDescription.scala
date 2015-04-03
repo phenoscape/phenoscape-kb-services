@@ -50,15 +50,22 @@ object CharacterDescription {
     descriptions
   }
 
-  def queryTotal(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[ResultCount] = for {
-    query <- App.expandWithOwlet(buildTotalQuery(entity, taxon, publications, limit, offset))
+  def queryTotal(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Future[ResultCount] = for {
+    query <- App.expandWithOwlet(buildTotalQuery(entity, taxon, publications))
     result <- App.executeSPARQLQuery(query)
   } yield {
     ResultCount(result)
   }
 
+  def queryVariationProfile(taxa: Seq[IRI], limit: Int = 20, offset: Int = 0): Future[Seq[CharacterDescriptionAnnotation]] =
+    App.executeSPARQLQuery(buildVariationProfileQuery(taxa, limit, offset), CharacterDescriptionAnnotation(_))
+
+  def queryVariationProfileTotal(taxa: Seq[IRI]): Future[Int] = {
+    App.executeSPARQLQuery(buildVariationProfileTotalQuery(taxa)).map(ResultCount.count)
+  }
+
   def withIRI(iri: IRI): Future[Option[CharacterDescription]] = {
-    App.executeSPARQLQuery(buildCharacterDescriptionQuery(iri), fromQuerySolution(_)(iri)).map(_.headOption)
+    App.executeSPARQLQuery(buildCharacterDescriptionQuery(iri), fromQuerySolution(iri)).map(_.headOption)
   }
 
   def buildBasicQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
@@ -92,10 +99,41 @@ object CharacterDescription {
     query
   }
 
-  def buildTotalQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
+  def buildTotalQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
     val query = buildBasicQuery(entity, taxon, publications)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
     query
+  }
+
+  def buildVariationProfileTotalQuery(taxa: Seq[IRI]): Query = {
+    val query = buildBasicVariationProfileQuery(taxa)
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("phenotype"))))
+    query
+  }
+
+  def buildVariationProfileQuery(taxa: Seq[IRI], limit: Int = 20, offset: Int = 0): Query = {
+    val query = buildBasicVariationProfileQuery(taxa)
+    query.addResultVar('state)
+    query.addResultVar('state_desc)
+    query.addResultVar('phenotype)
+    query.setOffset(offset)
+    query.setLimit(limit)
+    query.addOrderBy('state_desc)
+    query.addOrderBy('state)
+    query.addOrderBy('phenotype)
+    query
+  }
+
+  def buildBasicVariationProfileQuery(taxa: Seq[IRI]): Query = {
+    val filters = if (taxa.isEmpty) Nil else
+      new ElementFilter(new E_OneOf(new ExprVar('taxon), new ExprList(taxa.map(new NodeValueNode(_)).toList))) :: Nil
+    select_distinct() from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('taxon, has_phenotypic_profile, 'profile),
+        t('profile, rdfType, 'phenotype),
+        t('state, dcDescription, 'state_desc),
+        t('state, describes_phenotype, 'phenotype)) ::
+        filters: _*)
   }
 
   def buildSearchQuery(text: String, limit: Int): Query = {
@@ -129,24 +167,38 @@ object CharacterDescription {
       IRI.create(result.getResource("matrix").getURI),
       result.getLiteral("matrix_label").getLexicalForm))
 
-  def fromQuerySolution(result: QuerySolution)(iri: IRI): CharacterDescription = CharacterDescription(iri,
+  def fromQuerySolution(iri: IRI)(result: QuerySolution): CharacterDescription = CharacterDescription(iri,
     result.getLiteral("state_desc").getLexicalForm,
     CharacterMatrix(
       IRI.create(result.getResource("matrix").getURI),
       result.getLiteral("matrix_label").getLexicalForm))
 
-  implicit val CharacterDescriptionsMarshaller = Marshaller.delegate[Seq[CharacterDescription], JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { results =>
-    new JsObject(Map("results" -> results.map(_.toJSON).toJson))
-  }
+}
+
+case class CharacterDescription(iri: IRI, description: String, matrix: CharacterMatrix) extends JSONResultItem {
+
+  def toJSON: JsObject = Map(
+    "@id" -> iri.toString.toJson,
+    "description" -> description.toJson,
+    "matrix" -> matrix.toJSON).toJson.asJsObject
 
 }
 
-case class CharacterDescription(iri: IRI, description: String, matrix: CharacterMatrix) {
+case class CharacterDescriptionAnnotation(iri: IRI, description: String, annotation: IRI) extends JSONResultItem {
 
-  def toJSON: JsValue = Map(
+  def toJSON: JsObject = Map(
     "@id" -> iri.toString.toJson,
     "description" -> description.toJson,
-    "matrix" -> matrix.toJSON).toJson
+    "annotation" -> annotation.toString.toJson).toJson.asJsObject
+
+}
+
+object CharacterDescriptionAnnotation {
+
+  def apply(result: QuerySolution): CharacterDescriptionAnnotation = CharacterDescriptionAnnotation(
+    IRI.create(result.getResource("state").getURI),
+    result.getLiteral("state_desc").getLexicalForm,
+    IRI.create(result.getResource("phenotype").getURI))
 
 }
 
