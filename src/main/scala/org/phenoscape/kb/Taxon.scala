@@ -30,8 +30,6 @@ import com.hp.hpl.jena.sparql.core.Var
 import TaxonEQAnnotation.ps_entity_term
 import TaxonEQAnnotation.ps_quality_term
 import TaxonEQAnnotation.ps_related_entity_term
-import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
-import com.hp.hpl.jena.sparql.expr.aggregate.AggCount
 
 object Taxon {
 
@@ -60,30 +58,31 @@ object Taxon {
         t('matrix, has_character / may_have_state_value, 'state) :: Nil)
     val taxonPatterns = if (taxon == owlThing) Nil else
       t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
-    select() from "http://kb.phenoscape.org/" where (
-      new ElementSubQuery(select_distinct('taxon, 'taxon_label) where (
-        bgp(
-          t('state, describes_phenotype, 'phenotype) ::
-            t('taxon, exhibits_state, 'state) ::
-            t('taxon, rdfsLabel, 'taxon_label) ::
-            entityPatterns ++
-            publicationPatterns ++
-            taxonPatterns: _*) ::
-          publicationFilters: _*)))
+    select_distinct() from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('state, describes_phenotype, 'phenotype) ::
+          t('taxon, exhibits_state, 'state) ::
+          t('taxon, rdfsLabel, 'taxon_label) ::
+          entityPatterns ++
+          publicationPatterns ++
+          taxonPatterns: _*) ::
+        publicationFilters: _*)
   }
 
   def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
     val query = buildBasicQuery(entity, taxon, publications)
+    query.addResultVar('taxon)
+    query.addResultVar('taxon_label)
+    query.setOffset(offset)
+    if (limit > 0) query.setLimit(limit)
     query.addOrderBy('taxon_label)
     query.addOrderBy('taxon)
-    if (limit > 0) query.setLimit(limit)
-    query.setOffset(offset)
     query
   }
 
   def buildTotalQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
     val query = buildBasicQuery(entity, taxon, publications)
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCount()))
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
     query
   }
 
