@@ -142,6 +142,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
               }
             }
           } ~
+            path("best_matches") {
+              parameters('query_iri.as[IRI], 'corpus_iri.as[IRI]) { (queryItem, corpusItem) =>
+                complete {
+                  Similarity.bestAnnotationsMatchesForComparison(queryItem, corpusItem)
+                }
+              }
+            } ~
             path("best_subsumers") {
               parameters('query_iri.as[IRI], 'corpus_iri.as[IRI]) { (queryItem, corpusItem) =>
                 complete {

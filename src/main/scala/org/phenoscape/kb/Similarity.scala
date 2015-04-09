@@ -36,6 +36,39 @@ object Similarity {
   def evolutionaryProfilesSimilarToGene(gene: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[SimilarityMatch]] =
     App.executeSPARQLQuery(geneToTaxonProfileQuery(gene, limit, offset), constructMatchFor(gene))
 
+  def bestAnnotationsMatchesForComparison(gene: IRI, taxon: IRI): Future[Seq[AnnotationPair]] = {
+    val geneInd = Individual(gene)
+    val taxonInd = Individual(taxon)
+    (for {
+      results <- App.executeSPARQLQuery(comparisonSubsumersQuery(gene, taxon), Subsumer.fromQuery(_))
+      subsumers <- Future.sequence(results)
+    } yield {
+      subsumers.sortBy(_.ic).foldRight(Future(Seq.empty[AnnotationPair])) { (subsumer, pairsFuture) =>
+        val geneAnnotationsFuture = subsumedAnnotations(geneInd, Class(subsumer.term.iri))
+        val taxonAnnotationsFuture = subsumedAnnotations(taxonInd, Class(subsumer.term.iri))
+        val newPairsFuture = for {
+          pairs <- pairsFuture
+          if pairs.size < 20
+          geneAnnotations <- geneAnnotationsFuture
+          taxonAnnotations <- taxonAnnotationsFuture
+        } yield {
+          for {
+            geneAnnotation <- geneAnnotations
+            taxonAnnotation <- taxonAnnotations
+            pair = AnnotationPair(geneAnnotation, taxonAnnotation, subsumer)
+            if !pairs.exists(pair => pair.queryAnnotation == geneAnnotation && pair.corpusAnnotation == taxonAnnotation)
+          } yield {
+            pair
+          }
+        }
+        for {
+          pairs <- pairsFuture
+          newPairs <- newPairsFuture
+        } yield pairs ++ newPairs
+      }
+    }).flatMap(identity)
+  }
+
   def bestSubsumersForComparison(gene: IRI, taxon: IRI): Future[Seq[Subsumer]] = for {
     results <- App.executeSPARQLQuery(comparisonSubsumersQuery(gene, taxon), Subsumer.fromQuery(_))
     subsumers <- Future.sequence(results)
@@ -104,6 +137,16 @@ case class SimilarityMatch(corpusProfile: MinimalTerm, score: Double) extends JS
     Map(
       "match_profile" -> corpusProfile.toJSON,
       "score" -> score.toJson).toJson.asJsObject
+  }
+
+}
+
+case class AnnotationPair(queryAnnotation: MinimalTerm, corpusAnnotation: MinimalTerm, bestSubsumer: Subsumer) extends JSONResultItem {
+
+  def toJSON: JsObject = {
+    Map("query_annotation" -> queryAnnotation.toJSON,
+      "corpus_annotation" -> corpusAnnotation.toJSON,
+      "best_subsumer" -> bestSubsumer.toJSON).toJson.asJsObject
   }
 
 }
