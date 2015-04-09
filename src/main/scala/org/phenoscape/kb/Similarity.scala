@@ -46,27 +46,31 @@ object Similarity {
       subsumers.sortBy(_.ic).foldRight(Future(Seq.empty[AnnotationPair])) { (subsumer, pairsFuture) =>
         val geneAnnotationsFuture = subsumedAnnotations(geneInd, Class(subsumer.term.iri))
         val taxonAnnotationsFuture = subsumedAnnotations(taxonInd, Class(subsumer.term.iri))
-        val newPairsFuture = for {
+        (for {
           pairs <- pairsFuture
-          if pairs.size < 20
-          geneAnnotations <- geneAnnotationsFuture
-          taxonAnnotations <- taxonAnnotationsFuture
         } yield {
-          for {
-            geneAnnotation <- geneAnnotations
-            taxonAnnotation <- taxonAnnotations
-            pair = AnnotationPair(geneAnnotation, taxonAnnotation, subsumer)
-            if !pairs.exists(pair => pair.queryAnnotation == geneAnnotation && pair.corpusAnnotation == taxonAnnotation)
-          } yield {
-            pair
+          if (pairs.size < 20) {
+            val newPairsFuture = for {
+              pairs <- pairsFuture
+              geneAnnotations <- geneAnnotationsFuture
+              taxonAnnotations <- taxonAnnotationsFuture
+            } yield {
+              for {
+                geneAnnotation <- geneAnnotations
+                taxonAnnotation <- taxonAnnotations
+                pair = AnnotationPair(geneAnnotation, taxonAnnotation, subsumer)
+                if !pairs.exists(pair => pair.queryAnnotation == geneAnnotation && pair.corpusAnnotation == taxonAnnotation)
+              } yield {
+                pair
+              }
+            }
+            newPairsFuture.map(pairs ++ _)
+          } else {
+            pairsFuture
           }
-        }
-        for {
-          pairs <- pairsFuture
-          newPairs <- newPairsFuture
-        } yield pairs ++ newPairs
+        }).flatMap(identity)
       }
-    }).flatMap(identity)
+    }).flatMap(identity).map(_.take(20))
   }
 
   def bestSubsumersForComparison(gene: IRI, taxon: IRI): Future[Seq[Subsumer]] = for {
