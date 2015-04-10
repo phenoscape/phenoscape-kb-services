@@ -43,7 +43,7 @@ object Similarity {
       results <- App.executeSPARQLQuery(comparisonSubsumersQuery(gene, taxon), Subsumer.fromQuery(_))
       subsumers <- Future.sequence(results)
     } yield {
-      subsumers.sortBy(_.ic).foldRight(Future(Seq.empty[UnlabelledAnnotationPair])) { (subsumer, pairsFuture) =>
+      subsumers.filter(_.ic > 0).sortBy(_.ic).foldRight(Future(Seq.empty[UnlabelledAnnotationPair])) { (subsumer, pairsFuture) =>
         val geneAnnotationsFuture = subsumedAnnotationIRIs(geneInd, Class(subsumer.term.iri))
         val taxonAnnotationsFuture = subsumedAnnotationIRIs(taxonInd, Class(subsumer.term.iri))
         (for {
