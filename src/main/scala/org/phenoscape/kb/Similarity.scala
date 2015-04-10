@@ -87,7 +87,7 @@ object Similarity {
           (labelMap + (pair.queryAnnotation -> queryAnnotationLabel) + (pair.corpusAnnotation -> corpusAnnotationLabel),
             pairs :+ AnnotationPair(
               MinimalTerm(pair.queryAnnotation, queryAnnotationLabel),
-              MinimalTerm(pair.queryAnnotation, queryAnnotationLabel),
+              MinimalTerm(pair.corpusAnnotation, corpusAnnotationLabel),
               pair.bestSubsumer))
         }
       }).flatMap(identity)
@@ -178,15 +178,6 @@ case class AnnotationPair(queryAnnotation: MinimalTerm, corpusAnnotation: Minima
     Map("query_annotation" -> queryAnnotation.toJSON,
       "corpus_annotation" -> corpusAnnotation.toJSON,
       "best_subsumer" -> bestSubsumer.toJSON).toJson.asJsObject
-  }
-
-}
-
-object AnnotationPair {
-
-  def fromUnlabelledAnnotationPair(pair: UnlabelledAnnotationPair): Future[AnnotationPair] = {
-
-    ???
   }
 
 }
