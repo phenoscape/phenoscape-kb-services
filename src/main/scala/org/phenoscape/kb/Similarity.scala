@@ -43,9 +43,9 @@ object Similarity {
       results <- App.executeSPARQLQuery(comparisonSubsumersQuery(gene, taxon), Subsumer.fromQuery(_))
       subsumers <- Future.sequence(results)
     } yield {
-      subsumers.sortBy(_.ic).foldRight(Future(Seq.empty[AnnotationPair])) { (subsumer, pairsFuture) =>
-        val geneAnnotationsFuture = subsumedAnnotations(geneInd, Class(subsumer.term.iri))
-        val taxonAnnotationsFuture = subsumedAnnotations(taxonInd, Class(subsumer.term.iri))
+      subsumers.sortBy(_.ic).foldRight(Future(Seq.empty[UnlabelledAnnotationPair])) { (subsumer, pairsFuture) =>
+        val geneAnnotationsFuture = subsumedAnnotationIRIs(geneInd, Class(subsumer.term.iri))
+        val taxonAnnotationsFuture = subsumedAnnotationIRIs(taxonInd, Class(subsumer.term.iri))
         (for {
           pairs <- pairsFuture
         } yield {
@@ -58,7 +58,7 @@ object Similarity {
               for {
                 geneAnnotation <- geneAnnotations
                 taxonAnnotation <- taxonAnnotations
-                pair = AnnotationPair(geneAnnotation, taxonAnnotation, subsumer)
+                pair = UnlabelledAnnotationPair(geneAnnotation, taxonAnnotation, subsumer)
                 if !pairs.exists(pair => pair.queryAnnotation == geneAnnotation && pair.corpusAnnotation == taxonAnnotation)
               } yield {
                 pair
@@ -70,7 +70,29 @@ object Similarity {
           }
         }).flatMap(identity)
       }
-    }).flatMap(identity).map(_.take(20))
+    }).flatMap(identity).map(_.take(20)).flatMap(addLabels)
+  }
+
+  def addLabels(unlabelleds: Seq[UnlabelledAnnotationPair]): Future[Seq[AnnotationPair]] = {
+    val labelled = unlabelleds.foldLeft(Future(Map.empty[IRI, String], Seq.empty[AnnotationPair])) { (accFuture, pair) =>
+      (for {
+        (labelMap, pairs) <- accFuture
+      } yield {
+        val queryAnnotationLabelFuture = labelMap.get(pair.queryAnnotation).map(Future.successful).getOrElse(Term.computedLabel(pair.queryAnnotation).map(_.label))
+        val corpusAnnotationLabelFuture = labelMap.get(pair.corpusAnnotation).map(Future.successful).getOrElse(Term.computedLabel(pair.corpusAnnotation).map(_.label))
+        for {
+          queryAnnotationLabel <- queryAnnotationLabelFuture
+          corpusAnnotationLabel <- corpusAnnotationLabelFuture
+        } yield {
+          (labelMap + (pair.queryAnnotation -> queryAnnotationLabel) + (pair.corpusAnnotation -> corpusAnnotationLabel),
+            pairs :+ AnnotationPair(
+              MinimalTerm(pair.queryAnnotation, queryAnnotationLabel),
+              MinimalTerm(pair.queryAnnotation, queryAnnotationLabel),
+              pair.bestSubsumer))
+        }
+      }).flatMap(identity)
+    }
+    labelled.map(_._2)
   }
 
   def bestSubsumersForComparison(gene: IRI, taxon: IRI): Future[Seq[Subsumer]] = for {
@@ -78,10 +100,13 @@ object Similarity {
     subsumers <- Future.sequence(results)
   } yield subsumers
 
+  def subsumedAnnotationIRIs(instance: OWLNamedIndividual, subsumer: OWLClass): Future[Seq[IRI]] =
+    App.executeSPARQLQuery(subsumedAnnotationsQuery(instance, subsumer), result => IRI.create(result.getResource("annotation").getURI))
+
   def subsumedAnnotations(instance: OWLNamedIndividual, subsumer: OWLClass): Future[Seq[MinimalTerm]] = for {
-    results <- App.executeSPARQLQuery(subsumedAnnotationsQuery(instance, subsumer), result => Term.computedLabel(IRI.create(result.getResource("annotation").getURI)))
-    annotations <- Future.sequence(results)
-  } yield annotations
+    irisFuture <- subsumedAnnotationIRIs(instance, subsumer)
+    labelledTerms <- Future.sequence(irisFuture.map(Term.computedLabel(_)))
+  } yield labelledTerms
 
   def profileSize(profileSubject: IRI): Future[Int] = {
     val query = select() where (
@@ -145,12 +170,23 @@ case class SimilarityMatch(corpusProfile: MinimalTerm, score: Double) extends JS
 
 }
 
+case class UnlabelledAnnotationPair(queryAnnotation: IRI, corpusAnnotation: IRI, bestSubsumer: Subsumer)
+
 case class AnnotationPair(queryAnnotation: MinimalTerm, corpusAnnotation: MinimalTerm, bestSubsumer: Subsumer) extends JSONResultItem {
 
   def toJSON: JsObject = {
     Map("query_annotation" -> queryAnnotation.toJSON,
       "corpus_annotation" -> corpusAnnotation.toJSON,
       "best_subsumer" -> bestSubsumer.toJSON).toJson.asJsObject
+  }
+
+}
+
+object AnnotationPair {
+
+  def fromUnlabelledAnnotationPair(pair: UnlabelledAnnotationPair): Future[AnnotationPair] = {
+
+    ???
   }
 
 }
