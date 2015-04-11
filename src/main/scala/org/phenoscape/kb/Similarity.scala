@@ -45,10 +45,11 @@ object Similarity {
     (for {
       results <- App.executeSPARQLQuery(comparisonSubsumersQuery(gene, taxon), Subsumer.fromQuery(_))
       subsumers <- Future.sequence(results)
+      subsumersWithDisparity <- Future.sequence(subsumers.map(addDisparity))
     } yield {
-      subsumers.filter(_.ic > 0).sortBy(_.ic).foldRight(Future(Seq.empty[UnlabelledAnnotationPair])) { (subsumer, pairsFuture) =>
-        val geneAnnotationsFuture = subsumedAnnotationIRIs(geneInd, Class(subsumer.term.iri))
-        val taxonAnnotationsFuture = subsumedAnnotationIRIs(taxonInd, Class(subsumer.term.iri))
+      subsumersWithDisparity.filter(_.subsumer.ic > 0).sortBy(_.subsumer.ic).foldRight(Future(Seq.empty[UnlabelledAnnotationPair])) { (subsumerWithDisparity, pairsFuture) =>
+        val geneAnnotationsFuture = subsumedAnnotationIRIs(geneInd, Class(subsumerWithDisparity.subsumer.term.iri))
+        val taxonAnnotationsFuture = subsumedAnnotationIRIs(taxonInd, Class(subsumerWithDisparity.subsumer.term.iri))
         (for {
           pairs <- pairsFuture
         } yield {
@@ -61,7 +62,7 @@ object Similarity {
               for {
                 geneAnnotation <- geneAnnotations
                 taxonAnnotation <- taxonAnnotations
-                pair = UnlabelledAnnotationPair(geneAnnotation, taxonAnnotation, subsumer)
+                pair = UnlabelledAnnotationPair(geneAnnotation, taxonAnnotation, subsumerWithDisparity)
                 if !pairs.exists(pair => pair.queryAnnotation == geneAnnotation && pair.corpusAnnotation == taxonAnnotation)
               } yield {
                 pair
@@ -138,6 +139,10 @@ object Similarity {
     }
   }
 
+  def addDisparity(subsumer: Subsumer): Future[SubsumerWithDisparity] = {
+    ???
+  }
+
   //FIXME this query is way too slow
   def corpusSize: Future[Int] = {
     val query = select() where (
@@ -192,9 +197,9 @@ case class SimilarityMatch(corpusProfile: MinimalTerm, score: Double) extends JS
 
 }
 
-case class UnlabelledAnnotationPair(queryAnnotation: IRI, corpusAnnotation: IRI, bestSubsumer: Subsumer)
+case class UnlabelledAnnotationPair(queryAnnotation: IRI, corpusAnnotation: IRI, bestSubsumer: SubsumerWithDisparity)
 
-case class AnnotationPair(queryAnnotation: MinimalTerm, corpusAnnotation: MinimalTerm, bestSubsumer: Subsumer) extends JSONResultItem {
+case class AnnotationPair(queryAnnotation: MinimalTerm, corpusAnnotation: MinimalTerm, bestSubsumer: SubsumerWithDisparity) extends JSONResultItem {
 
   def toJSON: JsObject = {
     Map("query_annotation" -> queryAnnotation.toJSON,
@@ -209,6 +214,16 @@ case class Subsumer(term: MinimalTerm, ic: Double) extends JSONResultItem {
   def toJSON: JsObject = {
     Map("term" -> term.toJSON,
       "ic" -> ic.toJson).toJson.asJsObject
+  }
+
+}
+
+case class SubsumerWithDisparity(subsumer: Subsumer, disparity: Double) extends JSONResultItem {
+
+  def toJSON: JsObject = {
+    Map("term" -> subsumer.term.toJSON,
+      "ic" -> subsumer.ic.toJson,
+      "disparity" -> disparity.toJson).toJson.asJsObject
   }
 
 }
