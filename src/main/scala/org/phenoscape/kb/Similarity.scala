@@ -22,6 +22,9 @@ import scala.collection.JavaConversions._
 import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
 import com.hp.hpl.jena.sparql.expr.ExprVar
 import com.hp.hpl.jena.sparql.core.Var
+import com.hp.hpl.jena.sparql.syntax.ElementNamedGraph
+import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
+import com.hp.hpl.jena.graph.Node_Variable
 
 object Similarity {
 
@@ -116,6 +119,25 @@ object Similarity {
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
+  def icDisparity(term: OWLClass): Future[Double] = {
+    val query = select_distinct('graph, 'ic) where (
+      new ElementNamedGraph(new Node_Variable("graph"),
+        bgp(
+          t(term, has_ic, 'ic))))
+    for {
+      results <- App.executeSPARQLQuery(query, result => (result.getResource("graph").getURI, result.getLiteral("ic").getDouble))
+    } yield {
+      val values = results.toMap
+      val differenceOpt = for {
+        taxonIC <- values.get("http://kb.phenoscape.org/ic")
+        geneIC <- values.get("http://kb.phenoscape.org/gene_ic")
+      } yield {
+        taxonIC - geneIC
+      }
+      differenceOpt.getOrElse(0.0)
+    }
+  }
+
   //FIXME this query is way too slow
   def corpusSize: Future[Int] = {
     val query = select() where (
@@ -126,7 +148,7 @@ object Similarity {
   }
 
   def geneToTaxonProfileQuery(gene: IRI, resultLimit: Int, resultOffset: Int): Query = {
-    val query = select_distinct('taxon, 'taxon_label, 'score) where (
+    val query = select_distinct('taxon, 'taxon_label, 'score) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/ic" where (
       bgp(
         t(gene, has_phenotypic_profile, 'gene_profile),
         t('comparison, for_query_profile, 'gene_profile),
@@ -139,7 +161,7 @@ object Similarity {
   }
 
   def comparisonSubsumersQuery(gene: IRI, taxon: IRI): Query =
-    select_distinct('subsumer, 'ic) where (
+    select_distinct('subsumer, 'ic) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/ic" where (
       bgp(
         t(gene, has_phenotypic_profile, 'gene_profile),
         t(taxon, has_phenotypic_profile, 'taxon_profile),
@@ -149,7 +171,7 @@ object Similarity {
         t('subsumer, has_ic, 'ic)))
 
   def subsumedAnnotationsQuery(instance: OWLNamedIndividual, subsumer: OWLClass): Query =
-    select_distinct('annotation) where (
+    select_distinct('annotation) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/ic" where (
       bgp(
         t(instance, has_phenotypic_profile / rdfType, 'annotation),
         t('annotation, rdfsSubClassOf*, subsumer)))

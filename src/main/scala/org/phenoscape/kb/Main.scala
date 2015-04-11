@@ -176,6 +176,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
               }
             }
         } ~
+        path("ic_disparity") {
+          parameters('iri.as[OWLClass]) { (term) =>
+            complete {
+              Similarity.icDisparity(term).map(value => JsObject("value" -> value.toJson))
+            }
+          }
+        } ~
         pathPrefix("characterstate") {
           path("search") {
             parameters('text, 'limit.as[Int]) { (text, limit) =>
