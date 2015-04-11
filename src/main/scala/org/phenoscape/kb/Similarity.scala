@@ -139,9 +139,8 @@ object Similarity {
     }
   }
 
-  def addDisparity(subsumer: Subsumer): Future[SubsumerWithDisparity] = {
-    ???
-  }
+  def addDisparity(subsumer: Subsumer): Future[SubsumerWithDisparity] =
+    icDisparity(Class(subsumer.term.iri)).map(SubsumerWithDisparity(subsumer, _))
 
   //FIXME this query is way too slow
   def corpusSize: Future[Int] = {
