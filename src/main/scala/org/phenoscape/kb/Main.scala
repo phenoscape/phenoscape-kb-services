@@ -291,6 +291,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               }
             } ~
+            path("phenotypic_profile") {
+              parameters('iri.as[IRI]) { (iri) =>
+                complete {
+                  Gene.phenotypicProfile(iri)
+                }
+              }
+            } ~
             pathEnd {
               parameters('iri.as[IRI]) { iri =>
                 complete {

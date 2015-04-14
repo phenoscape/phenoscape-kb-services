@@ -30,6 +30,7 @@ import spray.httpx.marshalling._
 import spray.json.DefaultJsonProtocol._
 import com.hp.hpl.jena.sparql.expr.E_IsIRI
 import com.hp.hpl.jena.graph.NodeFactory
+import com.hp.hpl.jena.sparql.expr.E_NotOneOf
 
 object Gene {
 
@@ -124,6 +125,23 @@ object Gene {
     val result = App.executeSPARQLQuery(buildGeneForPhenotypeQuery(entity, quality), formatResult)
     result.map(header + _.mkString("\n"))
   }
+
+  def phenotypicProfile(iri: IRI): Future[Seq[MinimalTerm]] = {
+    val query = select_distinct('annotation) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('pheno_instance, rdfType, AnnotatedPhenotype),
+        t('pheno_instance, associated_with_gene, iri),
+        t('pheno_instance, rdfType, 'annotation)),
+        new ElementFilter(new E_NotOneOf(new ExprVar('annotation), new ExprList(List(
+          new NodeValueNode(AnnotatedPhenotype),
+          new NodeValueNode(owlNamedIndividual))))))
+    for {
+      phenotypeIRIs <- App.executeSPARQLQuery(query, result => IRI.create(result.getResource("annotation").getURI))
+      labelledPhenotypes <- Future.sequence(phenotypeIRIs.map(Term.computedLabel))
+    } yield labelledPhenotypes
+  }
+
+  case class Phenotype(iri: IRI)
 
   private def formatResult(result: QuerySolution): String = {
     val gene = result.getResource("gene").getURI

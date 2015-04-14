@@ -19,6 +19,7 @@ object KBVocab {
   val definition = ObjectProperty("http://purl.obolibrary.org/obo/IAO_0000115")
   val rdfsIsDefinedBy = ObjectProperty(RDFS.isDefinedBy.getURI)
   val owlClass = IRI.create(OWL2.Class.getURI)
+  val owlNamedIndividual = IRI.create(OWL2.NamedIndividual.getURI)
   val owlEquivalentClass = ObjectProperty(OWL2.equivalentClass.getURI)
   val owlDeprecated = ObjectProperty(OWL2.deprecated.getURI)
   val owlThing = OWLManager.getOWLDataFactory.getOWLThing
