@@ -290,6 +290,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   else Gene.query(entity, taxon, limit, offset)
                 }
               }
+            } ~
+            pathEnd {
+              parameters('iri.as[IRI]) { iri =>
+                complete {
+                  Gene.withIRI(iri)
+                }
+              }
             }
         } ~
         path("genes_expressed_in_structure") {

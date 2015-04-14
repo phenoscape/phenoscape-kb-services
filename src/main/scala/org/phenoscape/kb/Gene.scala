@@ -40,6 +40,9 @@ object Gene {
     "http://xenbase.org" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_8353"), "frog"),
     "http://www.ncbi.nlm.nih.gov" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_9606"), "human"))
 
+  def withIRI(iri: IRI): Future[Option[Gene]] =
+    App.executeSPARQLQuery(buildGeneQuery(iri), Gene.fromIRIQuery(iri)).map(_.headOption)
+
   def search(text: String): Future[Seq[Gene]] = {
     App.executeSPARQLQuery(buildSearchQuery(text), Gene(_))
   }
@@ -105,6 +108,17 @@ object Gene {
     query
   }
 
+  def buildGeneQuery(iri: IRI): Query =
+    select('gene_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t(iri, rdfsLabel, 'gene_label),
+        t(iri, rdfType, Vocab.Gene)))
+
+  def fromIRIQuery(iri: IRI)(result: QuerySolution): Gene = Gene(
+    iri,
+    result.getLiteral("gene_label").getLexicalForm,
+    taxonForGeneIRI(iri))
+
   def affectingPhenotype(entity: IRI, quality: IRI): Future[String] = {
     val header = "gene\tgeneLabel\ttaxon\tsource\n"
     val result = App.executeSPARQLQuery(buildGeneForPhenotypeQuery(entity, quality), formatResult)
@@ -159,15 +173,16 @@ object Gene {
           App.BigdataRunPriorFirst)
   }
 
+  def taxonForGeneIRI(iri: IRI): Taxon = geneIDPrefixToTaxon.collectFirst {
+    case (prefix, taxon) if iri.toString.startsWith(prefix) => taxon
+  }.getOrElse(Taxon(factory.getOWLThing.getIRI, "unknown"))
+
   def apply(result: QuerySolution): Gene = {
     val geneURI = result.getResource("gene").getURI
-    val taxon = geneIDPrefixToTaxon.collectFirst {
-      case (prefix, taxon) if geneURI.startsWith(prefix) => taxon
-    }.getOrElse(Taxon(factory.getOWLThing.getIRI, "unknown"))
     Gene(
       IRI.create(geneURI),
       result.getLiteral("gene_label").getLexicalForm,
-      taxon)
+      taxonForGeneIRI(IRI.create(geneURI)))
   }
 
 }
