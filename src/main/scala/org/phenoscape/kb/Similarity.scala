@@ -48,12 +48,12 @@ object Similarity {
       subsumersWithDisparity <- Future.sequence(subsumers.map(addDisparity))
     } yield {
       subsumersWithDisparity.filter(_.subsumer.ic > 0).sortBy(_.subsumer.ic).foldRight(Future(Seq.empty[UnlabelledAnnotationPair])) { (subsumerWithDisparity, pairsFuture) =>
-        val geneAnnotationsFuture = subsumedAnnotationIRIs(geneInd, Class(subsumerWithDisparity.subsumer.term.iri))
-        val taxonAnnotationsFuture = subsumedAnnotationIRIs(taxonInd, Class(subsumerWithDisparity.subsumer.term.iri))
         (for {
           pairs <- pairsFuture
         } yield {
           if (pairs.size < 20) {
+            val geneAnnotationsFuture = subsumedAnnotationIRIs(geneInd, Class(subsumerWithDisparity.subsumer.term.iri))
+            val taxonAnnotationsFuture = subsumedAnnotationIRIs(taxonInd, Class(subsumerWithDisparity.subsumer.term.iri))
             val newPairsFuture = for {
               pairs <- pairsFuture
               geneAnnotations <- geneAnnotationsFuture
