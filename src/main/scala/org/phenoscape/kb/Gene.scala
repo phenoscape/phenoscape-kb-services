@@ -138,7 +138,7 @@ object Gene {
     for {
       phenotypeIRIs <- App.executeSPARQLQuery(query, result => IRI.create(result.getResource("annotation").getURI))
       labelledPhenotypes <- Future.sequence(phenotypeIRIs.map(Term.computedLabel))
-    } yield labelledPhenotypes
+    } yield labelledPhenotypes.sortBy(_.label)
   }
 
   case class Phenotype(iri: IRI)
