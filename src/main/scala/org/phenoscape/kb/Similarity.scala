@@ -25,6 +25,7 @@ import com.hp.hpl.jena.sparql.core.Var
 import com.hp.hpl.jena.sparql.syntax.ElementNamedGraph
 import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
 import com.hp.hpl.jena.graph.Node_Variable
+import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
 
 object Similarity {
 
@@ -177,8 +178,10 @@ object Similarity {
   def subsumedAnnotationsQuery(instance: OWLNamedIndividual, subsumer: OWLClass): Query =
     select_distinct('annotation) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/ic" where (
       bgp(
-        t(instance, has_phenotypic_profile / rdfType, 'annotation),
-        t('annotation, rdfsSubClassOf*, subsumer)))
+        t(instance, has_phenotypic_profile / rdfType, 'annotation)),
+        new ElementSubQuery(select('annotation) where (
+          bgp(
+            t('annotation, rdfsSubClassOf*, subsumer)))))
 
   def constructMatchFor(gene: IRI): QuerySolution => SimilarityMatch =
     (result: QuerySolution) => SimilarityMatch(MinimalTerm(IRI.create(result.getResource("taxon").getURI), result.getLiteral("taxon_label").getLexicalForm),
