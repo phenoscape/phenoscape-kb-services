@@ -162,7 +162,7 @@ object Similarity {
         t('comparison, has_expect_score, 'expect_score),
         t('comparison, for_corpus_profile, 'taxon_profile),
         t('taxon, has_phenotypic_profile, 'taxon_profile),
-        t('taxon, rdfsLabel, 'taxon_label))) order_by desc('score) limit resultLimit
+        t('taxon, rdfsLabel, 'taxon_label))) order_by asc('expect_score) limit resultLimit
     query.setOffset(resultOffset)
     query
   }
