@@ -218,6 +218,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               }
             } ~
+            path("newick") {
+              parameters('iri.as[IRI]) { (taxon) =>
+                complete {
+                  Taxon.newickTreeWithRoot(taxon)
+                }
+              }
+            } ~
             pathEnd {
               parameters('iri.as[IRI]) { iri =>
                 complete {

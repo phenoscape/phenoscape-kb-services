@@ -1,6 +1,7 @@
 package org.phenoscape.kb
 
 import scala.concurrent.Future
+import scala.collection.JavaConversions._
 import org.phenoscape.kb.Main.system.dispatcher
 import org.semanticweb.owlapi.model.IRI
 import spray.json._
@@ -9,9 +10,10 @@ import spray.httpx._
 import spray.httpx.SprayJsonSupport._
 import spray.httpx.marshalling._
 import spray.json.DefaultJsonProtocol._
+import org.phenoscape.owl.Vocab
+import org.phenoscape.owl.Vocab._
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.scowl.OWL._
-import org.phenoscape.owl.Vocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.owlet.SPARQLComposer._
 import org.semanticweb.owlapi.model.OWLClassExpression
@@ -30,6 +32,12 @@ import com.hp.hpl.jena.sparql.core.Var
 import TaxonEQAnnotation.ps_entity_term
 import TaxonEQAnnotation.ps_quality_term
 import TaxonEQAnnotation.ps_related_entity_term
+import com.hp.hpl.jena.vocabulary.RDFS
+import com.hp.hpl.jena.graph.NodeFactory
+import com.hp.hpl.jena.rdf.model.Model
+import com.hp.hpl.jena.graph.Node
+import com.hp.hpl.jena.rdf.model.ResourceFactory
+import com.hp.hpl.jena.rdf.model.Resource
 
 object Taxon {
 
@@ -97,6 +105,35 @@ object Taxon {
     result.getLiteral("taxon_label").getLexicalForm)
 
   def fromIRIQuery(iri: IRI)(result: QuerySolution): Taxon = Taxon(iri, result.getLiteral("label").getLexicalForm)
+
+  def newickTreeWithRoot(iri: IRI): Future[String] = {
+    val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
+    val query = construct(
+      t('child, rdfsSubClassOf, 'parent),
+      t('child, rdfsLabel, 'label)) from "http://kb.phenoscape.org/" where (
+        bgp(
+          t('parent, rdfsSubClassOf*, iri),
+          t('child, rdfsSubClassOf, 'parent),
+          t('child, rdfsLabel, 'label),
+          t('child, rdfsIsDefinedBy, VTO),
+          t('parent, rdfsIsDefinedBy, VTO)))
+    for {
+      model <- App.executeSPARQLConstructQuery(query)
+      taxon <- Term.computedLabel(iri)
+    } yield {
+      val taxonResource = ResourceFactory.createResource(iri.toString)
+      model.add(taxonResource, RDFS.label, taxon.label)
+      newickFor(taxonResource, model)
+    }
+  }
+
+  private def newickFor(parent: Resource, model: Model): String = {
+    val parentLabel = model.getProperty(parent, RDFS.label).getLiteral.getLexicalForm.replaceAllLiterally(" ", "_")
+    val children = model.listResourcesWithProperty(RDFS.subClassOf, parent).toSeq
+    val childList = children.map(newickFor(_, model)).mkString(", ")
+    val subtree = if (children.isEmpty) "" else s"($childList)"
+    s"$subtree$parentLabel"
+  }
 
 }
 
