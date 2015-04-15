@@ -128,11 +128,16 @@ object Taxon {
   }
 
   private def newickFor(parent: Resource, model: Model): String = {
-    val parentLabel = model.getProperty(parent, RDFS.label).getLiteral.getLexicalForm.replaceAllLiterally(" ", "_")
+    val reserved = Set(';', ',', ':', '(', ')', ' ', '"')
+    val parentLabel = model.getProperty(parent, RDFS.label).getLiteral.getLexicalForm
+    //val escapedLabel = if (parentLabel.exists(reserved)) s"'$parentLabel'" else parentLabel
+    val escapedLabel = s"'$parentLabel'"
+    val parentCount = model.listObjectsOfProperty(parent, RDFS.subClassOf).size
+    if (parentCount > 1) println(s"WARNING: $parentCount parents for $parent")
     val children = model.listResourcesWithProperty(RDFS.subClassOf, parent).toSeq
     val childList = children.map(newickFor(_, model)).mkString(", ")
     val subtree = if (children.isEmpty) "" else s"($childList)"
-    s"$subtree$parentLabel"
+    s"$subtree$escapedLabel"
   }
 
 }
