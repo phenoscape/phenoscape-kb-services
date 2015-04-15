@@ -30,6 +30,7 @@ import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
 object Similarity {
 
   private val combined_score = ObjectProperty("http://purl.org/phenoscape/vocab.owl#combined_score")
+  private val has_expect_score = ObjectProperty("http://purl.org/phenoscape/vocab.owl#has_expect_score")
   private val has_subsumer = ObjectProperty("http://purl.org/phenoscape/vocab.owl#has_subsumer")
   private val for_query_profile = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_query_profile")
   private val for_corpus_profile = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_corpus_profile")
@@ -153,11 +154,12 @@ object Similarity {
   }
 
   def geneToTaxonProfileQuery(gene: IRI, resultLimit: Int, resultOffset: Int): Query = {
-    val query = select_distinct('taxon, 'taxon_label, 'score) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/ic" where (
+    val query = select_distinct('taxon, 'taxon_label, 'median_score, 'expect_score) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/ic" where (
       bgp(
         t(gene, has_phenotypic_profile, 'gene_profile),
         t('comparison, for_query_profile, 'gene_profile),
-        t('comparison, combined_score, 'score),
+        t('comparison, combined_score, 'median_score),
+        t('comparison, has_expect_score, 'expect_score),
         t('comparison, for_corpus_profile, 'taxon_profile),
         t('taxon, has_phenotypic_profile, 'taxon_profile),
         t('taxon, rdfsLabel, 'taxon_label))) order_by desc('score) limit resultLimit
@@ -184,17 +186,20 @@ object Similarity {
             t('annotation, rdfsSubClassOf*, subsumer)))))
 
   def constructMatchFor(gene: IRI): QuerySolution => SimilarityMatch =
-    (result: QuerySolution) => SimilarityMatch(MinimalTerm(IRI.create(result.getResource("taxon").getURI), result.getLiteral("taxon_label").getLexicalForm),
-      result.getLiteral("score").getDouble)
+    (result: QuerySolution) => SimilarityMatch(
+      MinimalTerm(IRI.create(result.getResource("taxon").getURI), result.getLiteral("taxon_label").getLexicalForm),
+      result.getLiteral("median_score").getDouble,
+      result.getLiteral("expect_score").getDouble)
 
 }
 
-case class SimilarityMatch(corpusProfile: MinimalTerm, score: Double) extends JSONResultItem {
+case class SimilarityMatch(corpusProfile: MinimalTerm, medianScore: Double, expectScore: Double) extends JSONResultItem {
 
   def toJSON: JsObject = {
     Map(
       "match_profile" -> corpusProfile.toJSON,
-      "score" -> score.toJson).toJson.asJsObject
+      "median_score" -> medianScore.toJson,
+      "expect_score" -> expectScore.toJson).toJson.asJsObject
   }
 
 }
