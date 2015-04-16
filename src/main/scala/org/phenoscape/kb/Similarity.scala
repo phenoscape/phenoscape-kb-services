@@ -26,6 +26,7 @@ import com.hp.hpl.jena.sparql.syntax.ElementNamedGraph
 import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
 import com.hp.hpl.jena.graph.Node_Variable
 import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
+import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 
 object Similarity {
 
@@ -162,8 +163,11 @@ object Similarity {
         t('comparison, has_expect_score, 'expect_score),
         t('comparison, for_corpus_profile, 'taxon_profile),
         t('taxon, has_phenotypic_profile, 'taxon_profile),
-        t('taxon, rdfsLabel, 'taxon_label))) order_by (asc('expect_score), asc('taxon)) limit resultLimit
-    query.setOffset(resultOffset)
+        t('taxon, rdfsLabel, 'taxon_label))) order_by (asc('expect_score), asc('taxon))
+    if (resultLimit > 1) {
+      query.setLimit(resultLimit)
+      query.setOffset(resultOffset)
+    }
     query
   }
 
@@ -202,7 +206,41 @@ case class SimilarityMatch(corpusProfile: MinimalTerm, medianScore: Double, expe
       "expect_score" -> expectScore.toJson).toJson.asJsObject
   }
 
+  override def toString(): String = {
+    s"${corpusProfile.iri.toString}\t${corpusProfile.label}\t$medianScore\t$expectScore"
+  }
+
 }
+
+object SimilarityMatch {
+
+  implicit val SimilarityMatchMarshaller = Marshaller.delegate[SimilarityMatch, String](MediaTypes.`text/plain`)(_.toString)
+
+  val SimilarityMatchesTextMarshaller = Marshaller.delegate[Seq[SimilarityMatch], String](MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`) { matches =>
+    val header = "taxon IRI\ttaxon label\tmedian score\texpect score"
+    s"$header\n${matches.map(_.toString).mkString("\n")}"
+  }
+
+  implicit val ComboSimilarityMatchesMarshaller = ToResponseMarshaller.oneOf(MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`, MediaTypes.`application/json`)(SimilarityMatchesTextMarshaller, JSONResultItemsMarshaller)
+
+}
+
+//case class SimilarityMatches(matches: Seq[SimilarityMatch])
+//
+//object SimilarityMatches {
+//
+//  val SimilarityMatchesMarshaller = Marshaller.delegate[SimilarityMatches, String](MediaTypes.`text/tab-separated-values`) { matches =>
+//    val header = "taxon IRI\ttaxon label\tmedian score\texpect score"
+//    s"$header\n${matches.matches.map(_.toString).mkString("\n")}"
+//  }
+//
+//  val SimilarityMatchesJSONMarshaller = Marshaller.delegate[SimilarityMatches, Seq[SimilarityMatch]](MediaTypes.`application/json`) { matches =>
+//    matches.matches
+//  }
+//
+//  implicit val ComboSimilarityMatchesMarshaller = ToResponseMarshaller.oneOf(MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`, MediaTypes.`application/json`)(SimilarityMatchesMarshaller, SimilarityMatchesJSONMarshaller)
+//
+//}
 
 case class UnlabelledAnnotationPair(queryAnnotation: IRI, corpusAnnotation: IRI, bestSubsumer: SubsumerWithDisparity)
 
