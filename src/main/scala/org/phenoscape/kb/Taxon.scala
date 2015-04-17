@@ -131,7 +131,7 @@ object Taxon {
     val reserved = Set(';', ',', ':', '(', ')', ' ', '"')
     val parentLabel = model.getProperty(parent, RDFS.label).getLiteral.getLexicalForm
     //val escapedLabel = if (parentLabel.exists(reserved)) s"'$parentLabel'" else parentLabel
-    val escapedLabel = s"'$parentLabel'"
+    val escapedLabel = s"'${parentLabel.replaceAllLiterally("'", "\"")}'"
     val parentCount = model.listObjectsOfProperty(parent, RDFS.subClassOf).size
     if (parentCount > 1) println(s"WARNING: $parentCount parents for $parent")
     val children = model.listResourcesWithProperty(RDFS.subClassOf, parent).toSeq
