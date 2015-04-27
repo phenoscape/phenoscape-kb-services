@@ -163,7 +163,7 @@ object Similarity {
         t('comparison, has_expect_score, 'expect_score),
         t('comparison, for_corpus_profile, 'taxon_profile),
         t('taxon, has_phenotypic_profile, 'taxon_profile),
-        t('taxon, rdfsLabel, 'taxon_label))) order_by (asc('expect_score), asc('taxon))
+        t('taxon, rdfsLabel, 'taxon_label))) order_by (asc('expect_score), asc('median_score), asc('taxon))
     if (resultLimit > 1) {
       query.setLimit(resultLimit)
       query.setOffset(resultOffset)
