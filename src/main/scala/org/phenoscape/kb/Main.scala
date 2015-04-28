@@ -225,6 +225,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               }
             } ~
+            path("group") {
+              parameters('iri.as[IRI]) { (taxon) =>
+                complete {
+                  Taxon.commonGroupFor(taxon)
+                }
+              }
+            } ~
             pathEnd {
               parameters('iri.as[IRI]) { iri =>
                 complete {

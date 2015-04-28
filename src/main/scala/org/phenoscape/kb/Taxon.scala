@@ -39,8 +39,13 @@ import com.hp.hpl.jena.rdf.model.Model
 import com.hp.hpl.jena.graph.Node
 import com.hp.hpl.jena.rdf.model.ResourceFactory
 import com.hp.hpl.jena.rdf.model.Resource
-
+import com.hp.hpl.jena.sparql.expr.E_Coalesce
+import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueString
+import com.hp.hpl.jena.sparql.syntax.ElementBind
 object Taxon {
+
+  val phylopic = ObjectProperty("http://purl.org/phenoscape/phylopics.owl#phylopic")
+  val group_label = ObjectProperty("http://purl.org/phenoscape/phylopics.owl#group_label")
 
   def withIRI(iri: IRI): Future[Option[Taxon]] =
     App.executeSPARQLQuery(buildTaxonQuery(iri), Taxon.fromIRIQuery(iri)).map(_.headOption)
@@ -57,6 +62,10 @@ object Taxon {
     result <- App.executeSPARQLQuery(query)
   } yield {
     ResultCount(result)
+  }
+
+  def commonGroupFor(taxon: IRI): Future[Option[CommonGroup]] = {
+    App.executeSPARQLQuery(buildPhylopicQuery(taxon), CommonGroup(_)).map(_.headOption)
   }
 
   private def buildBasicQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
@@ -91,7 +100,6 @@ object Taxon {
 
   def buildTotalQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
     val query = buildBasicQuery(entity, taxon, publications)
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
     query
   }
 
@@ -100,6 +108,24 @@ object Taxon {
       bgp(
         t(iri, rdfsLabel, 'label),
         t(iri, rdfsIsDefinedBy, VTO)))
+
+  def buildPhylopicQuery(taxon: IRI): Query = {
+    val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
+    val query = select('super, 'label, 'picOpt) from "http://kb.phenoscape.org/" from "http://purl.org/phenoscape/phylopics.owl" where (
+      bgp(
+        t(taxon, rdfsSubClassOf*, 'super),
+        t('super, group_label, 'label),
+        t('super, rdfsSubClassOf*, 'ancestor)),
+        optional(
+          bgp(
+            t('super, phylopic, 'pic))),
+          new ElementBind('picOpt, new E_Coalesce(new ExprList(Seq(new ExprVar("pic"), new NodeValueString("")))))) order_by desc('level) limit 1
+    query.addGroupBy('super)
+    query.addGroupBy('label)
+    query.addGroupBy('picOpt)
+    query.getProject.add(Var.alloc("level"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("ancestor"))))
+    query
+  }
 
   def apply(result: QuerySolution): Taxon = Taxon(
     IRI.create(result.getResource("taxon").getURI),
@@ -139,6 +165,27 @@ object Taxon {
     val childList = children.map(newickFor(_, model)).mkString(", ")
     val subtree = if (children.isEmpty) "" else s"($childList)"
     s"$subtree$escapedLabel"
+  }
+
+}
+
+case class CommonGroup(label: String, phylopic: Option[IRI]) extends JSONResultItem {
+
+  def toJSON: JsObject = {
+    val pic = phylopic.map(iri => Map("phylopic" -> iri.toString)).getOrElse(Map.empty)
+    (Map("label" -> label) ++ pic).toJson.asJsObject
+  }
+
+}
+
+object CommonGroup {
+
+  def apply(result: QuerySolution): CommonGroup = {
+    CommonGroup(result.getLiteral("label").getLexicalForm,
+      {
+        val picOpt = result.get("picOpt")
+        if (picOpt.isURIResource) Some(IRI.create(picOpt.asResource.getURI)) else None
+      })
   }
 
 }
