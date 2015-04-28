@@ -2,6 +2,7 @@ package org.phenoscape.kb
 
 import scala.concurrent.Future
 import scala.collection.JavaConversions._
+import scala.language.postfixOps
 import org.phenoscape.kb.Main.system.dispatcher
 import org.semanticweb.owlapi.model.IRI
 import spray.json._
