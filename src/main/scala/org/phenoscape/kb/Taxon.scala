@@ -68,6 +68,11 @@ object Taxon {
     App.executeSPARQLQuery(buildPhylopicQuery(taxon), CommonGroup(_)).map(_.headOption)
   }
 
+  def phyloPicAcknowledgments: Future[Seq[IRI]] = {
+    val query = select_distinct('pic) where (bgp(t('subject, phylopic, 'pic)))
+    App.executeSPARQLQuery(query, result => IRI.create(result.getResource("pic").getURI))
+  }
+
   private def buildBasicQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
     val entityPatterns = if (entity == owlThing) Nil else
       t('phenotype, ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
