@@ -1,5 +1,6 @@
 package org.phenoscape.kb
 
+import org.phenoscape.kb.KBVocab._
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owl.Vocab
 import org.phenoscape.owlet.SPARQLComposer._
@@ -27,6 +28,9 @@ import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
 import com.hp.hpl.jena.graph.Node_Variable
 import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import com.hp.hpl.jena.sparql.expr.ExprList
+import com.hp.hpl.jena.sparql.expr.E_NotOneOf
+import com.hp.hpl.jena.sparql.syntax.ElementFilter
 
 object Similarity {
 
@@ -118,7 +122,10 @@ object Similarity {
   def profileSize(profileSubject: IRI): Future[Int] = {
     val query = select() where (
       bgp(
-        t(profileSubject, has_phenotypic_profile / rdfType, 'annotation)))
+        t(profileSubject, has_phenotypic_profile / rdfType, 'annotation)),
+        new ElementFilter(new E_NotOneOf(new ExprVar('annotation), new ExprList(List(
+          new NodeValueNode(AnnotatedPhenotype),
+          new NodeValueNode(owlNamedIndividual))))))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("annotation"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
@@ -163,7 +170,7 @@ object Similarity {
         t('comparison, has_expect_score, 'expect_score),
         t('comparison, for_corpus_profile, 'taxon_profile),
         t('taxon, has_phenotypic_profile, 'taxon_profile),
-        t('taxon, rdfsLabel, 'taxon_label))) order_by (asc('expect_score), asc('median_score), asc('taxon))
+        t('taxon, Vocab.rdfsLabel, 'taxon_label))) order_by (asc('expect_score), asc('median_score), asc('taxon))
     if (resultLimit > 1) {
       query.setLimit(resultLimit)
       query.setOffset(resultOffset)

@@ -5,7 +5,7 @@ organization  := "org.phenoscape"
 
 name          := "phenoscape-kb-services"
 
-version       := "0.3"
+version       := "0.3-SNAPSHOT"
 
 packageArchetype.java_server
 
