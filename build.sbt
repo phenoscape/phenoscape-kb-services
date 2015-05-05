@@ -49,7 +49,7 @@ libraryDependencies ++= {
     "net.sourceforge.owlapi" %   "owlapi-distribution" % "3.5.0",
     "org.phenoscape"         %   "owlet"               % "1.3",
     "org.phenoscape"         %   "scowl"               % "0.9",
-    "org.phenoscape"         %%   "kb-owl-tools"       % "1.2",
+    "org.phenoscape"         %%   "kb-owl-tools"       % "1.3",
     "org.phenoscape"         %   "phenex"              % "1.15.4",
     "commons-io"             %   "commons-io"          % "2.4",
     "org.apache.jena"        %   "apache-jena-libs"    % "2.11.2",
