@@ -61,16 +61,10 @@ object Term {
   }
 
   def computedLabel(iri: IRI): Future[MinimalTerm] = (for {
-    stateLabelOpt <- stateLabelForPhenotype(iri)
+    labelOpt <- label(iri)
   } yield {
-    stateLabelOpt.map(Future.successful).getOrElse {
-      (for {
-        labelOpt <- label(iri)
-      } yield {
-        labelOpt.map(Future.successful).getOrElse {
-          computeLabelForAnonymousTerm(iri)
-        }
-      }).flatMap(identity)
+    labelOpt.map(Future.successful).getOrElse {
+      computeLabelForAnonymousTerm(iri)
     }
   }).flatMap(identity)
 
