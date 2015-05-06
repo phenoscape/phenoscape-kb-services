@@ -42,12 +42,14 @@ import com.hp.hpl.jena.rdf.model.Resource
 import com.hp.hpl.jena.sparql.expr.E_Coalesce
 import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueString
 import com.hp.hpl.jena.sparql.syntax.ElementBind
+
 object Taxon {
 
   val phylopic = ObjectProperty("http://purl.org/phenoscape/phylopics.owl#phylopic")
   val group_label = ObjectProperty("http://purl.org/phenoscape/phylopics.owl#group_label")
+  val is_extinct = ObjectProperty("http://purl.obolibrary.org/obo/vto#is_extinct")
 
-  def withIRI(iri: IRI): Future[Option[Taxon]] =
+  def withIRI(iri: IRI): Future[Option[TaxonInfo]] =
     App.executeSPARQLQuery(buildTaxonQuery(iri), Taxon.fromIRIQuery(iri)).map(_.headOption)
 
   def query(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = for {
@@ -109,10 +111,13 @@ object Taxon {
   }
 
   def buildTaxonQuery(iri: IRI): Query =
-    select('label) from "http://kb.phenoscape.org/" where (
+    select('label, 'is_extinct) from "http://kb.phenoscape.org/" where (
       bgp(
         t(iri, rdfsLabel, 'label),
-        t(iri, rdfsIsDefinedBy, VTO)))
+        t(iri, rdfsIsDefinedBy, VTO)),
+        optional(
+          bgp(
+            t(iri, is_extinct, 'is_extinct))))
 
   def buildPhylopicQuery(taxon: IRI): Query = {
     val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
@@ -136,7 +141,14 @@ object Taxon {
     IRI.create(result.getResource("taxon").getURI),
     result.getLiteral("taxon_label").getLexicalForm)
 
-  def fromIRIQuery(iri: IRI)(result: QuerySolution): Taxon = Taxon(iri, result.getLiteral("label").getLexicalForm)
+  def fromIRIQuery(iri: IRI)(result: QuerySolution): TaxonInfo = {
+    val extinctValue = result.get("is_extinct")
+    val isExtinct = if (extinctValue.isLiteral) extinctValue.asLiteral.getBoolean else false
+    TaxonInfo(
+      iri,
+      result.getLiteral("label").getLexicalForm,
+      isExtinct)
+  }
 
   def newickTreeWithRoot(iri: IRI): Future[String] = {
     val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
@@ -198,7 +210,16 @@ object CommonGroup {
 case class Taxon(iri: IRI, label: String) extends JSONResultItem {
 
   def toJSON: JsObject = {
-    Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
+    Map("@id" -> iri.toString.toJson, "label" -> label.toJson).toJson.asJsObject
   }
 
 }
+
+case class TaxonInfo(iri: IRI, label: String, extinct: Boolean) extends JSONResultItem {
+
+  def toJSON: JsObject = {
+    Map("@id" -> iri.toString.toJson, "label" -> label.toJson, "extinct" -> extinct.toJson).toJson.asJsObject
+  }
+
+}
+
