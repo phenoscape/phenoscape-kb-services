@@ -141,14 +141,10 @@ object Taxon {
     IRI.create(result.getResource("taxon").getURI),
     result.getLiteral("taxon_label").getLexicalForm)
 
-  def fromIRIQuery(iri: IRI)(result: QuerySolution): TaxonInfo = {
-    val extinctValue = result.get("is_extinct")
-    val isExtinct = if (extinctValue.isLiteral) extinctValue.asLiteral.getBoolean else false
-    TaxonInfo(
-      iri,
-      result.getLiteral("label").getLexicalForm,
-      isExtinct)
-  }
+  def fromIRIQuery(iri: IRI)(result: QuerySolution): TaxonInfo = TaxonInfo(
+    iri,
+    result.getLiteral("label").getLexicalForm,
+    Option(result.getLiteral("is_extinct")).map(_.getBoolean).getOrElse(false))
 
   def newickTreeWithRoot(iri: IRI): Future[String] = {
     val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
