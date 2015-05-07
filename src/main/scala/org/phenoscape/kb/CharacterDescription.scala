@@ -116,8 +116,10 @@ object CharacterDescription {
     query.addResultVar('state)
     query.addResultVar('state_desc)
     query.addResultVar('phenotype)
-    query.setOffset(offset)
-    query.setLimit(limit)
+    if (limit > 1) {
+      query.setOffset(offset)
+      query.setLimit(limit)
+    }
     query.addOrderBy('state_desc)
     query.addOrderBy('state)
     query.addOrderBy('phenotype)
