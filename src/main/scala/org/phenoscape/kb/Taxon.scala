@@ -66,6 +66,12 @@ object Taxon {
     ResultCount(result)
   }
 
+  def variationProfileFor(taxon: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[IRI]] =
+    App.executeSPARQLQuery(buildVariationProfileQuery(taxon, limit, offset), result => IRI.create(result.getResource("phenotype").getURI))
+
+  def variationProfileTotalFor(taxon: IRI): Future[Int] =
+    App.executeSPARQLQuery(buildVariationProfileTotalQuery(taxon)).map(ResultCount.count)
+
   def commonGroupFor(taxon: IRI): Future[Option[CommonGroup]] = {
     App.executeSPARQLQuery(buildPhylopicQuery(taxon), CommonGroup(_)).map(_.headOption)
   }
@@ -118,6 +124,30 @@ object Taxon {
         optional(
           bgp(
             t(iri, is_extinct, 'is_extinct))))
+
+  def buildVariationProfileTotalQuery(taxon: IRI): Query = {
+    val query = buildBasicVariationProfileQuery(taxon)
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("phenotype"))))
+    query
+  }
+
+  def buildVariationProfileQuery(taxon: IRI, limit: Int, offset: Int): Query = {
+    val query = buildBasicVariationProfileQuery(taxon)
+    query.addResultVar('phenotype)
+    if (limit > 1) {
+      query.setOffset(offset)
+      query.setLimit(limit)
+    }
+    query.addOrderBy('phenotype)
+    query
+  }
+
+  def buildBasicVariationProfileQuery(taxon: IRI): Query = {
+    val hasPhenotypicProfile = ObjectProperty(has_phenotypic_profile)
+    select_distinct() from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('taxon, hasPhenotypicProfile / rdfType, 'phenotype)))
+  }
 
   def buildPhylopicQuery(taxon: IRI): Query = {
     val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)

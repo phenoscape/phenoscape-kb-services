@@ -106,7 +106,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             path("label") {
               parameters('iri.as[IRI]) { (iri) =>
                 complete {
-                  Term.label(iri).map(_.getOrElse(MinimalTerm(iri, "<unlabeled>")))
+                  Term.computedLabel(iri)
                 }
               }
             } ~
@@ -211,10 +211,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             }
           } ~
             path("variation_profile") {
-              parameters('taxon.as[Seq[String]].?(Seq.empty[String]), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (taxa, limit, offset, total) =>
+              parameters('taxon.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (taxon, limit, offset, total) =>
                 complete {
-                  if (total) CharacterDescription.queryVariationProfileTotal(taxa.map(IRI.create)).map(ResultCount(_))
-                  else CharacterDescription.queryVariationProfile(taxa.map(IRI.create), limit, offset)
+                  if (total) Taxon.variationProfileTotalFor(taxon).map(ResultCount(_))
+                  else Taxon.variationProfileFor(taxon, limit, offset)
                 }
               }
             } ~
