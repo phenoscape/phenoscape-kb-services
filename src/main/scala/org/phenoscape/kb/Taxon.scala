@@ -146,7 +146,7 @@ object Taxon {
     val hasPhenotypicProfile = ObjectProperty(has_phenotypic_profile)
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
-        t('taxon, hasPhenotypicProfile / rdfType, 'phenotype)))
+        t(taxon, hasPhenotypicProfile / rdfType, 'phenotype)))
   }
 
   def buildPhylopicQuery(taxon: IRI): Query = {
