@@ -190,7 +190,7 @@ object Term {
   }
 
   implicit val IRIsMarshaller = Marshaller.delegate[Seq[IRI], JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { results =>
-    new JsObject(Map("results" -> results.map(_.toString.toJson).toJson))
+    new JsObject(Map("results" -> results.map(iri => Map("@id" -> iri.toString.toJson)).toJson))
   }
 
   def fromQuerySolution(iri: IRI)(result: QuerySolution): Term = Term(iri,
