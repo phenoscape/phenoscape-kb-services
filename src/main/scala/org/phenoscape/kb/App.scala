@@ -44,7 +44,7 @@ object App {
 
   val conf = ConfigFactory.load()
   val KBEndpoint: Uri = Uri(conf.getString("kb-services.kb.endpoint"))
-  val Owlery: Uri = Uri(conf.getString("kb-services.owlery"))
+  val Owlery: Uri = Uri(conf.getString("kb-services.owlery.endpoint"))
 
   val `application/ld+json` = MediaTypes.register(MediaType.custom("application/ld+json"))
 
