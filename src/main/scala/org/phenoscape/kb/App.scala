@@ -43,22 +43,22 @@ object App {
   val `application/rdf+xml` = MediaTypes.register(MediaType.custom("application/rdf+xml"))
 
   val conf = ConfigFactory.load()
-  val KBEndpoint = IRI.create(conf.getString("kb-services.kb.endpoint"))
-  val OwleryEndpoint = IRI.create(conf.getString("kb-services.owlery.endpoint"))
+  val KBEndpoint: Uri = Uri(conf.getString("kb-services.kb.endpoint"))
+  val Owlery: Uri = Uri(conf.getString("kb-services.owlery"))
 
   val `application/ld+json` = MediaTypes.register(MediaType.custom("application/ld+json"))
 
-  def withOwlery(triple: TripleOrPath): ElementService = service(App.OwleryEndpoint.toString, bgp(triple))
+  def withOwlery(triple: TripleOrPath): ElementService = service(App.Owlery.toString + "/sparql", bgp(triple))
 
-  def executeSPARQLQuery(query: Query): Future[ResultSet] = sparqlSelectQuery(Post(App.KBEndpoint.toString, query))
+  def executeSPARQLQuery(query: Query): Future[ResultSet] = sparqlSelectQuery(Post(KBEndpoint, query))
 
   def executeSPARQLQuery[T](query: Query, resultMapper: QuerySolution => T): Future[Seq[T]] = for {
-    resultSet <- sparqlSelectQuery(Post(App.KBEndpoint.toString, query))
+    resultSet <- sparqlSelectQuery(Post(KBEndpoint, query))
   } yield {
     resultSet.map(resultMapper).toSeq
   }
 
-  def executeSPARQLConstructQuery(query: Query): Future[Model] = sparqlConstructQuery(Post(App.KBEndpoint.toString, query))
+  def executeSPARQLConstructQuery(query: Query): Future[Model] = sparqlConstructQuery(Post(KBEndpoint, query))
 
   def resultSetToTSV(result: ResultSet): String = {
     val outStream = new ByteArrayOutputStream()
@@ -79,7 +79,7 @@ object App {
 
   def expandWithOwlet(query: Query): Future[Query] = {
     val pipeline = sendReceive ~> unmarshal[Query]
-    pipeline(Post("http://pkb-new.nescent.org/owlery/kbs/phenoscape/expand", query))
+    pipeline(Post(Owlery.copy(path = Owlery.path / "expand"), query))
   }
 
   val sparqlSelectQuery: HttpRequest => Future[ResultSet] = addHeader(HttpHeaders.Accept(`application/sparql-results+xml`)) ~> sendReceive ~> unmarshal[ResultSet]

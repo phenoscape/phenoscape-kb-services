@@ -1,7 +1,8 @@
 package org.phenoscape.kb
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import Main.system
+import system.dispatcher
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl.OWL._
@@ -38,6 +39,7 @@ import org.semanticweb.owlapi.model.OWLEntity
 import org.semanticweb.owlapi.util.ShortFormProvider
 import uk.ac.manchester.cs.owl.owlapi.mansyntaxrenderer.ManchesterOWLSyntaxOWLObjectRendererImpl
 import org.semanticweb.owlapi.model.OWLObject
+import spray.client.pipelining._
 
 object Term {
 
@@ -111,6 +113,23 @@ object Term {
 
   def withIRI(iri: IRI): Future[Option[Term]] = {
     App.executeSPARQLQuery(buildTermQuery(iri), Term.fromQuerySolution(iri)).map(_.headOption)
+  }
+
+  def classification(iri: IRI): Future[Classification] = {
+    val pipeline = sendReceive ~> unmarshal[JsObject]
+    val query = Uri.Query("object" -> s"<iri>", "direct" -> "true")
+    def toTerm(list: JsValue): Future[Set[MinimalTerm]] =
+      Future.sequence(list.convertTo[List[String]].toSet[String].map(IRI.create).map(computedLabel))
+    val superclassesFuture = pipeline(Get(App.Owlery.copy(path = App.Owlery.path / "superclasses", query = query)))
+      .map(_.fields("subClassOf")).flatMap(toTerm)
+    val subclassesFuture = pipeline(Get(App.Owlery.copy(path = App.Owlery.path / "subclasses", query = query)))
+      .map(_.fields("subClassOf")).flatMap(toTerm)
+    val termFuture = computedLabel(iri)
+    for {
+      term <- termFuture
+      superclasses <- superclassesFuture
+      subclasses <- subclassesFuture
+    } yield Classification(term, superclasses, subclasses)
   }
 
   def buildTermQuery(iri: IRI): Query = {
@@ -224,5 +243,14 @@ class LabelMapProvider(labels: Map[IRI, String]) extends ShortFormProvider {
   def getShortForm(entity: OWLEntity): String = labels.getOrElse(entity.getIRI, entity.getIRI.toString)
 
   def dispose(): Unit = Unit
+
+}
+
+case class Classification(term: MinimalTerm, superclasses: Set[MinimalTerm], subclasses: Set[MinimalTerm]) extends JSONResultItem {
+
+  def toJSON: JsObject = JsObject(
+    term.toJSON.fields ++
+      Map("subClassOf" -> superclasses.map(_.toJSON).toJson,
+        "superClassOf" -> subclasses.map(_.toJSON).toJson))
 
 }

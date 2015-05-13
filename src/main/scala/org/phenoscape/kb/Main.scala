@@ -117,6 +117,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               }
             } ~
+            path("classification") {
+              parameters('iri.as[IRI]) { (iri) =>
+                complete {
+                  Term.classification(iri)
+                }
+              }
+            } ~
             pathEnd {
               parameters('iri.as[IRI]) { iri =>
                 complete {
