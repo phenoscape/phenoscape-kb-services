@@ -117,13 +117,15 @@ object Term {
 
   def classification(iri: IRI): Future[Classification] = {
     val pipeline = sendReceive ~> unmarshal[JsObject]
-    val query = Uri.Query("object" -> s"<iri>", "direct" -> "true")
+    val query = Uri.Query("object" -> s"<$iri>", "direct" -> "true")
+    println("CLASSIFICATION")
+    println(Get(App.Owlery.copy(path = App.Owlery.path / "superclasses", query = query)))
     def toTerm(list: JsValue): Future[Set[MinimalTerm]] =
       Future.sequence(list.convertTo[List[String]].toSet[String].map(IRI.create).map(computedLabel))
     val superclassesFuture = pipeline(Get(App.Owlery.copy(path = App.Owlery.path / "superclasses", query = query)))
       .map(_.fields("subClassOf")).flatMap(toTerm)
     val subclassesFuture = pipeline(Get(App.Owlery.copy(path = App.Owlery.path / "subclasses", query = query)))
-      .map(_.fields("subClassOf")).flatMap(toTerm)
+      .map(_.fields("superClassOf")).flatMap(toTerm)
     val termFuture = computedLabel(iri)
     for {
       term <- termFuture
