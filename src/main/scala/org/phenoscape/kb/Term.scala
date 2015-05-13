@@ -250,7 +250,7 @@ case class Classification(term: MinimalTerm, superclasses: Set[MinimalTerm], sub
 
   def toJSON: JsObject = JsObject(
     term.toJSON.fields ++
-      Map("subClassOf" -> superclasses.map(_.toJSON).toJson,
-        "superClassOf" -> subclasses.map(_.toJSON).toJson))
+      Map("subClassOf" -> superclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson,
+        "superClassOf" -> subclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson))
 
 }
