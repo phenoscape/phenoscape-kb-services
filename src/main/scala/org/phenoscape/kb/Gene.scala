@@ -172,7 +172,7 @@ object Gene {
 
   private def buildGeneForPhenotypeQuery(entityIRI: IRI): Query = {
     val hasPhenotypicProfile = ObjectProperty(has_phenotypic_profile)
-    select_distinct('gene, 'gene_label) from "http://kb.phenoscape.org/" where (
+    select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         t('gene, rdfsLabel, 'gene_label),
         t('gene, hasPhenotypicProfile / rdfType, 'phenotype),
