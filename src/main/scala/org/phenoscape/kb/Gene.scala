@@ -120,10 +120,29 @@ object Gene {
     result.getLiteral("gene_label").getLexicalForm,
     taxonForGeneIRI(iri))
 
-  def affectingPhenotype(entity: IRI, quality: IRI): Future[String] = {
-    val header = "gene\tgeneLabel\ttaxon\tsource\n"
-    val result = App.executeSPARQLQuery(buildGeneForPhenotypeQuery(entity, quality), formatResult)
-    result.map(header + _.mkString("\n"))
+  def affectingPhenotypeOfEntity(entity: IRI, limit: Int, offset: Int): Future[Seq[Gene]] = {
+    val query = buildGeneForPhenotypeQuery(entity)
+    query.addResultVar('gene)
+    query.addResultVar('gene_label)
+    if (limit > 1) {
+      query.setOffset(offset)
+      query.setLimit(limit)
+    }
+    query.addOrderBy('gene_label)
+    query.addOrderBy('gene_)
+    for {
+      expandedQuery <- App.expandWithOwlet(query)
+      genes <- App.executeSPARQLQuery(expandedQuery, Gene(_))
+    } yield genes
+  }
+
+  def affectingPhenotypeOfEntityTotal(entity: IRI): Future[Int] = {
+    val query = buildGeneForPhenotypeQuery(entity)
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("gene"))))
+    for {
+      expandedQuery <- App.expandWithOwlet(query)
+      total <- App.executeSPARQLQuery(expandedQuery).map(ResultCount.count)
+    } yield total
   }
 
   def phenotypicProfile(iri: IRI): Future[Seq[MinimalTerm]] = {
@@ -151,20 +170,14 @@ object Gene {
     s"$gene\t$geneLabel\t$taxon\t$source"
   }
 
-  private def buildGeneForPhenotypeQuery(entityIRI: IRI, qualityIRI: IRI): Query = {
-    val quality = Class(qualityIRI)
-    select_distinct('gene, 'gene_label, 'taxon_label, 'source) from "http://kb.phenoscape.org/" where (
+  private def buildGeneForPhenotypeQuery(entityIRI: IRI): Query = {
+    val hasPhenotypicProfile = ObjectProperty(has_phenotypic_profile)
+    select_distinct('gene, 'gene_label) from "http://kb.phenoscape.org/" where (
       bgp(
-        t('pheno_instance, rdfType, 'phenotype),
-        t('pheno_instance, associated_with_taxon, 'taxon),
-        t('taxon, rdfsLabel, 'taxon_label),
-        t('pheno_instance, associated_with_gene, 'gene),
-        t('gene, rdfsLabel, 'gene_label)),
-        optional(bgp(
-          t('pheno_instance, dcSource, 'source))),
-        withOwlery(
-          t('phenotype, rdfsSubClassOf, ((has_part some (quality and (inheres_in_part_of some Class(entityIRI)))) or (has_part some (quality and (towards some Class(entityIRI)))) or (has_part some (quality and (towards value Individual(entityIRI))))).asOMN)),
-          App.BigdataRunPriorFirst)
+        t('gene, rdfsLabel, 'gene_label),
+        t('gene, hasPhenotypicProfile / rdfType, 'phenotype),
+        t('phenotype, rdfsSubClassOf,
+          ((has_part some (phenotype_of some Class(entityIRI))) or (has_part some (towards value Individual(entityIRI)))).asOMN)))
   }
 
   def expressedWithinStructure(entity: IRI): Future[String] = {

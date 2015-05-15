@@ -327,6 +327,14 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               }
             } ~
+            path("affecting_entity_phenotype") {
+              parameters('iri.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (iri, limit, offset, total) =>
+                complete {
+                  if (total) Gene.affectingPhenotypeOfEntityTotal(iri).map(ResultCount(_))
+                  else Gene.affectingPhenotypeOfEntity(iri, limit, offset)
+                }
+              }
+            } ~
             pathEnd {
               parameters('iri.as[IRI]) { iri =>
                 complete {
@@ -339,13 +347,6 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
           parameters('entity.as[IRI]) { entity =>
             complete {
               Gene.expressedWithinStructure(entity)
-            }
-          }
-        } ~
-        path("genes_affecting_phenotype") {
-          parameters('entity.as[IRI], 'quality.as[IRI]) { (entity, quality) =>
-            complete {
-              Gene.affectingPhenotype(entity, quality)
             }
           }
         } ~
