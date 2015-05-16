@@ -120,8 +120,8 @@ object Gene {
     result.getLiteral("gene_label").getLexicalForm,
     taxonForGeneIRI(iri))
 
-  def affectingPhenotypeOfEntity(entity: IRI, limit: Int, offset: Int): Future[Seq[Gene]] = {
-    val query = buildGeneForPhenotypeQuery(entity)
+  def affectingPhenotypeOfEntity(entity: IRI, includeParts: Boolean, limit: Int, offset: Int): Future[Seq[Gene]] = {
+    val query = buildGeneForPhenotypeQuery(entity, includeParts)
     query.addResultVar('gene)
     query.addResultVar('gene_label)
     if (limit > 1) {
@@ -136,8 +136,8 @@ object Gene {
     } yield genes
   }
 
-  def affectingPhenotypeOfEntityTotal(entity: IRI): Future[Int] = {
-    val query = buildGeneForPhenotypeQuery(entity)
+  def affectingPhenotypeOfEntityTotal(entity: IRI, includeParts: Boolean): Future[Int] = {
+    val query = buildGeneForPhenotypeQuery(entity, includeParts)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("gene"))))
     for {
       expandedQuery <- App.expandWithOwlet(query)
@@ -170,14 +170,16 @@ object Gene {
     s"$gene\t$geneLabel\t$taxon\t$source"
   }
 
-  private def buildGeneForPhenotypeQuery(entityIRI: IRI): Query = {
+  private def buildGeneForPhenotypeQuery(entityIRI: IRI, includeParts: Boolean): Query = {
     val hasPhenotypicProfile = ObjectProperty(has_phenotypic_profile)
+    val entityClass = if (includeParts) part_of some Class(entityIRI) else Class(entityIRI)
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         t('gene, rdfsLabel, 'gene_label),
         t('gene, hasPhenotypicProfile / rdfType, 'phenotype),
         t('phenotype, rdfsSubClassOf,
-          ((has_part some (phenotype_of some Class(entityIRI))) or (has_part some (towards value Individual(entityIRI)))).asOMN)))
+          ((has_part some (phenotype_of some entityClass)) or (has_part some (towards value Individual(entityIRI)))).asOMN)))
+    //TODO add part_of instance graph so could say (towards some (part_of value Individual(entityIRI)))?
   }
 
   def expressedWithinStructure(entity: IRI): Future[String] = {

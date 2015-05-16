@@ -328,10 +328,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
               }
             } ~
             path("affecting_entity_phenotype") {
-              parameters('iri.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (iri, limit, offset, total) =>
+              parameters('iri.as[IRI], 'parts.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (iri, includeParts, limit, offset, total) =>
                 complete {
-                  if (total) Gene.affectingPhenotypeOfEntityTotal(iri).map(ResultCount(_))
-                  else Gene.affectingPhenotypeOfEntity(iri, limit, offset)
+                  if (total) Gene.affectingPhenotypeOfEntityTotal(iri, includeParts).map(ResultCount(_))
+                  else Gene.affectingPhenotypeOfEntity(iri, includeParts, limit, offset)
                 }
               }
             } ~
