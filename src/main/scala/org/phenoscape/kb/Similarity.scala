@@ -68,7 +68,7 @@ object Similarity {
               for {
                 geneAnnotation <- geneAnnotations
                 if !pairs.exists(pair => pair.queryAnnotation == geneAnnotation)
-                taxonAnnotation <- taxonAnnotations
+                taxonAnnotation <- taxonAnnotations.headOption
               } yield {
                 UnlabelledAnnotationPair(geneAnnotation, taxonAnnotation, subsumerWithDisparity)
               }
