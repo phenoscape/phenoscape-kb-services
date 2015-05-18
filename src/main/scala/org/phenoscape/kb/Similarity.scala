@@ -50,11 +50,10 @@ object Similarity {
     val geneInd = Individual(gene)
     val taxonInd = Individual(taxon)
     (for {
-      results <- App.executeSPARQLQuery(comparisonSubsumersQuery(gene, taxon), Subsumer.fromQuery(_))
-      subsumers <- Future.sequence(results)
+      subsumers <- bestSubsumersForComparison(gene, taxon)
       subsumersWithDisparity <- Future.sequence(subsumers.map(addDisparity))
     } yield {
-      subsumersWithDisparity.filter(_.subsumer.ic > 0).sortBy(_.subsumer.ic).foldRight(Future(Seq.empty[UnlabelledAnnotationPair])) { (subsumerWithDisparity, pairsFuture) =>
+      subsumersWithDisparity.sortBy(_.subsumer.ic).foldRight(Future(Seq.empty[UnlabelledAnnotationPair])) { (subsumerWithDisparity, pairsFuture) =>
         (for {
           pairs <- pairsFuture
         } yield {
@@ -68,11 +67,10 @@ object Similarity {
             } yield {
               for {
                 geneAnnotation <- geneAnnotations
+                if !pairs.exists(pair => pair.queryAnnotation == geneAnnotation)
                 taxonAnnotation <- taxonAnnotations
-                pair = UnlabelledAnnotationPair(geneAnnotation, taxonAnnotation, subsumerWithDisparity)
-                if !pairs.exists(pair => pair.queryAnnotation == geneAnnotation && pair.corpusAnnotation == taxonAnnotation)
               } yield {
-                pair
+                UnlabelledAnnotationPair(geneAnnotation, taxonAnnotation, subsumerWithDisparity)
               }
             }
             newPairsFuture.map(pairs ++ _)
