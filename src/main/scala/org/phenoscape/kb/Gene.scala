@@ -31,6 +31,7 @@ import spray.json.DefaultJsonProtocol._
 import com.hp.hpl.jena.sparql.expr.E_IsIRI
 import com.hp.hpl.jena.graph.NodeFactory
 import com.hp.hpl.jena.sparql.expr.E_NotOneOf
+import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 
 object Gene {
 
@@ -218,12 +219,23 @@ object Gene {
       taxonForGeneIRI(IRI.create(geneURI)))
   }
 
+  val GenesTextMarshaller = Marshaller.delegate[Seq[Gene], String](MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`) { genes =>
+    val header = "IRI\tlabel\ttaxon"
+    s"$header\n${genes.map(_.toString).mkString("\n")}"
+  }
+
+  implicit val ComboGenesMarshaller = ToResponseMarshaller.oneOf(MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`, MediaTypes.`application/json`)(GenesTextMarshaller, JSONResultItemsMarshaller)
+
 }
 
 case class Gene(iri: IRI, label: String, taxon: Taxon) extends JSONResultItem {
 
   def toJSON: JsObject = {
     Map("@id" -> iri.toString.toJson, "label" -> label.toJson, "taxon" -> taxon.toJSON).toJson.asJsObject
+  }
+
+  override def toString(): String = {
+    s"$iri\t$label\t${taxon.label}"
   }
 
 }

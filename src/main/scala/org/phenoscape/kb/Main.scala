@@ -1,7 +1,6 @@
 package org.phenoscape.kb
 
 import scala.collection.immutable.Map
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Right
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 import org.phenoscape.kb.Term.JSONResultItemMarshaller
@@ -31,6 +30,7 @@ import org.semanticweb.owlapi.model.OWLNamedIndividual
 object Main extends App with SimpleRoutingApp with CORSDirectives {
 
   implicit val system = ActorSystem("phenoscape-kb-system")
+  import system.dispatcher
   val factory = OWLManager.getOWLDataFactory
   val owlClass = OWLRDFVocabulary.OWL_CLASS.getIRI
   val rdfsLabel = factory.getRDFSLabel.getIRI
