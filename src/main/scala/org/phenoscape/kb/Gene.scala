@@ -146,6 +146,31 @@ object Gene {
     } yield total
   }
 
+  def expressedWithinEntity(entity: IRI, limit: Int, offset: Int): Future[Seq[Gene]] = {
+    val query = buildGeneExpressedInEntityQuery(entity)
+    query.addResultVar('gene)
+    query.addResultVar('gene_label)
+    if (limit > 1) {
+      query.setOffset(offset)
+      query.setLimit(limit)
+    }
+    query.addOrderBy('gene_label)
+    query.addOrderBy('gene_)
+    for {
+      expandedQuery <- App.expandWithOwlet(query)
+      genes <- App.executeSPARQLQuery(expandedQuery, Gene(_))
+    } yield genes
+  }
+
+  def expressedWithinEntityTotal(entity: IRI): Future[Int] = {
+    val query = buildGeneExpressedInEntityQuery(entity)
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("gene"))))
+    for {
+      expandedQuery <- App.expandWithOwlet(query)
+      total <- App.executeSPARQLQuery(expandedQuery).map(ResultCount.count)
+    } yield total
+  }
+
   def phenotypicProfile(iri: IRI): Future[Seq[MinimalTerm]] = {
     val query = select_distinct('annotation) from "http://kb.phenoscape.org/" where (
       bgp(
@@ -195,7 +220,17 @@ object Gene {
         t('gene, hasPhenotypicProfile / rdfType, 'phenotype),
         t('phenotype, rdfsSubClassOf,
           ((has_part some (phenotype_of some entityClass)) or (has_part some (towards value Individual(entityIRI)))).asOMN)))
-    //TODO add part_of instance graph so could say (towards some (part_of value Individual(entityIRI)))?
+    //TODO add part_of instance graph so could say (towards some (part_of value Individual(entityIRI)))???
+  }
+
+  private def buildGeneExpressedInEntityQuery(entityIRI: IRI): Query = {
+    select_distinct() from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('gene, rdfsLabel, 'gene_label),
+        t('expression, associated_with_gene, 'gene),
+        t('expression, rdfType, GeneExpression),
+        t('expression, occurs_in, 'structure),
+        t('structure, rdfsSubClassOf, (part_of some Class(entityIRI)).asOMN)))
   }
 
   def expressedWithinStructure(entity: IRI): Future[String] = {

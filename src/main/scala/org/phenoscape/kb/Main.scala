@@ -342,6 +342,14 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               }
             } ~
+            path("expressed_within_entity") {
+              parameters('iri.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (iri, limit, offset, total) =>
+                complete {
+                  if (total) Gene.expressedWithinEntityTotal(iri).map(ResultCount(_))
+                  else Gene.expressedWithinEntity(iri, limit, offset)
+                }
+              }
+            } ~
             pathEnd {
               parameters('iri.as[IRI]) { iri =>
                 complete {
