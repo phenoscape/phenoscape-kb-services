@@ -156,19 +156,13 @@ object Gene {
     }
     query.addOrderBy('gene_label)
     query.addOrderBy('gene)
-    for {
-      expandedQuery <- App.expandWithOwlet(query)
-      genes <- App.executeSPARQLQuery(expandedQuery, Gene(_))
-    } yield genes
+    App.executeSPARQLQuery(query, Gene(_))
   }
 
   def expressedWithinEntityTotal(entity: IRI): Future[Int] = {
     val query = buildGeneExpressedInEntityQuery(entity)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("gene"))))
-    for {
-      expandedQuery <- App.expandWithOwlet(query)
-      total <- App.executeSPARQLQuery(expandedQuery).map(ResultCount.count)
-    } yield total
+    App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   def phenotypicProfile(iri: IRI): Future[Seq[MinimalTerm]] = {
@@ -229,8 +223,11 @@ object Gene {
         t('gene, rdfsLabel, 'gene_label),
         t('expression, associated_with_gene, 'gene),
         t('expression, rdfType, GeneExpression),
-        t('expression, occurs_in / rdfType, 'structure_class),
-        t('structure_class, rdfsSubClassOf, (part_of some Class(entityIRI)).asOMN)))
+        t('expression, occurs_in, 'structure),
+        t('structure, rdfType, 'structure_class)),
+        withOwlery(
+          t('structure_class, rdfsSubClassOf, (part_of some Class(entityIRI)).asOMN)),
+          App.BigdataRunPriorFirst)
   }
 
   def expressedWithinStructure(entity: IRI): Future[String] = {
