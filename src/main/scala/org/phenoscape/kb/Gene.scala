@@ -130,7 +130,7 @@ object Gene {
       query.setLimit(limit)
     }
     query.addOrderBy('gene_label)
-    query.addOrderBy('gene_)
+    query.addOrderBy('gene)
     for {
       expandedQuery <- App.expandWithOwlet(query)
       genes <- App.executeSPARQLQuery(expandedQuery, Gene(_))
@@ -155,7 +155,7 @@ object Gene {
       query.setLimit(limit)
     }
     query.addOrderBy('gene_label)
-    query.addOrderBy('gene_)
+    query.addOrderBy('gene)
     for {
       expandedQuery <- App.expandWithOwlet(query)
       genes <- App.executeSPARQLQuery(expandedQuery, Gene(_))
@@ -229,8 +229,8 @@ object Gene {
         t('gene, rdfsLabel, 'gene_label),
         t('expression, associated_with_gene, 'gene),
         t('expression, rdfType, GeneExpression),
-        t('expression, occurs_in, 'structure),
-        t('structure, rdfsSubClassOf, (part_of some Class(entityIRI)).asOMN)))
+        t('expression, occurs_in / rdfType, 'structure_class),
+        t('structure_class, rdfsSubClassOf, (part_of some Class(entityIRI)).asOMN)))
   }
 
   def expressedWithinStructure(entity: IRI): Future[String] = {
