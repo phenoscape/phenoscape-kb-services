@@ -168,7 +168,7 @@ object Gene {
         t('expression, associated_with_gene, iri),
         t('expression, occurs_in, 'entity_instance),
         t('entity_instance, rdfType, 'entity)),
-        new ElementFilter(new E_NotOneOf(new ExprVar('entity_instance), new ExprList(List(
+        new ElementFilter(new E_NotOneOf(new ExprVar('entity), new ExprList(List(
           new NodeValueNode(owlNamedIndividual))))))
     for {
       entityIRIs <- App.executeSPARQLQuery(query, result => IRI.create(result.getResource("entity").getURI))
