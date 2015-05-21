@@ -327,6 +327,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               }
             } ~
+            path("expression_profile") {
+              parameters('iri.as[IRI]) { (iri) =>
+                complete {
+                  Gene.expressionProfile(iri)
+                }
+              }
+            } ~
             path("affecting_entity_phenotype") {
               parameters('iri.as[IRI], 'parts.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (iri, includeParts, limit, offset, total) =>
                 complete {

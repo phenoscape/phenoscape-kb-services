@@ -161,6 +161,21 @@ object Gene {
     } yield labelledPhenotypes.sortBy(_.label)
   }
 
+  def expressionProfile(iri: IRI): Future[Seq[MinimalTerm]] = {
+    val query = select_distinct('entity) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('expression, rdfType, GeneExpression),
+        t('expression, associated_with_gene, iri),
+        t('expression, occurs_in, 'entity_instance),
+        t('entity_instance, rdfType, 'entity)),
+        new ElementFilter(new E_NotOneOf(new ExprVar('entity_instance), new ExprList(List(
+          new NodeValueNode(owlNamedIndividual))))))
+    for {
+      entityIRIs <- App.executeSPARQLQuery(query, result => IRI.create(result.getResource("entity").getURI))
+      labelledPhenotypes <- Future.sequence(entityIRIs.map(Term.computedLabel))
+    } yield labelledPhenotypes.sortBy(_.label)
+  }
+
   case class Phenotype(iri: IRI)
 
   private def formatResult(result: QuerySolution): String = {
