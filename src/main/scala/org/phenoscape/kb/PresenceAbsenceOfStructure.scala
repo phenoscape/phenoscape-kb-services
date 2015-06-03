@@ -42,6 +42,8 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import scala.language.postfixOps
 import org.phenoscape.owl.NamedRestrictionGenerator
+import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
+import com.hp.hpl.jena.sparql.core.Var
 
 object PresenceAbsenceOfStructure {
 
@@ -55,12 +57,19 @@ object PresenceAbsenceOfStructure {
   def statesEntailingPresence(taxon: IRI, entity: IRI): Future[String] =
     App.executeSPARQLQuery(buildPresenceStatesQuery(taxon, entity)).map(App.resultSetToTSV(_))
 
-  def taxaExhibitingPresence(entity: IRI, limit: Int): Future[Seq[Taxon]] = {
-    App.executeSPARQLQuery(buildExhibitingPresenceQuery(entity, limit), resultToTaxon)
+  def taxaExhibitingPresence(entity: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = {
+    App.executeSPARQLQuery(buildExhibitingPresenceQuery(entity, limit, offset), resultToTaxon)
   }
 
-  def taxaExhibitingAbsence(entity: IRI, limit: Int): Future[Seq[Taxon]] =
-    App.executeSPARQLQuery(buildExhibitingAbsenceQuery(entity, limit), resultToTaxon)
+  def taxaExhibitingPresenceTotal(entity: IRI): Future[Int] = {
+    App.executeSPARQLQuery(buildExhibitingPresenceTotalQuery(entity)).map(ResultCount.count)
+  }
+
+  def taxaExhibitingAbsence(entity: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] =
+    App.executeSPARQLQuery(buildExhibitingAbsenceQuery(entity, limit, offset), resultToTaxon)
+
+  def taxaExhibitingAbsenceTotal(entity: IRI): Future[Int] =
+    App.executeSPARQLQuery(buildExhibitingAbsenceTotalQuery(entity)).map(ResultCount.count)
 
   def presenceAbsenceMatrix(entityClass: OWLClassExpression, taxonClass: OWLClassExpression, variableOnly: Boolean): Future[DataSet] = for {
     query <- App.expandWithOwlet(buildMatrixQuery(entityClass, taxonClass))
@@ -166,22 +175,49 @@ object PresenceAbsenceOfStructure {
         t('matrix_char, may_have_state_value, 'state)))
   }
 
-  def buildExhibitingAbsenceQuery(entityIRI: IRI, limit: Int): Query = {
-    val query = select_distinct('taxon, 'taxon_label) from "http://kb.phenoscape.org/" where (
+  def buildExhibitingAbsenceBasicQuery(entityIRI: IRI): Query =
+    select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         t('taxon, has_absence_of, entityIRI),
         t('taxon, rdfsLabel, 'taxon_label)))
-    query.setLimit(limit)
+
+  def buildExhibitingAbsenceQuery(entityIRI: IRI, limit: Int, offset: Int): Query = {
+    val query = buildExhibitingAbsenceBasicQuery(entityIRI)
+    query.addResultVar('taxon)
+    query.addResultVar('taxon_label)
+    query.setOffset(offset)
+    if (limit > 0) query.setLimit(limit)
+    query.addOrderBy('taxon_label)
+    query.addOrderBy('taxon)
     query
   }
 
-  def buildExhibitingPresenceQuery(entityIRI: IRI, limit: Int): Query = {
-    val entity = Class(entityIRI)
-    val query = select_distinct('taxon, 'taxon_label) from "http://kb.phenoscape.org/" where (
+  def buildExhibitingAbsenceTotalQuery(entityIRI: IRI): Query = {
+    val query = buildExhibitingAbsenceBasicQuery(entityIRI)
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
+    query
+  }
+
+  def buildExhibitingPresenceBasicQuery(entityIRI: IRI): Query =
+    select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         t('taxon, has_presence_of, entityIRI),
         t('taxon, rdfsLabel, 'taxon_label)))
-    query.setLimit(limit)
+
+  def buildExhibitingPresenceQuery(entityIRI: IRI, limit: Int, offset: Int): Query = {
+    val query = buildExhibitingPresenceBasicQuery(entityIRI)
+    query.addResultVar('taxon)
+    query.addResultVar('taxon_label)
+    query.setOffset(offset)
+    if (limit > 0) query.setLimit(limit)
+    query.addOrderBy('taxon_label)
+    query.addOrderBy('taxon)
+    query
+  }
+
+  def buildExhibitingPresenceTotalQuery(entityIRI: IRI): Query = {
+    val query = buildExhibitingPresenceBasicQuery(entityIRI)
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
     query
   }
 

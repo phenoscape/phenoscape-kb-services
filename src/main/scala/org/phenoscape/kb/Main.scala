@@ -272,9 +272,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               } ~
                 pathEnd {
-                  parameters('entity.as[IRI], 'limit.as[Int]) { (entity, limit) =>
+                  parameters('entity.as[IRI], 'limit.as[Int], 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, limit, offset, totalOnly) =>
                     complete {
-                      PresenceAbsenceOfStructure.taxaExhibitingAbsence(entity, limit)
+                      if (totalOnly) PresenceAbsenceOfStructure.taxaExhibitingAbsenceTotal(entity).map(ResultCount(_))
+                      else PresenceAbsenceOfStructure.taxaExhibitingAbsence(entity, limit = limit, offset = offset)
                     }
                   }
                 }
@@ -289,9 +290,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               } ~
                 pathEnd {
-                  parameters('entity.as[IRI], 'limit.as[Int]) { (entity, limit) =>
+                  parameters('entity.as[IRI], 'limit.as[Int], 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, limit, offset, totalOnly) =>
                     complete {
-                      PresenceAbsenceOfStructure.taxaExhibitingPresence(entity, limit)
+                      if (totalOnly) PresenceAbsenceOfStructure.taxaExhibitingPresenceTotal(entity).map(ResultCount(_))
+                      else PresenceAbsenceOfStructure.taxaExhibitingPresence(entity, limit = limit, offset = offset)
                     }
                   }
                 }
