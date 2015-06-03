@@ -41,16 +41,19 @@ import org.obo.datamodel.impl.OBOClassImpl
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import scala.language.postfixOps
+import org.phenoscape.owl.NamedRestrictionGenerator
 
 object PresenceAbsenceOfStructure {
+
+  val implies_presence_of_some = NamedRestrictionGenerator.getClassRelationIRI(IMPLIES_PRESENCE_OF.getIRI)
 
   implicit def owlEntityToJenaProperty(prop: OWLEntity): Property = ResourceFactory.createProperty(prop.getIRI.toString)
 
   def statesEntailingAbsence(taxon: IRI, entity: IRI): Future[String] =
-    App.executeSPARQLQuery(buildAbsenceQuery(taxon, entity)).map(App.resultSetToTSV(_))
+    App.executeSPARQLQuery(buildAbsenceStatesQuery(taxon, entity)).map(App.resultSetToTSV(_))
 
   def statesEntailingPresence(taxon: IRI, entity: IRI): Future[String] =
-    App.executeSPARQLQuery(buildPresenceQuery(taxon, entity)).map(App.resultSetToTSV(_))
+    App.executeSPARQLQuery(buildPresenceStatesQuery(taxon, entity)).map(App.resultSetToTSV(_))
 
   def taxaExhibitingPresence(entity: IRI, limit: Int): Future[Seq[Taxon]] = {
     App.executeSPARQLQuery(buildExhibitingPresenceQuery(entity, limit), resultToTaxon)
@@ -139,36 +142,28 @@ object PresenceAbsenceOfStructure {
     App.expandWithOwlet(query)
   }
 
-  def buildAbsenceQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
-    val taxon = Class(taxonIRI)
-    val entity = Individual(entityIRI)
+  def buildAbsenceStatesQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
     select_distinct('state, 'state_label, 'matrix_label) from "http://kb.phenoscape.org/" where (
       bgp(
-        t(taxon, exhibits_state, 'state),
+        t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
+        t('phenotype, (rdfsSubClassOf *) / ABSENCE_OF, entityIRI), //FIXME needs to inhere in organism
         t('state, dcDescription, 'state_label),
         t('matrix, has_character, 'matrix_char),
         t('matrix, rdfsLabel, 'matrix_label),
-        t('matrix_char, may_have_state_value, 'state)),
-        withOwlery(
-          t('phenotype, owlEquivalentClass | rdfsSubClassOf, (LacksAllPartsOfType and (towards value entity) and (inheres_in some MultiCellularOrganism)).asOMN)),
-          App.BigdataRunPriorFirst)
+        t('matrix_char, may_have_state_value, 'state)))
   }
 
-  def buildPresenceQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
-    val taxon = Class(taxonIRI)
-    val entity = Class(entityIRI)
+  def buildPresenceStatesQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
     select_distinct('state, 'state_label, 'matrix_label) from "http://kb.phenoscape.org/" where (
       bgp(
-        t(taxon, exhibits_state, 'state),
+        t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
+        t('phenotype, (rdfsSubClassOf *) / implies_presence_of_some, entityIRI),
         t('state, dcDescription, 'state_label),
         t('matrix, has_character, 'matrix_char),
         t('matrix, rdfsLabel, 'matrix_label),
-        t('matrix_char, may_have_state_value, 'state)),
-        withOwlery(
-          t('phenotype, owlEquivalentClass | rdfsSubClassOf, (IMPLIES_PRESENCE_OF some entity).asOMN)),
-          App.BigdataRunPriorFirst)
+        t('matrix_char, may_have_state_value, 'state)))
   }
 
   def buildExhibitingAbsenceQuery(entityIRI: IRI, limit: Int): Query = {
