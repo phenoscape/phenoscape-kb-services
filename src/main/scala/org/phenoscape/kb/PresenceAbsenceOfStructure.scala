@@ -10,6 +10,7 @@ import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl.OWL._
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
+import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLEntity
 import com.hp.hpl.jena.query.Query
@@ -39,6 +40,7 @@ import java.net.URI
 import org.obo.datamodel.impl.OBOClassImpl
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import scala.language.postfixOps
 
 object PresenceAbsenceOfStructure {
 

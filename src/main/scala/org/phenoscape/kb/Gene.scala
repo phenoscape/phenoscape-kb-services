@@ -6,6 +6,7 @@ import scala.concurrent.Future
 import org.phenoscape.kb.App.withOwlery
 import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
+import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression

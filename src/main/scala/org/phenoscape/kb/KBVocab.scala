@@ -3,6 +3,7 @@ package org.phenoscape.kb
 import org.phenoscape.scowl.OWL._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary.RDFS_LABEL
+import org.semanticweb.owlapi.vocab.OWLRDFVocabulary.RDFS_SUBCLASS_OF
 import com.hp.hpl.jena.vocabulary.OWL2
 import com.hp.hpl.jena.vocabulary.RDFS
 import org.semanticweb.owlapi.apibinding.OWLManager
@@ -14,6 +15,7 @@ object KBVocab {
   val BDMatchAllTerms = IRI.create(s"${BDSearchPrefix}matchAllTerms")
   val BDRank = IRI.create(s"${BDSearchPrefix}rank")
   val rdfsLabel = ObjectProperty(RDFS_LABEL.getIRI)
+  val rdfsSubClassOf = ObjectProperty(RDFS_SUBCLASS_OF.getIRI)
   val hasExactSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym")
   val hasRelatedSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym")
   val definition = ObjectProperty("http://purl.obolibrary.org/obo/IAO_0000115")

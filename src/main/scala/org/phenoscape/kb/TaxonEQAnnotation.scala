@@ -6,6 +6,7 @@ import spray.json._
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.scowl.OWL._
 import org.phenoscape.owl.Vocab._
+import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.owlet.SPARQLComposer._
 import org.semanticweb.owlapi.model.OWLClassExpression
