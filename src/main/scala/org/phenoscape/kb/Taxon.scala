@@ -217,7 +217,7 @@ object Taxon {
     } yield {
       val taxonResource = ResourceFactory.createResource(iri.toString)
       model.add(taxonResource, RDFS.label, taxon.label)
-      newickFor(taxonResource, model)
+      s"${newickFor(taxonResource, model)};"
     }
   }
 
