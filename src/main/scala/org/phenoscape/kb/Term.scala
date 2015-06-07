@@ -118,20 +118,21 @@ object Term {
   def classification(iri: IRI): Future[Classification] = {
     val pipeline = sendReceive ~> unmarshal[JsObject]
     val query = Uri.Query("object" -> s"<$iri>", "direct" -> "true")
-    println("CLASSIFICATION")
-    println(Get(App.Owlery.copy(path = App.Owlery.path / "superclasses", query = query)))
     def toTerm(list: JsValue): Future[Set[MinimalTerm]] =
       Future.sequence(list.convertTo[List[String]].toSet[String].map(IRI.create).map(computedLabel))
     val superclassesFuture = pipeline(Get(App.Owlery.copy(path = App.Owlery.path / "superclasses", query = query)))
       .map(_.fields("subClassOf")).flatMap(toTerm)
     val subclassesFuture = pipeline(Get(App.Owlery.copy(path = App.Owlery.path / "subclasses", query = query)))
       .map(_.fields("superClassOf")).flatMap(toTerm)
+    val equivalentsFuture = pipeline(Get(App.Owlery.copy(path = App.Owlery.path / "equivalent", query = query)))
+      .map(_.fields("equivalentClass")).flatMap(toTerm)
     val termFuture = computedLabel(iri)
     for {
       term <- termFuture
       superclasses <- superclassesFuture
       subclasses <- subclassesFuture
-    } yield Classification(term, superclasses, subclasses)
+      equivalents <- equivalentsFuture
+    } yield Classification(term, superclasses, subclasses, equivalents)
   }
 
   def buildTermQuery(iri: IRI): Query = {
@@ -248,11 +249,12 @@ class LabelMapProvider(labels: Map[IRI, String]) extends ShortFormProvider {
 
 }
 
-case class Classification(term: MinimalTerm, superclasses: Set[MinimalTerm], subclasses: Set[MinimalTerm]) extends JSONResultItem {
+case class Classification(term: MinimalTerm, superclasses: Set[MinimalTerm], subclasses: Set[MinimalTerm], equivalents: Set[MinimalTerm]) extends JSONResultItem {
 
   def toJSON: JsObject = JsObject(
     term.toJSON.fields ++
       Map("subClassOf" -> superclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson,
-        "superClassOf" -> subclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson))
+        "superClassOf" -> subclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson,
+        "equivalentTo" -> equivalents.toSeq.sortBy(_.label).map(_.toJSON).toJson))
 
 }
