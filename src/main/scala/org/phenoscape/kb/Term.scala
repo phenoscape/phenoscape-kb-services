@@ -116,6 +116,10 @@ object Term {
   }
 
   def classification(iri: IRI): Future[Classification] = {
+    def shouldHide(term: MinimalTerm) = {
+      val termID = term.iri.toString
+      termID.startsWith("http://example.org") || termID == "http://www.w3.org/2002/07/owl#Nothing" || termID == "http://www.w3.org/2002/07/owl#Thing"
+    }
     val pipeline = sendReceive ~> unmarshal[JsObject]
     val query = Uri.Query("object" -> s"<$iri>", "direct" -> "true")
     def toTerm(list: JsValue): Future[Set[MinimalTerm]] =
@@ -132,7 +136,7 @@ object Term {
       superclasses <- superclassesFuture
       subclasses <- subclassesFuture
       equivalents <- equivalentsFuture
-    } yield Classification(term, superclasses, subclasses, equivalents)
+    } yield Classification(term, superclasses.filterNot(shouldHide), subclasses.filterNot(shouldHide), equivalents.filterNot(shouldHide))
   }
 
   def buildTermQuery(iri: IRI): Query = {
