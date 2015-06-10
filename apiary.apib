@@ -1,9 +1,129 @@
 FORMAT: 1A
-HOST: http://pkb-new.nescent.org/kb/
+HOST: http://kb.phenoscape.org/api/
 
 # Phenoscape Knowledgebase web API
-# Group Implemented services
 The Phenoscape Knowledgebase web API is an HTTP interface for searching ontology terms, retrieving term info, and querying data from the KB.
+
+##  Term detail [/term{?iri}]
+### Return detail info for a given term. Currently this is the label and an optional definition [GET]
++ Parameters
+    + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618`) ... the term IRI
++ Response 200 (application/json)
+
+## Term search [/term/search{?text,type,property}]
+### Search for terms in the KB by text match on a property value. `rdfs:label` is searched by default. [GET]
++ Parameters
+    + text (required, string, `basihyal`) ... the input text to search
+    + type (optional, URI, `http://www.w3.org/2002/07/owl#Class`) ... the type of term to search for
+    + property (optional, URI, `http://www.w3.org/2000/01/rdf-schema#label`)
++ Response 200 (application/json)
+
+        {
+        "results": [
+            {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_3000957",
+            "label": "basihyal"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/XAO_0004358",
+            "label": "basihyal"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011618",
+            "label": "basihyal bone"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/ZFA_0000316",
+            "label": "basihyal bone"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011615",
+            "label": "basihyal cartilage"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/ZFA_0001510",
+            "label": "basihyal cartilage"
+            }
+        ]
+        }
+        
+        
+##  Ontology class search [/term/search_classes{?text,definedBy,limit}]
+### Search for classes from a particular ontology [GET]
++ Parameters
+    + text (required, string, `basihyal`) ... the input text to search
+    + definedBy (URI, `http://purl.obolibrary.org/obo/uberon.owl`) ... the ontology identifier IRI in which the search terms are defined
+    + limit (optional, integer, `10`)
++ Response 200 (application/json)
+
+        {
+        "results": [
+            {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_3000957",
+            "label": "basihyal"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011618",
+            "label": "basihyal bone"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011615",
+            "label": "basihyal cartilage"
+            }
+        ]
+        }
+
+##  Term label [/term/label{?iri}]
+### Retrieve a label for a given term IRI [GET]
++ Parameters
+    + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618`) ... the term IRI
++ Response 200 (application/json)
+
+        {
+        "@id": "http://purl.obolibrary.org/obo/UBERON_0011618",
+        "label": "basihyal bone"
+        }
+        
+##  Term labels [/term/labels{?iris}]
+### Retrieve a label for each term IRI in a list [GET]
++ Parameters
+    + iris (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618,http://purl.obolibrary.org/obo/UBERON_0011615`) ... comma-separated list of term IRIs (no spaces)
++ Response 200 (application/json)
+
+        {
+        "results": [{
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011615",
+            "label": "basihyal cartilage"
+        }, {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011618",
+            "label": "basihyal bone"
+        }]
+        }
+        
+##  Classification [/term/classification{?iri}]
+### Return direct superclasses, direct subclasses, and equivalent classes of a given term [GET]
++ Parameters
+    + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618`) ... the term IRI
++ Response 200 (application/json)
+
+        {
+        "@id": "http://purl.obolibrary.org/obo/UBERON_0011618",
+        "label": "basihyal bone",
+        "subClassOf": [{
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011614",
+            "label": "basihyal element"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0002513",
+            "label": "endochondral bone"
+        }],
+        "equivalentTo": [],
+        "superClassOf": [{
+            "@id": "http://purl.obolibrary.org/obo/ZFA_0000316",
+            "label": "basihyal bone"
+        }]
+        }
+
+## Ontotrace [/ontotrace{?taxon,entity,variable_only}]
+### Generate matrix of inferred presence/absence associations for anatomical structures subsumed by the provided entity class expression, for any taxa within the provided taxon class expression [GET]
+Returns a NeXML-format evolutionary character matrix.
++ Parameters
+    + taxon (required, string, `<http://purl.obolibrary.org/obo/VTO_0036217>`) ... Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+    + entity (required, string `<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/UBERON_0008897>`) ... Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+    + variable_only (optional, boolean, `true`) ... whether to restrict the matrix to characters with both 'present' and 'absent' values in the matrix
++ Response 200 (application/xml) 
 
 ## Genes affecting phenotype [/genes_affecting_phenotype{?entity,quality}]
 ### Search for genes affecting phenotype of any part of a structure [GET]
@@ -45,18 +165,3 @@ The Phenoscape Knowledgebase web API is an HTTP interface for searching ontology
   + taxon (required, URI, `http://purl.obolibrary.org/obo/VTO_0034991`) ... Identifier of a taxonomic group
   + entity (required, URI, `http://purl.obolibrary.org/obo/UBERON_0002542`) ... Identifier of an anatomical structure
 + Response 200 (text/tsv)
-
-# Group Unimplemented services
-## Term search [/term/search{?text}]
-### Search [GET]
-+ Parameters
-    + text (required, string, `basihyal`)
-+ Response 200 (application/json)
-
-## Synthetic presence/absence matrix [/presence-absence-matrix{?taxon,entity}]
-### Generate matrix for anatomical structures subsumed by the provided entity class expression, for any taxa within the provided taxon class expression [GET]
-Returns a NeXML-format character matrix.
-+ Parameters
-    + taxon (required, string, `<http://purl.obolibrary.org/obo/VTO_0034991>`) ... Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
-    + entity (required, string `<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/UBERON_0008897>`) ... Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
-+ Response 200 (application/xml) 
