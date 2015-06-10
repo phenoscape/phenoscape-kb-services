@@ -125,6 +125,38 @@ Returns a NeXML-format evolutionary character matrix.
     + variable_only (optional, boolean, `true`) ... whether to restrict the matrix to characters with both 'present' and 'absent' values in the matrix
 + Response 200 (application/xml) 
 
+## Semantic similarity query [/similarity/query{?iri,limit,offset}]
+### Retrieve taxon variation profile similarity scores for this gene, ordered with best matches first [GET]
++ Parameters
+    + iri (required, URI, `http://www.informatics.jax.org/marker/MGI:1202401`) ... Gene IRI
+    + limit (optional, integer `20`)
+    + offset (optional, integer, `0`)
++ Response 200 (text/plain)
+
+        taxon IRI    taxon label    median score    expect score
+        http://purl.obolibrary.org/obo/VTO_0037378    Gymnotiformes    0.7506756923676524    0.0014462288121
+        http://purl.obolibrary.org/obo/VTO_0037490    Eigenmannia    0.6217930498438566    0.00352135614022
+        
++ Response 200 (application/json)
+
+        {
+        "results": [{
+        "match_profile": {
+            "@id": "http://purl.obolibrary.org/obo/VTO_0037378",
+            "label": "Gymnotiformes"
+        },
+        "median_score": 0.7506756923676524,
+        "expect_score": 0.0014462288121
+        }, {
+        "match_profile": {
+        "@id": "http://purl.obolibrary.org/obo/VTO_0037490",
+        "label": "Eigenmannia"
+        },
+        "median_score": 0.6217930498438566,
+        "expect_score": 0.00352135614022
+        }]
+        }
+
 ## Genes affecting phenotype [/genes_affecting_phenotype{?entity,quality}]
 ### Search for genes affecting phenotype of any part of a structure [GET]
 + Parameters
