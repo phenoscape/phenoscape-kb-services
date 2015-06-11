@@ -163,8 +163,42 @@ Returns a NeXML-format evolutionary character matrix.
         "expect_score": 0.00352135614022
         }]
         }
-        
-# Group not yet updated        
+
+## Best annotation matches for comparison [/similarity/best_matches{?query_iri,corpus_iri}]
+### Retrieve the top matching phenotype annotations, with their most informative common subsumer, for a given pair of profiles, e.g. a gene and a taxon [GET]
++ Parameters
+    + query_iri (required, URI, `http://www.informatics.jax.org/marker/MGI:1202401`) ... IRI for query profile    
+    + corpus_iri (required, URI, `http://purl.obolibrary.org/obo/VTO_0037378`) ... IRI for matched profile in corpus
++ Response 200 (application/json)
+
+        {
+        "results": [{
+            "query_annotation": {
+                "@id": "http://purl.obolibrary.org/obo/MP_0009038",
+                "label": "decreased inferior colliculus size"
+            },
+            "corpus_annotation": {
+                "@id": "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000140%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2002106%3E%29+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2Fpato%23towards%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0001945%3E%29#ca1edf06-51cb-40f5-8858-0b266e906ca2",
+                "label": "position and (inheres in some eminentia granularis) and (towards some superior colliculus)"
+            },
+            "best_subsumer": {
+                "term": {
+                    "@id": "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0002950%3E%29",
+                    "label": "has part some (phenotype of some regional part of midbrain)"
+                },
+                "ic": 0.8926218653448688,
+                "disparity": 0.47824477007017246
+            }
+        }]
+        }
+
+# Group not yet updated       
+
+## EQ for gene [/gene/eq{?id}]
+### Return most direct UBERON entities and PATO qualities for all phenotype annotations associated with a gene [GET]
++ Parameters
+    + id (required, URI) ... Identifier for a gene
++ Response 200 (application/json)
 
 ## Genes affecting phenotype [/genes_affecting_phenotype{?entity,quality}]
 ### Search for genes affecting phenotype of any part of a structure [GET]
@@ -187,11 +221,7 @@ Returns a NeXML-format evolutionary character matrix.
         <http://www.informatics.jax.org/marker/MGI:88302> Ccnb1 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:46439>
         <http://www.informatics.jax.org/marker/MGI:95834> Pdia3 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:98374>
 
-## EQ for gene [/gene/eq{?id}]
-### Return most direct UBERON entities and PATO qualities for all phenotype annotations associated with a gene [GET]
-+ Parameters
-    + id (required, URI) ... Identifier for a gene
-+ Response 200 (application/json)
+
 
 ## Evidence for presence of a structure [/entity/presence{?taxon,entity}]
 ### Return any character states which entail the presence of an anatomical structure within a taxon [GET]
