@@ -4,6 +4,8 @@ HOST: http://kb.phenoscape.org/api/
 # Phenoscape Knowledgebase web API
 The Phenoscape Knowledgebase web API is an HTTP interface for searching ontology terms, retrieving term info, and querying data from the KB.
 
+# Group Terms
+
 ##  Term detail [/term{?iri}]
 ### Return detail info for a given term. Currently this is the label and an optional definition [GET]
 + Parameters
@@ -115,8 +117,11 @@ The Phenoscape Knowledgebase web API is an HTTP interface for searching ontology
             "label": "basihyal bone"
         }]
         }
+        
 
-## Ontotrace [/ontotrace{?taxon,entity,variable_only}]
+# Group OntoTrace
+
+## OntoTrace [/ontotrace{?taxon,entity,variable_only}]
 ### Generate matrix of inferred presence/absence associations for anatomical structures subsumed by the provided entity class expression, for any taxa within the provided taxon class expression [GET]
 Returns a NeXML-format evolutionary character matrix.
 + Parameters
@@ -124,6 +129,8 @@ Returns a NeXML-format evolutionary character matrix.
     + entity (required, string `<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/UBERON_0008897>`) ... Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
     + variable_only (optional, boolean, `true`) ... whether to restrict the matrix to characters with both 'present' and 'absent' values in the matrix
 + Response 200 (application/xml) 
+
+# Group Semantic Similarity
 
 ## Semantic similarity query [/similarity/query{?iri,limit,offset}]
 ### Retrieve taxon variation profile similarity scores for this gene, ordered with best matches first [GET]
@@ -156,6 +163,8 @@ Returns a NeXML-format evolutionary character matrix.
         "expect_score": 0.00352135614022
         }]
         }
+        
+# Group not yet updated        
 
 ## Genes affecting phenotype [/genes_affecting_phenotype{?entity,quality}]
 ### Search for genes affecting phenotype of any part of a structure [GET]
