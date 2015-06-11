@@ -1,30 +1,270 @@
 FORMAT: 1A
-HOST: http://pkb-new.nescent.org/kb/
+HOST: http://kb.phenoscape.org/api/
 
 # Phenoscape Knowledgebase web API
-# Group Implemented services
 The Phenoscape Knowledgebase web API is an HTTP interface for searching ontology terms, retrieving term info, and querying data from the KB.
 
-## Genes affecting phenotype [/genes_affecting_phenotype{?entity,quality}]
-### Search for genes affecting phenotype of any part of a structure [GET]
+# Group Terms
+
+##  Term detail [/term{?iri}]
+### Return detail info for a given term. Currently this is the label and an optional definition [GET]
 + Parameters
-  + entity (required, URI, `http://purl.obolibrary.org/obo/UBERON_0002101`) ... Identifier of an anatomical structure
-  + quality (required, URI, `http://purl.obolibrary.org/obo/PATO_0000052`) ... Identifier of phenotypic quality
-+ Response 200 (text/tsv)
+    + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618`) ... the term IRI
++ Response 200 (application/json)
 
-        ?gene ?gene_label_string ?taxon_label_string ?source
-        <http://www.informatics.jax.org/marker/MGI:88302> Ccnb1 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:46439>
-        <http://www.informatics.jax.org/marker/MGI:95834> Pdia3 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:98374>
-
-## Genes expressed within a structure [/genes_expressed_in_structure{?iri}]
-### Search for genes expressed within any part of a structure [GET]
+## Term search [/term/search{?text,type,property}]
+### Search for terms in the KB by text match on a property value. `rdfs:label` is searched by default. [GET]
 + Parameters
-  + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0002101`) ... Identifier of an anatomical structure
-+ Response 200 (text/tsv)
+    + text (required, string, `basihyal`) ... the input text to search
+    + type (optional, URI, `http://www.w3.org/2002/07/owl#Class`) ... the type of term to search for
+    + property (optional, URI, `http://www.w3.org/2000/01/rdf-schema#label`)
++ Response 200 (application/json)
 
-        ?gene ?gene_label_string ?taxon_label_string ?source
-        <http://www.informatics.jax.org/marker/MGI:88302> Ccnb1 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:46439>
-        <http://www.informatics.jax.org/marker/MGI:95834> Pdia3 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:98374>
+        {
+        "results": [
+            {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_3000957",
+            "label": "basihyal"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/XAO_0004358",
+            "label": "basihyal"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011618",
+            "label": "basihyal bone"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/ZFA_0000316",
+            "label": "basihyal bone"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011615",
+            "label": "basihyal cartilage"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/ZFA_0001510",
+            "label": "basihyal cartilage"
+            }
+        ]
+        }
+        
+        
+##  Ontology class search [/term/search_classes{?text,definedBy,limit}]
+### Search for classes from a particular ontology [GET]
++ Parameters
+    + text (required, string, `basihyal`) ... the input text to search
+    + definedBy (URI, `http://purl.obolibrary.org/obo/uberon.owl`) ... the ontology identifier IRI in which the search terms are defined
+    + limit (optional, integer, `10`)
++ Response 200 (application/json)
+
+        {
+        "results": [
+            {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_3000957",
+            "label": "basihyal"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011618",
+            "label": "basihyal bone"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011615",
+            "label": "basihyal cartilage"
+            }
+        ]
+        }
+
+##  Term label [/term/label{?iri}]
+### Retrieve a label for a given term IRI [GET]
++ Parameters
+    + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618`) ... the term IRI
++ Response 200 (application/json)
+
+        {
+        "@id": "http://purl.obolibrary.org/obo/UBERON_0011618",
+        "label": "basihyal bone"
+        }
+        
+##  Term labels [/term/labels{?iris}]
+### Retrieve a label for each term IRI in a list [GET]
++ Parameters
+    + iris (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618,http://purl.obolibrary.org/obo/UBERON_0011615`) ... comma-separated list of term IRIs (no spaces)
++ Response 200 (application/json)
+
+        {
+        "results": [{
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011615",
+            "label": "basihyal cartilage"
+        }, {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011618",
+            "label": "basihyal bone"
+        }]
+        }
+        
+##  Classification [/term/classification{?iri}]
+### Return direct superclasses, direct subclasses, and equivalent classes of a given term [GET]
++ Parameters
+    + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618`) ... the term IRI
++ Response 200 (application/json)
+
+        {
+        "@id": "http://purl.obolibrary.org/obo/UBERON_0011618",
+        "label": "basihyal bone",
+        "subClassOf": [{
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0011614",
+            "label": "basihyal element"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0002513",
+            "label": "endochondral bone"
+        }],
+        "equivalentTo": [],
+        "superClassOf": [{
+            "@id": "http://purl.obolibrary.org/obo/ZFA_0000316",
+            "label": "basihyal bone"
+        }]
+        }
+        
+
+# Group OntoTrace
+
+## OntoTrace [/ontotrace{?taxon,entity,variable_only}]
+### Generate matrix of inferred presence/absence associations for anatomical structures subsumed by the provided entity class expression, for any taxa within the provided taxon class expression [GET]
+Returns a NeXML-format evolutionary character matrix.
++ Parameters
+    + taxon (required, string, `<http://purl.obolibrary.org/obo/VTO_0036217>`) ... Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+    + entity (required, string `<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/UBERON_0008897>`) ... Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+    + variable_only (optional, boolean, `true`) ... whether to restrict the matrix to characters with both 'present' and 'absent' values in the matrix
++ Response 200 (application/xml) 
+
+# Group Semantic Similarity
+
+## Semantic similarity query [/similarity/query{?iri,limit,offset}]
+### Retrieve taxon variation profile similarity scores for this gene, ordered with best matches first [GET]
++ Parameters
+    + iri (required, URI, `http://www.informatics.jax.org/marker/MGI:1202401`) ... Gene IRI
+    + limit (optional, integer `20`)
+    + offset (optional, integer, `0`)
++ Response 200 (text/plain)
+
+        taxon IRI    taxon label    median score    expect score
+        http://purl.obolibrary.org/obo/VTO_0037378    Gymnotiformes    0.7506756923676524    0.0014462288121
+        http://purl.obolibrary.org/obo/VTO_0037490    Eigenmannia    0.6217930498438566    0.00352135614022
+        
++ Response 200 (application/json)
+
+        {
+        "results": [{
+        "match_profile": {
+            "@id": "http://purl.obolibrary.org/obo/VTO_0037378",
+            "label": "Gymnotiformes"
+        },
+        "median_score": 0.7506756923676524,
+        "expect_score": 0.0014462288121
+        }, {
+        "match_profile": {
+        "@id": "http://purl.obolibrary.org/obo/VTO_0037490",
+        "label": "Eigenmannia"
+        },
+        "median_score": 0.6217930498438566,
+        "expect_score": 0.00352135614022
+        }]
+        }
+
+## Best annotation matches for comparison [/similarity/best_matches{?query_iri,corpus_iri}]
+### Retrieve the top matching phenotype annotations, with their most informative common subsumer, for a given pair of profiles, e.g. a gene and a taxon [GET]
++ Parameters
+    + query_iri (required, URI, `http://www.informatics.jax.org/marker/MGI:1202401`) ... IRI for query profile    
+    + corpus_iri (required, URI, `http://purl.obolibrary.org/obo/VTO_0037378`) ... IRI for matched profile in corpus
++ Response 200 (application/json)
+
+        {
+        "results": [{
+            "query_annotation": {
+                "@id": "http://purl.obolibrary.org/obo/MP_0009038",
+                "label": "decreased inferior colliculus size"
+            },
+            "corpus_annotation": {
+                "@id": "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000140%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2002106%3E%29+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2Fpato%23towards%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0001945%3E%29#ca1edf06-51cb-40f5-8858-0b266e906ca2",
+                "label": "position and (inheres in some eminentia granularis) and (towards some superior colliculus)"
+            },
+            "best_subsumer": {
+                "term": {
+                    "@id": "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0002950%3E%29",
+                    "label": "has part some (phenotype of some regional part of midbrain)"
+                },
+                "ic": 0.8926218653448688,
+                "disparity": 0.47824477007017246
+            }
+        }]
+        }
+
+## Best subsumers for comparison [/similarity/best_subsumers{?query_iri,corpus_iri}]
+### Retrieve only the most informative subsumers for the top matching phenotype annotations for a given pair of profiles, e.g. a gene and a taxon [GET]
++ Parameters
+    + query_iri (required, URI, `http://www.informatics.jax.org/marker/MGI:1202401`) ... IRI for query profile    
+    + corpus_iri (required, URI, `http://purl.obolibrary.org/obo/VTO_0037378`) ... IRI for matched profile in corpus
++ Response 200 (application/json)
+
+        {
+        "results": [{
+            "term": {
+            "@id": "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0002950%3E%29",
+            "label": "has part some (phenotype of some regional part of midbrain)"
+            },
+            "ic": 0.8926218653448688
+        }, {
+            "term": {
+            "@id": "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000050%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0003528%3E%29%29",
+            "label": "has part some (phenotype of some (part of some brain grey matter))"
+            },
+            "ic": 0.7506756923676524
+        }]
+        }
+        
+## Subsumed annotations [/similarity/subsumed_annotations{?subsumer,instance}]
+### Retrieve all annotations for a given profile which are subsumed by a phenotype class [GET]
++ Parameters
+    + subsumer (required, URI, `http://purl.obolibrary.org/obo/MP_0001265`) ... IRI for query profile    
+    + instance (required, URI, `http://www.informatics.jax.org/marker/MGI:1202401`) ... IRI for matched profile in corpus
++ Response 200 (application/json)
+
+        {
+        "results": [{
+            "@id": "http://purl.obolibrary.org/obo/MP_0009038",
+            "label": "decreased inferior colliculus size"
+        }]
+        }
+
+## Profile size [/similarity/profile_size{?iri}]
+### Retrieve number of phenotype annotations for a given profile, e.g. gene or taxon [GET]
++ Parameters
+    + iri (required, URI, `http://www.informatics.jax.org/marker/MGI:1202401`) ... IRI for profile    
++ Response 200 (application/json)
+
+        {
+        "total": 5
+        }
+
+# Group Taxa
+
+## Taxon phenotypes [/taxon/phenotypes{?taxon,limit,offset,total}]
+### Retrieve direct phenotype annotations for a given taxon [GET]
++ Parameters
+    + taxon (required, URI, `http://purl.obolibrary.org/obo/VTO_0036225`) ... IRI for taxon    
+    + limit (optional, integer, `20`)
+    + offset (optional, integer, `0`)
+    + total (optional, boolean, `false`) ... whether to return the total result count rather than the results
++ Response 200 (application/json)
+
+        {
+        "results": [{
+            "@id": "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000025%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0006606%3E%29#b37d4b42-92e8-41d9-930c-40592efe6d27"
+        }, {
+            "@id": "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000025%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0006860%3E%29#911a4756-23dc-47af-ac2e-ddb70d844458"
+        }]
+        }
+
++ Response 200 (application/json)
+
+        {
+        "total": 803
+        }
+
+# Group not yet updated       
 
 ## EQ for gene [/gene/eq{?id}]
 ### Return most direct UBERON entities and PATO qualities for all phenotype annotations associated with a gene [GET]
@@ -45,18 +285,3 @@ The Phenoscape Knowledgebase web API is an HTTP interface for searching ontology
   + taxon (required, URI, `http://purl.obolibrary.org/obo/VTO_0034991`) ... Identifier of a taxonomic group
   + entity (required, URI, `http://purl.obolibrary.org/obo/UBERON_0002542`) ... Identifier of an anatomical structure
 + Response 200 (text/tsv)
-
-# Group Unimplemented services
-## Term search [/term/search{?text}]
-### Search [GET]
-+ Parameters
-    + text (required, string, `basihyal`)
-+ Response 200 (application/json)
-
-## Synthetic presence/absence matrix [/presence-absence-matrix{?taxon,entity}]
-### Generate matrix for anatomical structures subsumed by the provided entity class expression, for any taxa within the provided taxon class expression [GET]
-Returns a NeXML-format character matrix.
-+ Parameters
-    + taxon (required, string, `<http://purl.obolibrary.org/obo/VTO_0034991>`) ... Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
-    + entity (required, string `<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/UBERON_0008897>`) ... Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
-+ Response 200 (application/xml) 
