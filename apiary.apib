@@ -192,6 +192,43 @@ Returns a NeXML-format evolutionary character matrix.
         }]
         }
 
+## Best subsumers for comparison [/similarity/best_subsumers{?query_iri,corpus_iri}]
+### Retrieve only the most informative subsumers for the top matching phenotype annotations for a given pair of profiles, e.g. a gene and a taxon [GET]
++ Parameters
+    + query_iri (required, URI, `http://www.informatics.jax.org/marker/MGI:1202401`) ... IRI for query profile    
+    + corpus_iri (required, URI, `http://purl.obolibrary.org/obo/VTO_0037378`) ... IRI for matched profile in corpus
++ Response 200 (application/json)
+
+        {
+        "results": [{
+            "term": {
+            "@id": "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0002950%3E%29",
+            "label": "has part some (phenotype of some regional part of midbrain)"
+            },
+            "ic": 0.8926218653448688
+        }, {
+            "term": {
+            "@id": "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000050%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0003528%3E%29%29",
+            "label": "has part some (phenotype of some (part of some brain grey matter))"
+            },
+            "ic": 0.7506756923676524
+        }]
+        }
+        
+## Subsumed annotations [/similarity/subsumed_annotations{?subsumer,instance}]
+### Retrieve all annotations for a given profile which are subsumed by a phenotype class [GET]
++ Parameters
+    + subsumer (required, URI, `http://purl.obolibrary.org/obo/MP_0001265`) ... IRI for query profile    
+    + instance (required, URI, `http://www.informatics.jax.org/marker/MGI:1202401`) ... IRI for matched profile in corpus
++ Response 200 (application/json)
+
+        {
+        "results": [{
+            "@id": "http://purl.obolibrary.org/obo/MP_0009038",
+            "label": "decreased inferior colliculus size"
+        }]
+        }
+
 # Group not yet updated       
 
 ## EQ for gene [/gene/eq{?id}]
