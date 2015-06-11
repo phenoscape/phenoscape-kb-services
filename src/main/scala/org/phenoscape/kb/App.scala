@@ -35,6 +35,7 @@ import scala.concurrent.duration._
 
 object App {
 
+  implicit val timeout = Timeout(10 minutes)
   private val Prior = IRI.create("http://www.bigdata.com/queryHints#Prior")
   private val RunFirst = IRI.create("http://www.bigdata.com/queryHints#runFirst")
   val BigdataRunPriorFirst = bgp(t(Prior, RunFirst, "true" ^^ XSDDatatype.XSDboolean))

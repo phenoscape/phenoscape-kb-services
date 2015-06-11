@@ -40,6 +40,8 @@ import org.semanticweb.owlapi.util.ShortFormProvider
 import uk.ac.manchester.cs.owl.owlapi.mansyntaxrenderer.ManchesterOWLSyntaxOWLObjectRendererImpl
 import org.semanticweb.owlapi.model.OWLObject
 import spray.client.pipelining._
+import akka.util.Timeout
+import scala.concurrent.duration._
 
 object Term {
 
@@ -116,6 +118,7 @@ object Term {
   }
 
   def classification(iri: IRI): Future[Classification] = {
+    implicit val timeout = Timeout(10 minutes)
     def shouldHide(term: MinimalTerm) = {
       val termID = term.iri.toString
       termID.startsWith("http://example.org") || termID == "http://www.w3.org/2002/07/owl#Nothing" || termID == "http://www.w3.org/2002/07/owl#Thing"

@@ -177,28 +177,28 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               }
             } ~
-            path("corpus_size") {
+            path("corpus_size") { //undocumented
               complete {
                 Similarity.corpusSize.map(ResultCount(_))
               }
+            } ~
+            path("ic_disparity") { //undocumented
+              parameters('iri.as[OWLClass]) { (term) =>
+                complete {
+                  Similarity.icDisparity(term).map(value => JsObject("value" -> value.toJson))
+                }
+              }
             }
-        } ~
-        path("ic_disparity") {
-          parameters('iri.as[OWLClass]) { (term) =>
-            complete {
-              Similarity.icDisparity(term).map(value => JsObject("value" -> value.toJson))
-            }
-          }
         } ~
         pathPrefix("characterstate") {
-          path("search") {
+          path("search") { //undocumented
             parameters('text, 'limit.as[Int]) { (text, limit) =>
               complete {
                 CharacterDescription.search(text, limit)
               }
             }
           } ~
-            path("query") {
+            path("query") { //undocumented
               parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
                 complete {
                   if (total) CharacterDescription.queryTotal(entity, taxon, Nil)
@@ -208,12 +208,11 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             }
         } ~
         pathPrefix("taxon") {
-          path("query") {
+          path("query") { //undocumented
             parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
               complete {
                 if (total) Taxon.queryTotal(entity, taxon, Nil)
                 else Taxon.query(entity, taxon, Nil, limit, offset)
-
               }
             }
           } ~
