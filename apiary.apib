@@ -239,6 +239,31 @@ Returns a NeXML-format evolutionary character matrix.
         "total": 5
         }
 
+# Group Taxa
+
+## Taxon phenotypes [/taxon/phenotypes{?taxon,limit,offset,total}]
+### Retrieve direct phenotype annotations for a given taxon [GET]
++ Parameters
+    + taxon (required, URI, `http://purl.obolibrary.org/obo/VTO_0036225`) ... IRI for taxon    
+    + limit (optional, integer, `20`)
+    + offset (optional, integer, `0`)
+    + total (optional, boolean, `false`) ... whether to return the total result count rather than the results
++ Response 200 (application/json)
+
+        {
+        "results": [{
+            "@id": "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000025%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0006606%3E%29#b37d4b42-92e8-41d9-930c-40592efe6d27"
+        }, {
+            "@id": "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000025%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0006860%3E%29#911a4756-23dc-47af-ac2e-ddb70d844458"
+        }]
+        }
+
++ Response 200 (application/json)
+
+        {
+        "total": 803
+        }
+
 # Group not yet updated       
 
 ## EQ for gene [/gene/eq{?id}]
@@ -246,29 +271,6 @@ Returns a NeXML-format evolutionary character matrix.
 + Parameters
     + id (required, URI) ... Identifier for a gene
 + Response 200 (application/json)
-
-## Genes affecting phenotype [/genes_affecting_phenotype{?entity,quality}]
-### Search for genes affecting phenotype of any part of a structure [GET]
-+ Parameters
-  + entity (required, URI, `http://purl.obolibrary.org/obo/UBERON_0002101`) ... Identifier of an anatomical structure
-  + quality (required, URI, `http://purl.obolibrary.org/obo/PATO_0000052`) ... Identifier of phenotypic quality
-+ Response 200 (text/tsv)
-
-        ?gene ?gene_label_string ?taxon_label_string ?source
-        <http://www.informatics.jax.org/marker/MGI:88302> Ccnb1 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:46439>
-        <http://www.informatics.jax.org/marker/MGI:95834> Pdia3 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:98374>
-
-## Genes expressed within a structure [/genes_expressed_in_structure{?iri}]
-### Search for genes expressed within any part of a structure [GET]
-+ Parameters
-  + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0002101`) ... Identifier of an anatomical structure
-+ Response 200 (text/tsv)
-
-        ?gene ?gene_label_string ?taxon_label_string ?source
-        <http://www.informatics.jax.org/marker/MGI:88302> Ccnb1 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:46439>
-        <http://www.informatics.jax.org/marker/MGI:95834> Pdia3 Mus musculus <http://www.informatics.jax.org/reference/summary?id=J:98374>
-
-
 
 ## Evidence for presence of a structure [/entity/presence{?taxon,entity}]
 ### Return any character states which entail the presence of an anatomical structure within a taxon [GET]
