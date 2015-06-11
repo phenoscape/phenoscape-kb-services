@@ -229,6 +229,16 @@ Returns a NeXML-format evolutionary character matrix.
         }]
         }
 
+## Profile size [/similarity/profile_size{?iri}]
+### Retrieve number of phenotype annotations for a given profile, e.g. gene or taxon [GET]
++ Parameters
+    + iri (required, URI, `http://www.informatics.jax.org/marker/MGI:1202401`) ... IRI for profile    
++ Response 200 (application/json)
+
+        {
+        "total": 5
+        }
+
 # Group not yet updated       
 
 ## EQ for gene [/gene/eq{?id}]
