@@ -234,17 +234,20 @@ object Term {
 
 case class Term(iri: IRI, label: String, definition: String) extends JSONResultItem {
 
-  def toJSON: JsObject = {
-    Map("@id" -> iri.toString, "label" -> label, "definition" -> definition).toJson.asJsObject
-  }
+  def toJSON: JsObject = Map("@id" -> iri.toString, "label" -> label, "definition" -> definition).toJson.asJsObject
 
 }
 
 case class MinimalTerm(iri: IRI, label: String) extends JSONResultItem {
 
-  def toJSON: JsObject = {
-    Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
-  }
+  def toJSON: JsObject = Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
+
+}
+
+case class SourcedMinimalTerm(term: MinimalTerm, sources: Set[IRI]) extends JSONResultItem {
+
+  def toJSON: JsObject = (term.toJSON.fields +
+    ("sources" -> sources.map(iri => "@id" -> iri.toString).toJson)).toJson.asJsObject
 
 }
 

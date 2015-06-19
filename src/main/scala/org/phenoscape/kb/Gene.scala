@@ -33,6 +33,13 @@ import com.hp.hpl.jena.sparql.expr.E_IsIRI
 import com.hp.hpl.jena.graph.NodeFactory
 import com.hp.hpl.jena.sparql.expr.E_NotOneOf
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import com.hp.hpl.jena.query.ResultSet
+import com.hp.hpl.jena.rdf.model.Model
+import com.hp.hpl.jena.rdf.model.ResourceFactory
+import com.hp.hpl.jena.rdf.model.Resource
+import com.hp.hpl.jena.rdf.model.Property
+import org.semanticweb.owlapi.model.OWLObjectProperty
+import scala.language.implicitConversions
 
 object Gene {
 
@@ -166,19 +173,40 @@ object Gene {
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
-  def phenotypicProfile(iri: IRI): Future[Seq[MinimalTerm]] = {
-    val query = select_distinct('annotation) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('pheno_instance, rdfType, AnnotatedPhenotype),
-        t('pheno_instance, associated_with_gene, iri),
-        t('pheno_instance, rdfType, 'annotation)),
-        new ElementFilter(new E_NotOneOf(new ExprVar('annotation), new ExprList(List(
-          new NodeValueNode(AnnotatedPhenotype),
-          new NodeValueNode(owlNamedIndividual))))))
+  def phenotypicProfile(iri: IRI): Future[Seq[SourcedMinimalTerm]] = {
+    val query = construct(
+      t(iri, hasPhenotype.asNode, 'annotation),
+      t('annotation, dcSource, 'source)) from "http://kb.phenoscape.org/" where (
+        bgp(
+          t('pheno_instance, rdfType, AnnotatedPhenotype),
+          t('pheno_instance, associated_with_gene, iri),
+          t('pheno_instance, rdfType, 'annotation)),
+          optional(bgp(t('pheno_instance, dcSource, 'source))),
+          new ElementFilter(new E_NotOneOf(new ExprVar('annotation), new ExprList(List(
+            new NodeValueNode(AnnotatedPhenotype),
+            new NodeValueNode(owlNamedIndividual))))))
     for {
-      phenotypeIRIs <- App.executeSPARQLQuery(query, result => IRI.create(result.getResource("annotation").getURI))
-      labelledPhenotypes <- Future.sequence(phenotypeIRIs.map(Term.computedLabel))
-    } yield labelledPhenotypes.sortBy(_.label)
+      annotationsData <- App.executeSPARQLConstructQuery(query)
+      phenotypesWithSources = processProfileResultToPhenotypesAndSources(annotationsData)
+      labelledPhenotypes <- Future.sequence(phenotypesWithSources.map {
+        case (phenotype, sources) => Term.computedLabel(phenotype).map(SourcedMinimalTerm(_, sources))
+      })
+    } yield labelledPhenotypes.toSeq.sortBy(_.term.label)
+  }
+
+  private val hasPhenotype = ResourceFactory.createProperty("http://example.org/hasPhenotype")
+  private implicit def objectPropertyToJenaProperty(prop: OWLObjectProperty): Property = {
+    ResourceFactory.createProperty(prop.getIRI.toString)
+  }
+
+  private def processProfileResultToPhenotypesAndSources(model: Model): Set[(IRI, Set[IRI])] = {
+    model.listObjectsOfProperty(hasPhenotype).collect {
+      case phenotype: Resource => phenotype
+    }.map { phenotype =>
+      IRI.create(phenotype.getURI) -> model.listObjectsOfProperty(phenotype, dcSource).collect {
+        case resource: Resource => Option(resource.getURI)
+      }.flatten.map(IRI.create).toSet
+    }.toSet
   }
 
   def expressionProfile(iri: IRI): Future[Seq[MinimalTerm]] = {
