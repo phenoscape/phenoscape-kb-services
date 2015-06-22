@@ -247,7 +247,7 @@ case class MinimalTerm(iri: IRI, label: String) extends JSONResultItem {
 case class SourcedMinimalTerm(term: MinimalTerm, sources: Set[IRI]) extends JSONResultItem {
 
   def toJSON: JsObject = (term.toJSON.fields +
-    ("sources" -> sources.map(iri => "@id" -> iri.toString).toMap.toJson)).toJson.asJsObject
+    ("sources" -> sources.map(iri => Map("@id" -> iri.toString)).toJson)).toJson.asJsObject
 
 }
 
