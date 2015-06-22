@@ -246,6 +246,7 @@ object Gene {
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         t('gene, rdfsLabel, 'gene_label),
+        t('gene, rdfType, Vocab.Gene), 
         t('gene, hasPhenotypicProfile / rdfType, 'phenotype),
         t('phenotype, rdfsSubClassOf,
           ((has_part some (phenotype_of some entityClass)) or (has_part some (towards value Individual(entityIRI)))).asOMN)))
