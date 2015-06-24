@@ -126,7 +126,7 @@ object Term {
     val pipeline = sendReceive ~> unmarshal[JsObject]
     val query = Uri.Query("object" -> s"<$iri>", "direct" -> "true")
     def toTerm(list: JsValue): Future[Set[MinimalTerm]] =
-      Future.sequence(list.convertTo[List[String]].toSet[String].map(IRI.create).map(computedLabel))
+      Future.sequence(list.convertTo[List[String]].toSet[String].map(IRI.create).map(label)).map(_.flatten)
     val superclassesFuture = pipeline(Get(App.Owlery.copy(path = App.Owlery.path / "superclasses", query = query)))
       .map(_.fields("subClassOf")).flatMap(toTerm)
     val subclassesFuture = pipeline(Get(App.Owlery.copy(path = App.Owlery.path / "subclasses", query = query)))
