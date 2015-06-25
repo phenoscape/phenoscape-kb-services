@@ -43,6 +43,8 @@ import com.hp.hpl.jena.rdf.model.Resource
 import com.hp.hpl.jena.sparql.expr.E_Coalesce
 import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueString
 import com.hp.hpl.jena.sparql.syntax.ElementBind
+import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
+import com.hp.hpl.jena.sparql.expr.aggregate.AggCountDistinct
 
 object Taxon {
 
@@ -77,27 +79,48 @@ object Taxon {
     App.executeSPARQLQuery(buildPhylopicQuery(taxon), CommonGroup(_)).map(_.headOption)
   }
 
-  def directPhenotypesFor(taxon: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[IRI]] = {
-    val query = buildPhenotypesQuery(taxon)
-    query.addResultVar('phenotype)
+  def directPhenotypesFor(taxon: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
+    val query = buildPhenotypesSubQuery(taxon) from "http://kb.phenoscape.org/"
     if (limit > 1) {
       query.setOffset(offset)
       query.setLimit(limit)
     }
+    query.addOrderBy('description)
     query.addOrderBy('phenotype)
-    App.executeSPARQLQuery(query, result => IRI.create(result.getResource("phenotype").getURI))
+    val results = App.executeSPARQLQuery(query, result => {
+      Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
+        AnnotatedCharacterDescription(
+          CharacterDescription(
+            IRI.create(result.getResource("state").getURI),
+            result.getLiteral("description").getLexicalForm,
+            CharacterMatrix(
+              IRI.create(result.getResource("matrix").getURI),
+              result.getLiteral("matrix_label").getLexicalForm)),
+          phenotype)
+      }
+    })
+    results.flatMap(Future.sequence(_))
   }
 
   def directPhenotypesTotalFor(taxon: IRI): Future[Int] = {
-    val query = buildPhenotypesQuery(taxon)
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("phenotype"))))
+    val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(buildPhenotypesSubQuery(taxon)))
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
-  private def buildPhenotypesQuery(taxon: IRI): Query =
-    select_distinct() from "http://kb.phenoscape.org/" where (
+  //  private def buildPhenotypesQuery(taxon: IRI): Query =
+  //    select_distinct() from "http://kb.phenoscape.org/" where (
+  //      bgp(
+  //        t(taxon, exhibits_state / describes_phenotype, 'phenotype)))
+
+  private def buildPhenotypesSubQuery(taxon: IRI): Query =
+    select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
       bgp(
-        t(taxon, exhibits_state / describes_phenotype, 'phenotype)))
+        t(taxon, exhibits_state, 'state),
+        t('state, describes_phenotype, 'phenotype),
+        t('state, dcDescription, 'description),
+        t('matrix, has_character / may_have_state_value, 'state),
+        t('matrix, rdfsLabel, 'matrix_label)))
 
   def phyloPicAcknowledgments: Future[Seq[IRI]] = {
     val query = select_distinct('pic) where (bgp(t('subject, phylopic, 'pic)))

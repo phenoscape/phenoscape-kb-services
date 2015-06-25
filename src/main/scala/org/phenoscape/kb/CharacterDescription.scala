@@ -205,6 +205,12 @@ object CharacterDescriptionAnnotation {
 
 }
 
+case class AnnotatedCharacterDescription(characterDescription: CharacterDescription, phenotype: MinimalTerm) extends JSONResultItem {
+
+  def toJSON: JsObject = (characterDescription.toJSON.fields ++ Map("phenotype" -> phenotype.toJSON)).toJson.asJsObject
+
+}
+
 case class CharacterMatrix(iri: IRI, label: String) {
 
   def toJSON: JsValue = {
