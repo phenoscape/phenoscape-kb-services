@@ -205,6 +205,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   else CharacterDescription.query(entity, taxon, Nil, limit, offset)
                 }
               }
+            } ~
+            path("with_annotation") {
+              parameter('iri.as[IRI]) { iri =>
+                complete {
+                  CharacterDescription.annotatedCharacterDescriptionWithAnnotation(iri)
+                }
+              }
             }
         } ~
         pathPrefix("taxon") {
