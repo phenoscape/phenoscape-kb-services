@@ -68,14 +68,16 @@ object CharacterDescription {
     App.executeSPARQLQuery(buildCharacterDescriptionQuery(iri), fromQuerySolution(iri)).map(_.headOption)
 
   def annotatedCharacterDescriptionWithAnnotation(iri: IRI): Future[Option[AnnotatedCharacterDescription]] = {
-    val query = select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
+    val query = select_distinct('state, 'description, 'matrix, 'matrix_label) where (
       bgp(
-        t('state, describes_phenotype, 'phenotype),
+        t('state, describes_phenotype, iri),
         t('state, dcDescription, 'description),
         t('matrix, has_character / may_have_state_value, 'state),
         t('matrix, rdfsLabel, 'matrix_label)))
     val result = App.executeSPARQLQuery(query, result => {
-      Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
+      println("Result: " + result)
+      Term.computedLabel(iri).map { phenotype =>
+        println("Phenotype: " + phenotype)
         AnnotatedCharacterDescription(
           CharacterDescription(
             IRI.create(result.getResource("state").getURI),
