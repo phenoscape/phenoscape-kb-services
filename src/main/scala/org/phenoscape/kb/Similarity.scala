@@ -46,7 +46,7 @@ object Similarity {
   def evolutionaryProfilesSimilarToGene(gene: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[SimilarityMatch]] =
     App.executeSPARQLQuery(geneToTaxonProfileQuery(gene, limit, offset), constructMatchFor(gene))
 
-  def bestAnnotationsMatchesForComparison(gene: IRI, taxon: IRI): Future[Seq[AnnotationPair]] = {
+  def bestAnnotationsMatchesForComparison(gene: IRI, taxon: IRI): Future[Seq[UnlabelledAnnotationPair]] = {
     val geneInd = Individual(gene)
     val taxonInd = Individual(taxon)
     (for {
@@ -79,7 +79,7 @@ object Similarity {
           }
         }).flatMap(identity)
       }
-    }).flatMap(identity).map(_.take(20)).flatMap(addLabels)
+    }).flatMap(identity).map(_.take(20))
   }
 
   def addLabels(unlabelleds: Seq[UnlabelledAnnotationPair]): Future[Seq[AnnotationPair]] = {
@@ -247,7 +247,15 @@ object SimilarityMatch {
 //
 //}
 
-case class UnlabelledAnnotationPair(queryAnnotation: IRI, corpusAnnotation: IRI, bestSubsumer: SubsumerWithDisparity)
+case class UnlabelledAnnotationPair(queryAnnotation: IRI, corpusAnnotation: IRI, bestSubsumer: SubsumerWithDisparity) extends JSONResultItem {
+
+  def toJSON: JsObject = {
+    Map("query_annotation" -> Map("@id" -> queryAnnotation.toString).toJson,
+      "corpus_annotation" -> Map("@id" -> corpusAnnotation.toString).toJson,
+      "best_subsumer" -> bestSubsumer.toJSON).toJson.asJsObject
+  }
+
+}
 
 case class AnnotationPair(queryAnnotation: MinimalTerm, corpusAnnotation: MinimalTerm, bestSubsumer: SubsumerWithDisparity) extends JSONResultItem {
 
