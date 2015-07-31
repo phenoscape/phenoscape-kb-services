@@ -130,7 +130,7 @@ object Term {
       else if (location > 0) containingMatches += term
       else synonymMatches += term
     }
-    (startsWithMatches.sortBy(_.label) ++ containingMatches.sortBy(_.label) ++ synonymMatches.sortBy(_.label)).toList
+    (startsWithMatches.sortBy(_.label.toLowerCase) ++ containingMatches.sortBy(_.label.toLowerCase) ++ synonymMatches.sortBy(_.label.toLowerCase)).toList
   }
 
   def classification(iri: IRI): Future[Classification] = {
