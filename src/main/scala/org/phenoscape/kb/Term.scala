@@ -1,6 +1,7 @@
 package org.phenoscape.kb
 
 import scala.concurrent.Future
+import scala.collection.mutable
 import Main.system
 import system.dispatcher
 import org.phenoscape.owl.Vocab._
@@ -48,11 +49,11 @@ object Term {
   private val factory = OWLManager.getOWLDataFactory
 
   def search(text: String, termType: IRI, property: IRI): Future[Seq[MinimalTerm]] = {
-    App.executeSPARQLQuery(buildSearchQuery(text, termType, property), Term.fromMinimalQuerySolution)
+    App.executeSPARQLQuery(buildSearchQuery(text, termType, property), Term.fromMinimalQuerySolution).map(orderBySearchedText(_, text))
   }
 
   def searchOntologyTerms(text: String, definedBy: IRI, limit: Int): Future[Seq[MinimalTerm]] = {
-    App.executeSPARQLQuery(buildOntologyTermQuery(text, definedBy, limit), Term.fromMinimalQuerySolution)
+    App.executeSPARQLQuery(buildOntologyTermQuery(text, definedBy, limit), Term.fromMinimalQuerySolution).map(orderBySearchedText(_, text))
   }
 
   def label(iri: IRI): Future[Option[MinimalTerm]] = {
@@ -115,6 +116,21 @@ object Term {
 
   def withIRI(iri: IRI): Future[Option[Term]] = {
     App.executeSPARQLQuery(buildTermQuery(iri), Term.fromQuerySolution(iri)).map(_.headOption)
+  }
+
+  def orderBySearchedText[T <: LabeledTerm](terms: Seq[T], text: String): Seq[T] = {
+    val startsWithMatches = mutable.ListBuffer.empty[T]
+    val containingMatches = mutable.ListBuffer.empty[T]
+    val synonymMatches = mutable.ListBuffer.empty[T]
+    terms.foreach { term =>
+      val lowerLabel = term.label.toLowerCase
+      val lowerText = text.toLowerCase
+      val location = lowerLabel.indexOf(lowerText)
+      if (location == 0) startsWithMatches += term
+      else if (location > 0) containingMatches += term
+      else synonymMatches += term
+    }
+    (startsWithMatches.sortBy(_.label) ++ containingMatches.sortBy(_.label) ++ synonymMatches.sortBy(_.label)).toList
   }
 
   def classification(iri: IRI): Future[Classification] = {
@@ -238,7 +254,7 @@ case class Term(iri: IRI, label: String, definition: String) extends JSONResultI
 
 }
 
-case class MinimalTerm(iri: IRI, label: String) extends JSONResultItem {
+case class MinimalTerm(iri: IRI, label: String) extends LabeledTerm with JSONResultItem {
 
   def toJSON: JsObject = Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
 
@@ -266,5 +282,13 @@ case class Classification(term: MinimalTerm, superclasses: Set[MinimalTerm], sub
       Map("subClassOf" -> superclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson,
         "superClassOf" -> subclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson,
         "equivalentTo" -> equivalents.toSeq.sortBy(_.label).map(_.toJSON).toJson))
+
+}
+
+trait LabeledTerm {
+
+  def iri: IRI
+
+  def label: String
 
 }

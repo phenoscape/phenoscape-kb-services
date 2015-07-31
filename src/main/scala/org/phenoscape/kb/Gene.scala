@@ -54,7 +54,7 @@ object Gene {
     App.executeSPARQLQuery(buildGeneQuery(iri), Gene.fromIRIQuery(iri)).map(_.headOption)
 
   def search(text: String): Future[Seq[Gene]] = {
-    App.executeSPARQLQuery(buildSearchQuery(text), Gene(_))
+    App.executeSPARQLQuery(buildSearchQuery(text), Gene(_)).map(Term.orderBySearchedText(_, text))
   }
 
   def query(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, limit: Int = 20, offset: Int = 0): Future[Seq[Gene]] = for {
@@ -246,7 +246,7 @@ object Gene {
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         t('gene, rdfsLabel, 'gene_label),
-        t('gene, rdfType, Vocab.Gene), 
+        t('gene, rdfType, Vocab.Gene),
         t('gene, hasPhenotypicProfile / rdfType, 'phenotype),
         t('phenotype, rdfsSubClassOf,
           ((has_part some (phenotype_of some entityClass)) or (has_part some (towards value Individual(entityIRI)))).asOMN)))
@@ -311,7 +311,7 @@ object Gene {
 
 }
 
-case class Gene(iri: IRI, label: String, taxon: Taxon) extends JSONResultItem {
+case class Gene(iri: IRI, label: String, taxon: Taxon) extends LabeledTerm with JSONResultItem {
 
   def toJSON: JsObject = {
     Map("@id" -> iri.toString.toJson, "label" -> label.toJson, "taxon" -> taxon.toJSON).toJson.asJsObject
