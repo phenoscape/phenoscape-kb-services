@@ -69,8 +69,21 @@ object Taxon {
     ResultCount(result)
   }
 
-  def variationProfileFor(taxon: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[IRI]] =
-    App.executeSPARQLQuery(buildVariationProfileQuery(taxon, limit, offset), result => IRI.create(result.getResource("phenotype").getURI))
+  def variationProfileFor(taxon: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
+    val results = App.executeSPARQLQuery(buildVariationProfileQuery(taxon, limit, offset), result => {
+      Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
+        AnnotatedCharacterDescription(
+          CharacterDescription(
+            IRI.create(result.getResource("state").getURI),
+            result.getLiteral("description").getLexicalForm,
+            CharacterMatrix(
+              IRI.create(result.getResource("matrix").getURI),
+              result.getLiteral("matrix_label").getLexicalForm)),
+          phenotype)
+      }
+    })
+    results.flatMap(Future.sequence(_))
+  }
 
   def variationProfileTotalFor(taxon: IRI): Future[Int] =
     App.executeSPARQLQuery(buildVariationProfileTotalQuery(taxon)).map(ResultCount.count)
@@ -173,27 +186,31 @@ object Taxon {
             t(iri, is_extinct, 'is_extinct))))
 
   def buildVariationProfileTotalQuery(taxon: IRI): Query = {
-    val query = buildBasicVariationProfileQuery(taxon)
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("phenotype"))))
+    val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(buildBasicVariationProfileQuery(taxon)))
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
     query
   }
 
   def buildVariationProfileQuery(taxon: IRI, limit: Int, offset: Int): Query = {
-    val query = buildBasicVariationProfileQuery(taxon)
-    query.addResultVar('phenotype)
+    val query = buildBasicVariationProfileQuery(taxon) from "http://kb.phenoscape.org/"
     if (limit > 1) {
       query.setOffset(offset)
       query.setLimit(limit)
     }
+    query.addOrderBy('description)
     query.addOrderBy('phenotype)
     query
   }
 
   def buildBasicVariationProfileQuery(taxon: IRI): Query = {
     val hasPhenotypicProfile = ObjectProperty(has_phenotypic_profile)
-    select_distinct() from "http://kb.phenoscape.org/" where (
+    select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
       bgp(
-        t(taxon, hasPhenotypicProfile / rdfType, 'phenotype)))
+        t(taxon, hasPhenotypicProfile / rdfType, 'phenotype),
+        t('state, describes_phenotype, 'phenotype),
+        t('state, dcDescription, 'description),
+        t('matrix, has_character / may_have_state_value, 'state),
+        t('matrix, rdfsLabel, 'matrix_label)))
   }
 
   def buildPhylopicQuery(taxon: IRI): Query = {
