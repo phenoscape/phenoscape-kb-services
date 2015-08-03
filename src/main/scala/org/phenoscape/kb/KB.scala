@@ -1,6 +1,6 @@
 package org.phenoscape.kb
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import org.phenoscape.kb.Main.system.dispatcher
 import scala.concurrent.Future
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
@@ -84,7 +84,7 @@ object KB {
     import org.phenoscape.owl.Vocab.Taxon
     val query = select() from "http://kb.phenoscape.org/" where (
       bgp(
-        t('taxon, rdfType, Taxon)),
+        t('taxon, rdfsIsDefinedBy, VTO)),
         new ElementFilter(new E_NotExists(triplesBlock(bgp(t('taxon, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
@@ -100,9 +100,7 @@ object KB {
     import org.phenoscape.owl.Vocab.Taxon
     val query = select() from "http://kb.phenoscape.org/" where (
       bgp(
-        t('taxon, rdfType, Taxon)),
-        new ElementFilter(new E_Exists(triplesBlock(bgp(t('taxon, exhibits_state / describes_phenotype, 'phenotype))))),
-        new ElementFilter(new E_NotExists(triplesBlock(bgp(t('taxon, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
+        t('taxon, exhibits_state / describes_phenotype, 'phenotype)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
