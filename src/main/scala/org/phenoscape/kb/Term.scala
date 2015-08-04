@@ -65,8 +65,9 @@ object Term {
     App.executeSPARQLQuery(buildLabelsQuery(iris: _*), Term.fromMinimalQuerySolution)
   }
 
+  //FIXME remove check for named expressions once label generation has been corrected in the build
   def computedLabel(iri: IRI): Future[MinimalTerm] = (for {
-    labelOpt <- label(iri)
+    labelOpt <- if (iri.toString.startsWith(ExpressionUtil.namedExpressionPrefix) || iri.toString.startsWith(ExpressionUtil.namedSubClassPrefix)) Future.successful(None) else label(iri)
   } yield {
     labelOpt.map(Future.successful).getOrElse {
       computeLabelForAnonymousTerm(iri)
