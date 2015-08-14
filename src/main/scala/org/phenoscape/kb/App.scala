@@ -32,6 +32,7 @@ import com.hp.hpl.jena.rdf.model.ModelFactory
 import java.io.ByteArrayInputStream
 import akka.util.Timeout
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 object App {
 

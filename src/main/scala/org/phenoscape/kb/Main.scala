@@ -83,10 +83,17 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
   startServer(interface = "localhost", port = serverPort) {
 
     corsFilter(List("*")) {
-      path("kb" / "annotation_summary") {
-        complete {
-          KB.annotationSummary
-        }
+      pathPrefix("kb") {
+        path("annotation_summary") {
+          complete {
+            KB.annotationSummary
+          }
+        } ~
+          path("annotation_report") {
+            complete {
+              KB.annotationReport
+            }
+          }
       } ~
         pathPrefix("term") {
           path("search") {
