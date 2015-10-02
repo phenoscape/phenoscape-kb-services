@@ -98,13 +98,14 @@ object PresenceAbsenceOfStructure {
         val taxon = statement.getSubject
         val entity = statement.getObject.asResource
         val presenceAbsence: PresenceAbsence = if (statement.getPredicate.getURI == has_presence_of.getIRI.toString) Presence else Absence
-        val character = characters.getOrElseUpdate(entity.getURI, {
-          val newChar = new Character(entity.getURI)
+        val characterID = unOBO(entity.getURI)
+        val character = characters.getOrElseUpdate(characterID, {
+          val newChar = new Character(characterID)
           newChar.setLabel(model.getProperty(entity, rdfsLabel).getObject.asLiteral.getString)
           dataset.addCharacter(newChar)
           newChar
         })
-        val stateID = s"${entity.getURI}#${presenceAbsence.symbol}"
+        val stateID = s"${unOBO(entity.getURI)}_${presenceAbsence.symbol}"
         val state = states.getOrElseUpdate(stateID, {
           val newState = new State(stateID)
           newState.setSymbol(presenceAbsence.symbol)
@@ -112,8 +113,9 @@ object PresenceAbsenceOfStructure {
           newState
         })
         if (!character.getStates.contains(state)) character.addState(state)
-        val matrixTaxon = taxa.getOrElseUpdate(taxon.getURI, {
-          val newTaxon = new MatrixTaxon(taxon.getURI)
+        val matrixTaxonID = unOBO(taxon.getURI)
+        val matrixTaxon = taxa.getOrElseUpdate(matrixTaxonID, {
+          val newTaxon = new MatrixTaxon(matrixTaxonID)
           newTaxon.setPublicationName(model.getProperty(taxon, rdfsLabel).getObject.asLiteral.getString)
           val oboID = NeXMLUtil.oboID(URI.create(taxon.getURI))
           newTaxon.setValidName(new OBOClassImpl(oboID))
@@ -134,6 +136,9 @@ object PresenceAbsenceOfStructure {
       dataset
     }
   }
+  
+  private def unOBO(uri: String): String = uri.replaceAllLiterally("http://purl.obolibrary.org/obo/", "")
+  
 
   def buildMatrixQuery(entityClass: OWLClassExpression, taxonClass: OWLClassExpression): Query = {
     construct(
