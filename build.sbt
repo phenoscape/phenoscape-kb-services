@@ -50,7 +50,7 @@ libraryDependencies ++= {
     "org.phenoscape"         %   "owlet"               % "1.3",
     "org.phenoscape"         %   "scowl"               % "0.9",
     "org.phenoscape"         %%   "kb-owl-tools"       % "1.3",
-    "org.phenoscape"         %   "phenex"              % "1.15.4",
+    "org.phenoscape"         %   "phenex"              % "1.17",
     "commons-io"             %   "commons-io"          % "2.4",
     "org.apache.jena"        %   "apache-jena-libs"    % "2.11.2",
     "com.google.guava"       %   "guava"               % "16.0.1",
