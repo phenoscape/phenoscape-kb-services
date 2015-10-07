@@ -29,6 +29,7 @@ import scala.collection.JavaConversions._
 import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
+import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import com.hp.hpl.jena.datatypes.xsd.XSDDatatype
 import com.hp.hpl.jena.sparql.expr.E_NotExists
 import com.hp.hpl.jena.sparql.syntax.ElementGroup
@@ -43,6 +44,9 @@ import org.semanticweb.owlapi.model.OWLObject
 import spray.client.pipelining._
 import akka.util.Timeout
 import scala.concurrent.duration._
+import com.hp.hpl.jena.sparql.path.P_Link
+import com.hp.hpl.jena.sparql.path.P_ZeroOrMore1
+import com.hp.hpl.jena.sparql.path.P_OneOrMore1
 
 object Term {
 
@@ -157,6 +161,31 @@ object Term {
       subclasses <- subclassesFuture
       equivalents <- equivalentsFuture
     } yield Classification(term, superclasses.filterNot(shouldHide), subclasses.filterNot(shouldHide), equivalents.filterNot(shouldHide))
+  }
+
+  def leastCommonSubsumers(iris: Iterable[IRI], source: Option[IRI]): Future[Seq[IRI]] = {
+    def superClassTriple(iri: IRI) = t(iri, rdfsSubClassOf*, 'super)
+    val definedByTriple = source.map(t('super, rdfsIsDefinedBy, _)).toList
+    val superClassesQuery = select_distinct('super) from "http://kb.phenoscape.org/" where (
+      bgp(
+        (t('super, rdfType, owlClass) ::
+          definedByTriple ++
+          iris.map(superClassTriple).toList): _*))
+    val superSuperClassesQuery = select_distinct('supersuper) from "http://kb.phenoscape.org/" where (
+      bgp(
+        (t('super, rdfType, owlClass) ::
+          t('supersuper, rdfType, owlClass) ::
+          t('super, new P_OneOrMore1(new P_Link(rdfsSubClassOf)), 'supersuper) ::
+          definedByTriple ++
+          iris.map(superClassTriple).toList): _*))
+    val superClassesFuture = App.executeSPARQLQuery(superClassesQuery, _.getResource("super").getURI)
+    val superSuperClassesFuture = App.executeSPARQLQuery(superSuperClassesQuery, _.getResource("supersuper").getURI)
+    for {
+      superClassesResult <- superClassesFuture
+      superSuperClassesResult <- superSuperClassesFuture
+    } yield {
+      (superClassesResult.toSet -- superSuperClassesResult).toSeq.sorted.map(IRI.create)
+    }
   }
 
   def buildTermQuery(iri: IRI): Query = {

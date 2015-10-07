@@ -131,6 +131,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               }
             } ~
+            path("least_common_subsumers") {
+              parameters('iris.as[Seq[IRI]], 'definedBy.as[IRI].?) { (iris, source) =>
+                complete {
+                  Term.leastCommonSubsumers(iris, source)
+                }
+              }
+            } ~
             pathEnd {
               parameters('iri.as[IRI]) { iri =>
                 complete {
