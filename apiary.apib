@@ -117,7 +117,21 @@ The Phenoscape Knowledgebase web API is an HTTP interface for searching ontology
             "label": "basihyal bone"
         }]
         }
-        
+
+## Least common subsumers [/term/least_common_subsumers{?iris,definedBy}]     
+### Return the set of least common subsumers for a set of terms [GET]
++ Parameters
+    + iris (required, URI, `http://purl.obolibrary.org/obo/UBERON_4200115,http://purl.obolibrary.org/obo/UBERON_4000160`) ... comma-separated list of term IRIs (no spaces)
+    + definedBy (optional, URI, `http://purl.obolibrary.org/obo/uberon.owl`) ... limit the returned subsumers to those defined by this ontology
++ Response 200 (application/json)
+
+        {
+        "results": [{
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0007829"
+            }, {
+            "@id": "http://purl.obolibrary.org/obo/UBERON_0008907"
+        }]
+        }
 
 # Group OntoTrace
 
