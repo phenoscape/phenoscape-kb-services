@@ -51,6 +51,7 @@ object Taxon {
   val phylopic = ObjectProperty("http://purl.org/phenoscape/phylopics.owl#phylopic")
   val group_label = ObjectProperty("http://purl.org/phenoscape/phylopics.owl#group_label")
   val is_extinct = ObjectProperty("http://purl.obolibrary.org/obo/vto#is_extinct")
+  val has_rank = ObjectProperty("http://purl.obolibrary.org/obo/vto#has_rank")
 
   def withIRI(iri: IRI): Future[Option[TaxonInfo]] =
     App.executeSPARQLQuery(buildTaxonQuery(iri), Taxon.fromIRIQuery(iri)).map(_.headOption)
@@ -177,13 +178,17 @@ object Taxon {
   }
 
   def buildTaxonQuery(iri: IRI): Query =
-    select('label, 'is_extinct) from "http://kb.phenoscape.org/" where (
+    select('label, 'is_extinct, 'rank, 'rank_label) from "http://kb.phenoscape.org/" where (
       bgp(
         t(iri, rdfsLabel, 'label),
         t(iri, rdfsIsDefinedBy, VTO)),
         optional(
           bgp(
-            t(iri, is_extinct, 'is_extinct))))
+            t(iri, is_extinct, 'is_extinct))),
+          optional(
+            bgp(
+              t(iri, has_rank, 'rank),
+              t('rank, rdfsLabel, 'rank_label))))
 
   def buildVariationProfileTotalQuery(taxon: IRI): Query = {
     val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(buildBasicVariationProfileQuery(taxon)))
@@ -238,6 +243,7 @@ object Taxon {
   def fromIRIQuery(iri: IRI)(result: QuerySolution): TaxonInfo = TaxonInfo(
     iri,
     result.getLiteral("label").getLexicalForm,
+    Option(result.getLiteral("rank_label")).map(label => MinimalTerm(IRI.create(result.getResource("rank").getURI), label.getLexicalForm)),
     Option(result.getLiteral("is_extinct")).map(_.getBoolean).getOrElse(false))
 
   def newickTreeWithRoot(iri: IRI): Future[String] = {
@@ -305,10 +311,12 @@ case class Taxon(iri: IRI, label: String) extends JSONResultItem {
 
 }
 
-case class TaxonInfo(iri: IRI, label: String, extinct: Boolean) extends JSONResultItem {
+case class TaxonInfo(iri: IRI, label: String, rank: Option[MinimalTerm], extinct: Boolean) extends JSONResultItem {
 
   def toJSON: JsObject = {
-    Map("@id" -> iri.toString.toJson, "label" -> label.toJson, "extinct" -> extinct.toJson).toJson.asJsObject
+    (Map("@id" -> iri.toString.toJson,
+      "label" -> label.toJson,
+      "extinct" -> extinct.toJson) ++ rank.map("rank" -> _.toJSON)).toJson.asJsObject
   }
 
 }
