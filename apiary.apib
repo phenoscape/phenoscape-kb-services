@@ -120,6 +120,7 @@ The Phenoscape Knowledgebase web API is an HTTP interface for searching ontology
 
 ## Least common subsumers [/term/least_common_subsumers{?iris,definedBy}]     
 ### Return the set of least common subsumers for a set of terms [GET]
+For any set of input terms, there may be more than one least common subsumer. This is because the Phenoscape KB class hierarchy is not a strict tree, but more generally a directed acyclic graph with multiple axes of classification.
 + Parameters
     + iris (required, URI, `http://purl.obolibrary.org/obo/UBERON_4200115,http://purl.obolibrary.org/obo/UBERON_4000160`) ... comma-separated list of term IRIs (no spaces)
     + definedBy (optional, URI, `http://purl.obolibrary.org/obo/uberon.owl`) ... limit the returned subsumers to those defined by this ontology
