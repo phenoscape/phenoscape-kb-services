@@ -102,6 +102,7 @@ object PresenceAbsenceOfStructure {
         val character = characters.getOrElseUpdate(characterID, {
           val newChar = new Character(characterID)
           newChar.setLabel(model.getProperty(entity, rdfsLabel).getObject.asLiteral.getString)
+          newChar.setDenotes(URI.create(entity.getURI))
           dataset.addCharacter(newChar)
           newChar
         })
@@ -136,9 +137,8 @@ object PresenceAbsenceOfStructure {
       dataset
     }
   }
-  
+
   private def unOBO(uri: String): String = uri.replaceAllLiterally("http://purl.obolibrary.org/obo/", "")
-  
 
   def buildMatrixQuery(entityClass: OWLClassExpression, taxonClass: OWLClassExpression): Query = {
     construct(
