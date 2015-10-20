@@ -390,6 +390,26 @@ Returns a NeXML-format evolutionary character matrix.
         {
         "total": 5
         }
+        
+## Corpus size [/similarity/corpus_size]
+### Retrieve number of instances in the similarity search corpus (currently, taxon nodes) [GET]
++ Response 200 (application/json)
+
+        {
+        "total": 659
+        }
+        
+## IC disparity [/similarity/ic_disparity{?iri}]
+### Query information content disparity for a phenotype class between taxon and gene corpora [GET]
+The disparity for a class is the taxon-based IC minus the gene-based IC.
++ Parameters
+    + iri (required, URI, `http://purl.obolibrary.org/obo/PATO_0000052`) ... IRI for phenotype class
++ Response 200 (application/json)
+
+        {
+        "value": -0.19564677483705345
+        } 
+
 
 # Group Taxa
 
