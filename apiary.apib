@@ -4,6 +4,28 @@ HOST: http://kb.phenoscape.org/api/
 # Phenoscape Knowledgebase web API
 The Phenoscape Knowledgebase web API is an HTTP interface for searching ontology terms, retrieving term info, and querying data from the KB.
 
+# Group Knowledgebase status
+
+##  KB annotation summary [/annotation_summary]
+### Return summary counts of annotated data matrices, taxa, characters, and states [GET]
++ Response 200 (application/json)
+
+        {
+        "annotated_matrices": 154,
+        "annotated_taxa": 5071,
+        "annotated_characters": 9602,
+        "annotated_states": 21182
+        }
+        
+##  KB annotation report [/annotation_report]
+### Return table of character state EQ annotations for curator review [GET]
+The columns are tab-separated.
++ Response 200 (text/plain)
+
+        ?matrix_file  ?character_number  ?character_text  ?state_symbol  ?state_text  ?entity_id  ?entity_name  ?quality_id  ?quality_name  ?related_entity_id  ?related_entity_name  ?attributes
+        "Bowne, P. S. (1994)"  "7"  "Interorbital commissure"  "1"  "medially opening pore"  "http://data.bioontology.org/provisional_classes/3a694e40-e12b-0132-ac85-005056010074"  ""  "http://purl.obolibrary.org/obo/PATO_0000025"  "composition"  "http://purl.obolibrary.org/obo/UBERON_0008915"  "pore"  "composition, structure"
+        "McLennan, D. A., & Mattern, M. Y. (2001)"  "12"  "Interorbital commisure"  "1"  "medially opening pore"  "http://data.bioontology.org/provisional_classes/3a694e40-e12b-0132-ac85-005056010074"  ""  "http://purl.obolibrary.org/obo/PATO_0000025"  "composition"  "http://purl.obolibrary.org/obo/UBERON_0008915"  "pore"  "composition, structure"
+        
 # Group Terms
 
 ##  Term detail [/term{?iri}]
@@ -145,6 +167,121 @@ Returns a NeXML-format evolutionary character matrix.
     + variable_only (optional, boolean, `true`) ... whether to restrict the matrix to characters with both 'present' and 'absent' values in the matrix
 + Response 200 (application/xml) 
 
+        <?xml version="1.0" encoding="UTF-8"?>
+        <nexml xmlns="http://www.nexml.org/2009" xmlns:dc="http://purl.org/dc/terms/" xmlns:dwc="http://rs.tdwg.org/dwc/terms/" xmlns:obo="http://purl.obolibrary.org/obo/" xmlns:ps="http://vocab.phenoscape.org/" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="0.9" xsi:schemaLocation="http://www.nexml.org/2009 http://www.nexml.org/2009/nexml.xsd http://www.bioontologies.org/obd/schema/pheno http://purl.org/phenoscape/phenoxml.xsd">
+          <meta xsi:type="LiteralMeta" property="dc:creator" />
+          <meta xsi:type="LiteralMeta" property="dc:description">Generated from the Phenoscape Knowledgebase on 2015-10-20 by Ontotrace query:
+        * taxa: &lt;http://purl.obolibrary.org/obo/VTO_0036217&gt;
+        * entities: &lt;http://purl.obolibrary.org/obo/BFO_0000050&gt; some &lt;http://purl.obolibrary.org/obo/UBERON_0008897&gt;</meta>
+          <otus id="ta2272552-0b69-46ce-ac61-c653f7fb8e73">
+            <otu id="VTO_0036225" label="Ictalurus punctatus" about="#VTO_0036225">
+              <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href="http://purl.obolibrary.org/obo/VTO_0036225" />
+            </otu>
+            <otu id="VTO_0061498" label="Ictalurus mexicanus" about="#VTO_0061498">
+              <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href="http://purl.obolibrary.org/obo/VTO_0061498" />
+            </otu>
+            <otu id="VTO_0061495" label="Ictalurus australis" about="#VTO_0061495">
+              <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href="http://purl.obolibrary.org/obo/VTO_0061495" />
+            </otu>
+            <otu id="VTO_0036221" label="Ictalurus balsanus" about="#VTO_0036221">
+              <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href="http://purl.obolibrary.org/obo/VTO_0036221" />
+            </otu>
+            <otu id="VTO_0036218" label="Ictalurus pricei" about="#VTO_0036218">
+              <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href="http://purl.obolibrary.org/obo/VTO_0036218" />
+            </otu>
+            <otu id="VTO_0036223" label="Ictalurus furcatus" about="#VTO_0036223">
+              <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href="http://purl.obolibrary.org/obo/VTO_0036223" />
+            </otu>
+            <otu id="VTO_0036220" label="Ictalurus lupus" about="#VTO_0036220">
+              <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href="http://purl.obolibrary.org/obo/VTO_0036220" />
+            </otu>
+            <otu id="VTO_0061497" label="Ictalurus dugesii" about="#VTO_0061497">
+              <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href="http://purl.obolibrary.org/obo/VTO_0061497" />
+            </otu>
+            <otu id="VTO_0061496" label="Ictalurus sp. (Mo 1991)" about="#VTO_0061496">
+              <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href="http://purl.obolibrary.org/obo/VTO_0061496" />
+            </otu>
+          </otus>
+          <characters id="cf52803f-e302-4ae7-9242-4d8c8daf7bde" xsi:type="StandardCells" otus="ta2272552-0b69-46ce-ac61-c653f7fb8e73">
+            <format>
+              <states id="s62693495-2c47-4a2d-ae7c-10e1b033cc99">
+                <state id="UBERON_2002002_1" label="present" symbol="1" />
+                <state id="UBERON_2002002_0" label="absent" symbol="0" />
+                <polymorphic_state_set id="sb2f789a5-1727-4db4-a8bf-b7260742575d" symbol="1 and 0">
+                  <member state="UBERON_2002002_1" />
+                  <member state="UBERON_2002002_0" />
+                </polymorphic_state_set>
+              </states>
+              <states id="s8ddf6f6e-b946-456f-9906-0dc41966f1c4">
+                <state id="UBERON_2001788_1" label="present" symbol="1" />
+                <state id="UBERON_2001788_0" label="absent" symbol="0" />
+                <polymorphic_state_set id="s70c8320f-d62a-47a4-b7ca-4ad7455fd2b0" symbol="1 and 0">
+                  <member state="UBERON_2001788_1" />
+                  <member state="UBERON_2001788_0" />
+                </polymorphic_state_set>
+              </states>
+              <states id="s80e10fab-6506-4b72-892b-8e4ac261eb4a">
+                <state id="UBERON_2002001_1" label="present" symbol="1" />
+                <state id="UBERON_2002001_0" label="absent" symbol="0" />
+              </states>
+              <char id="UBERON_2002002" label="anterior distal serration of pectoral fin spine" about="#UBERON_2002002" states="s62693495-2c47-4a2d-ae7c-10e1b033cc99">
+                <meta xsi:type="ResourceMeta" rel="obo:IAO_0000219" href="http://purl.obolibrary.org/obo/UBERON_2002002" />
+              </char>
+              <char id="UBERON_2001788" label="pelvic splint" about="#UBERON_2001788" states="s8ddf6f6e-b946-456f-9906-0dc41966f1c4">
+                <meta xsi:type="ResourceMeta" rel="obo:IAO_0000219" href="http://purl.obolibrary.org/obo/UBERON_2001788" />
+              </char>
+              <char id="UBERON_2002001" label="anterior dentation of pectoral fin spine" about="#UBERON_2002001" states="s80e10fab-6506-4b72-892b-8e4ac261eb4a">
+                <meta xsi:type="ResourceMeta" rel="obo:IAO_0000219" href="http://purl.obolibrary.org/obo/UBERON_2002001" />
+              </char>
+            </format>
+            <matrix>
+              <row id="re5c991ac-0568-4d62-82e1-e54a3a88c296" otu="VTO_0036225">
+                <cell char="UBERON_2002002" state="UBERON_2002002_1" />
+                <cell char="UBERON_2001788" state="s70c8320f-d62a-47a4-b7ca-4ad7455fd2b0" />
+                <cell char="UBERON_2002001" state="UBERON_2002001_1" />
+              </row>
+              <row id="re98d83f4-cc23-4014-a011-6b28e7fa876d" otu="VTO_0061498">
+                <cell char="UBERON_2002002" state="UBERON_2002002_1" />
+                <cell char="UBERON_2001788" state="UBERON_2001788_1" />
+              </row>
+              <row id="r3b75c894-6efc-46d7-96ae-bdc327f00c7b" otu="VTO_0061495">
+                <cell char="UBERON_2002002" state="UBERON_2002002_1" />
+                <cell char="UBERON_2001788" state="UBERON_2001788_1" />
+                <cell char="UBERON_2002001" state="UBERON_2002001_1" />
+              </row>
+              <row id="r13b318e3-309d-4e6b-9306-68e1ed765cc6" otu="VTO_0036221">
+                <cell char="UBERON_2002002" state="sb2f789a5-1727-4db4-a8bf-b7260742575d" />
+                <cell char="UBERON_2001788" state="UBERON_2001788_1" />
+                <cell char="UBERON_2002001" state="UBERON_2002001_0" />
+              </row>
+              <row id="rc80b1386-ea71-4f28-a26f-a442bb75ae6d" otu="VTO_0036218">
+                <cell char="UBERON_2002002" state="UBERON_2002002_1" />
+                <cell char="UBERON_2001788" state="UBERON_2001788_1" />
+                <cell char="UBERON_2002001" state="UBERON_2002001_1" />
+              </row>
+              <row id="rb855c9cc-8594-41f3-bb1e-f85ca1b5ce94" otu="VTO_0036223">
+                <cell char="UBERON_2002002" state="UBERON_2002002_1" />
+                <cell char="UBERON_2001788" state="UBERON_2001788_1" />
+                <cell char="UBERON_2002001" state="UBERON_2002001_0" />
+              </row>
+              <row id="redbdfca0-ca69-4710-a887-b9429c3faf67" otu="VTO_0036220">
+                <cell char="UBERON_2002002" state="UBERON_2002002_1" />
+                <cell char="UBERON_2001788" state="UBERON_2001788_1" />
+                <cell char="UBERON_2002001" state="UBERON_2002001_1" />
+              </row>
+              <row id="r4378658a-901f-464f-9320-c9375ead4638" otu="VTO_0061497">
+                <cell char="UBERON_2002002" state="UBERON_2002002_1" />
+                <cell char="UBERON_2001788" state="UBERON_2001788_1" />
+              </row>
+              <row id="r0034d445-b7ec-4246-af54-68a90afc718d" otu="VTO_0061496">
+                <cell char="UBERON_2001788" state="UBERON_2001788_0" />
+              </row>
+            </matrix>
+          </characters>
+          <trees id="td2cf438a-4bef-49b0-93cf-7a0a97660a58" otus="ta2272552-0b69-46ce-ac61-c653f7fb8e73" />
+        </nexml>
+
+
 # Group Semantic Similarity
 
 ## Semantic similarity query [/similarity/query{?iri,limit,offset}]
@@ -253,6 +390,26 @@ Returns a NeXML-format evolutionary character matrix.
         {
         "total": 5
         }
+        
+## Corpus size [/similarity/corpus_size]
+### Retrieve number of instances in the similarity search corpus (currently, taxon nodes) [GET]
++ Response 200 (application/json)
+
+        {
+        "total": 659
+        }
+        
+## IC disparity [/similarity/ic_disparity{?iri}]
+### Query information content disparity for a phenotype class between taxon and gene corpora [GET]
+The disparity for a class is the taxon-based IC minus the gene-based IC.
++ Parameters
+    + iri (required, URI, `http://purl.obolibrary.org/obo/PATO_0000052`) ... IRI for phenotype class
++ Response 200 (application/json)
+
+        {
+        "value": -0.19564677483705345
+        } 
+
 
 # Group Taxa
 
