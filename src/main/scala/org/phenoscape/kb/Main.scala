@@ -191,12 +191,12 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               }
             } ~
-            path("corpus_size") { //undocumented
+            path("corpus_size") { 
               complete {
                 Similarity.corpusSize.map(ResultCount(_))
               }
             } ~
-            path("ic_disparity") { //undocumented
+            path("ic_disparity") { 
               parameters('iri.as[OWLClass]) { (term) =>
                 complete {
                   Similarity.icDisparity(term).map(value => JsObject("value" -> value.toJson))

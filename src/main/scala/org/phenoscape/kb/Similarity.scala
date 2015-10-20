@@ -31,6 +31,10 @@ import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 import com.hp.hpl.jena.sparql.expr.ExprList
 import com.hp.hpl.jena.sparql.expr.E_NotOneOf
 import com.hp.hpl.jena.sparql.syntax.ElementFilter
+import com.hp.hpl.jena.sparql.syntax.ElementGroup
+import com.hp.hpl.jena.sparql.expr.E_Exists
+import com.hp.hpl.jena.datatypes.xsd.XSDDatatype
+import com.hp.hpl.jena.sparql.syntax.Element
 
 object Similarity {
 
@@ -154,9 +158,16 @@ object Similarity {
   def corpusSize: Future[Int] = {
     val query = select() where (
       bgp(
-        t('comparison, for_corpus_profile, 'taxon_profile)))
+        t('taxon, has_phenotypic_profile, 'taxon_profile)),
+        new ElementFilter(new E_Exists(triplesBlock(bgp(t('comparison, for_corpus_profile, 'taxon_profile))))))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon_profile"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
+  }
+  
+  private def triplesBlock(elements: Element*): ElementGroup = {
+    val block = new ElementGroup()
+    elements.foreach(block.addElement)
+    block
   }
 
   def geneToTaxonProfileQuery(gene: IRI, resultLimit: Int, resultOffset: Int): Query = {
