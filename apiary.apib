@@ -452,6 +452,47 @@ Currently this is the label, extinction status, and an optional rank.
         {
         "total": 803
         }
+        
+# Group Genes
+
+##  Gene info [/gene{?iri}]
+### Return detail info for a given gene. [GET]
+Currently this is the label and taxon.
++ Parameters
+    + iri (required, URI, `http://zfin.org/ZDB-GENE-040426-731`) ... the gene IRI
++ Response 200 (application/json)
+
+## Gene search [/gene/search{?text}]
+### Search for genes by gene symbol. [GET]
+Returns matched genes with taxon info for each.
++ Parameters
+    + text (required, String, `brpf1`) ... text to match in the gene symbol
++ Response 200 (application/json)
+
+        {
+          "results": [{
+            "@id": "http://zfin.org/ZDB-GENE-040426-731",
+            "label": "brpf1",
+            "taxon": {
+              "@id": "http://purl.obolibrary.org/obo/NCBITaxon_7955",
+              "label": "zebrafish"
+            }
+          }, {
+            "@id": "http://www.informatics.jax.org/marker/MGI:1926033",
+            "label": "Brpf1",
+            "taxon": {
+              "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+              "label": "mouse"
+            }
+          }]
+        }
+
++ Response 200 (text/plain)
+
+        IRI    label    taxon
+        http://zfin.org/ZDB-GENE-040426-731    brpf1    zebrafish
+        http://www.informatics.jax.org/marker/MGI:1926033    Brpf1    mouse
+
 
 # Group not yet updated       
 
@@ -460,6 +501,15 @@ Currently this is the label, extinction status, and an optional rank.
 + Parameters
     + id (required, URI) ... Identifier for a gene
 + Response 200 (application/json)
+
+        {
+        "@id": "http://zfin.org/ZDB-GENE-040426-731",
+        "label": "brpf1",
+        "taxon": {
+            "@id": "http://purl.obolibrary.org/obo/NCBITaxon_7955",
+            "label": "zebrafish"
+            }
+        }  
 
 ## Evidence for presence of a structure [/entity/presence{?taxon,entity}]
 ### Return any character states which entail the presence of an anatomical structure within a taxon [GET]
