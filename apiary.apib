@@ -452,6 +452,22 @@ Currently this is the label, extinction status, and an optional rank.
         {
         "total": 803
         }
+        
+# Group Genes
+
+##  Gene info [/gene{?iri}]
+### Return detail info for a given gene. [GET]
+Currently this is the label and taxon.
++ Parameters
+    + iri (required, URI, `http://zfin.org/ZDB-GENE-040426-731`) ... the gene IRI
++ Response 200 (application/json)
+
+## Gene search [/gene/search{?text}]
+### Search for genes by gene symbol. [GET]
+Returns matched genes with taxon info for each.
++ Parameters
+    + text (required, String, `brpf1`) ... text to match in the gene symbol
++ Response 200 (application/json)
 
 # Group not yet updated       
 
