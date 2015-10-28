@@ -382,6 +382,15 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               }
           } ~
+          pathPrefix("study") {
+            path("query") {
+              parameters('entity.as[OWLClassExpression].?, 'taxon.as[OWLClassExpression].?) { (entity, taxon) =>
+                complete {
+                  Study.queryStudies(entity, taxon)
+                }
+              }
+            }
+          } ~
           path("genes_expressed_in_structure") {
             parameters('entity.as[IRI]) { entity =>
               complete {
