@@ -493,6 +493,40 @@ Returns matched genes with taxon info for each.
         http://zfin.org/ZDB-GENE-040426-731    brpf1    zebrafish
         http://www.informatics.jax.org/marker/MGI:1926033    Brpf1    mouse
 
+# Group Studies
+Services related to studies providing evolutionary data matrices for annotation.
+
+## Query studies by taxa and anatomical entity [/study/query{?taxon,entity}]
+### Return studies containing taxa which are members of the optional input taxon expression and are have annotated phenotypes which are relevant to the optional input entity expression. [GET]
++ Parameters
+    + taxon (required, string, `<http://purl.obolibrary.org/obo/VTO_0036217>`) ... Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+    + entity (required, string `<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/UBERON_0008897>`) ... Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
++ Response 200 (application/json)
+
+        {
+          "results": [{
+            "@id": "https://scholar.google.com/scholar?q=Higher-level+Phylogeny+of+Siluriformes%2C+With+a+New+Classification+of+the+Order+%28Teleostei%2C+Ostariophysi%29&btnG=&hl=en&as_sdt=0%2C42",
+            "label": "De Pinna, M. C. (1993)"
+          }, {
+            "@id": "http://dx.doi.org/10.1111/j.1096-3642.1981.tb01575.x",
+            "label": "Fink, S. V, & Fink, W. L. (1981);  Fink, S. V, & Fink, W. L. (1996)"
+          }, {
+            "@id": "http://search.informit.com.au/documentSummary;dn=057273049071593;res=IELHSS",
+            "label": "Kailola, P. J. (2004)"
+          }, {
+            "@id": "https://scholar.google.com/scholar?q=The+Phylogeny+of+Ictalurid+Catfishes%3A+A+Synthesis+of+Recent+Work&btnG=&hl=en&as_sdt=0%2C42",
+            "label": "Lundberg, J. G. (1992)"
+          }, {
+            "@id": "https://scholar.google.com/scholar?q=Anatomy%2C+relationships+and+systematics+of+the+Bagridae+%28Teleostei%3A+Siluroidei%29+with+a+hypothesis+of+siluroid+phylogeny+by&btnG=&hl=en&as_sdt=0%2C42",
+            "label": "Mo, T. (1991)"
+          }, {
+            "@id": "https://scholar.google.com/scholar?q=Studies+on+the+systematics+and+phylogeny+of+the+catfish+family+Auchenipteridae+%28Teleostei%3A+Siluriformes%29&btnG=&hl=en&as_sdt=0%2C42",
+            "label": "Royero, R. (1999)"
+          }, {
+            "@id": "http://www.bioone.org/doi/abs/10.1635/0097-3157(2008)157%5B73:APSOTA%5D2.0.CO%3B2",
+            "label": "Vigliotta, T. R. (2008)"
+          }]
+        }
 
 # Group not yet updated       
 
