@@ -3,6 +3,9 @@ HOST: http://kb.phenoscape.org/api/
 
 # Phenoscape Knowledgebase web API
 The Phenoscape Knowledgebase web API is an HTTP interface for searching ontology terms, retrieving term info, and querying data from the KB.
+Most of the services return data in JSON format. Other formats you may encounter inlcude plain text (usually tab-delimited), and NeXML. The available formats for a given service are listed in the Response section of the service detail. As multiple formats may be available for one service, be sure to scroll through to see all supported formats. 
+When plain-text is available, it is usually the default response, to provide a simple format for service results being directly reviewed. 
+Set the appropriate media type value in your request's `Accept` header to ensure you receive the desired response format.
 
 # Group Knowledgebase status
 
