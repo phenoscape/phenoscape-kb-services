@@ -139,6 +139,120 @@ The columns are tab-separated.
             "label": "basihyal bone"
         }]
         }
+        
+##  Ancestors [/term/all_ancestors{?iri}]
+### Return all ancestor superclasses of a given term [GET]
++ Parameters
+    + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618`) ... the term IRI
++ Response 200 (application/json)
+
+        {
+          "results": [
+            {
+              "@id": "http://purl.obolibrary.org/obo/BFO_0000040",
+              "label": "material entity"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/BFO_0000040",
+              "label": "material entity"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/CARO_0000003",
+              "label": "anatomical structure"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/CARO_0000003",
+              "label": "anatomical structure"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0001474",
+              "label": "bone element"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0000061",
+              "label": "anatomical structure"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0000062",
+              "label": "organ"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0000465",
+              "label": "material anatomical entity"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0004119",
+              "label": "endoderm-derived structure"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0004765",
+              "label": "skeletal element"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0010000",
+              "label": "multicellular anatomical structure"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0010314",
+              "label": "structure with developmental contribution from neural crest"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0001062",
+              "label": "anatomical entity"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0010363",
+              "label": "endochondral element"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0002513",
+              "label": "endochondral bone"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0011614",
+              "label": "basihyal element"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/CARO_0000000",
+              "label": "anatomical entity"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/CARO_0000006",
+              "label": "material anatomical entity"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/CARO_0000006",
+              "label": "material anatomical entity"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/CARO_0010000",
+              "label": "multicellular anatomical structure"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/BFO_0000002",
+              "label": "continuant"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/BFO_0000004",
+              "label": "independent continuant"
+            }
+          ]
+        }
+
+##  Descendants [/term/all_descendants{?iri}]
+### Return all descendant subclasses of a given term [GET]
++ Parameters
+    + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618`) ... the term IRI
++ Response 200 (application/json)
+
+        {
+          "results": [
+            {
+              "@id": "http://purl.obolibrary.org/obo/ZFA_0000316",
+              "label": "basihyal bone"
+            }
+          ]
+        }        
 
 ## Least common subsumers [/term/least_common_subsumers{?iris,definedBy}]     
 ### Return the set of least common subsumers for a set of terms [GET]
