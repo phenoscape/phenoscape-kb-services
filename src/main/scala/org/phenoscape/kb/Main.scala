@@ -330,9 +330,9 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             } ~
             pathPrefix("gene") {
               path("search") {
-                parameters('text) { (text) =>
+                parameters('text, 'taxon.as[IRI].?) { (text, taxonOpt) =>
                   complete {
-                    Gene.search(text)
+                    Gene.search(text, taxonOpt)
                   }
                 }
               } ~

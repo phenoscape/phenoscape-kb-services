@@ -53,8 +53,10 @@ object Gene {
   def withIRI(iri: IRI): Future[Option[Gene]] =
     App.executeSPARQLQuery(buildGeneQuery(iri), Gene.fromIRIQuery(iri)).map(_.headOption)
 
-  def search(text: String): Future[Seq[Gene]] = {
-    App.executeSPARQLQuery(buildSearchQuery(text), Gene(_)).map(Term.orderBySearchedText(_, text))
+  def search(text: String, taxonOpt: Option[IRI]): Future[Seq[Gene]] = {
+    val taxonFilter = taxonOpt.map(taxonIRI =>
+      (gene: Gene) => gene.taxon.iri == taxonIRI).getOrElse((_: Gene) => true)
+    App.executeSPARQLQuery(buildSearchQuery(text), Gene(_)).map(genes => Term.orderBySearchedText(genes.filter(taxonFilter), text))
   }
 
   def query(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, limit: Int = 20, offset: Int = 0): Future[Seq[Gene]] = for {
