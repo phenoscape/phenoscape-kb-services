@@ -139,7 +139,7 @@ object Term {
   }
 
   def classification(iri: IRI): Future[Classification] = {
-    implicit val timeout = Timeout(10 minutes)
+    implicit val timeout = Timeout(10.minutes)
     def shouldHide(term: MinimalTerm) = {
       val termID = term.iri.toString
       termID.startsWith("http://example.org") || termID == "http://www.w3.org/2002/07/owl#Nothing" || termID == "http://www.w3.org/2002/07/owl#Thing"
@@ -161,6 +161,22 @@ object Term {
       subclasses <- subclassesFuture
       equivalents <- equivalentsFuture
     } yield Classification(term, superclasses.filterNot(shouldHide), subclasses.filterNot(shouldHide), equivalents.filterNot(shouldHide))
+  }
+
+  def allAncestors(iri: IRI): Future[Seq[MinimalTerm]] = {
+    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t(iri, new P_OneOrMore1(new P_Link(rdfsSubClassOf)), 'term),
+        t('term, rdfsLabel, 'term_label)))
+    App.executeSPARQLQuery(query, fromMinimalQuerySolution)
+  }
+
+  def allDescendants(iri: IRI): Future[Seq[MinimalTerm]] = {
+    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('term, new P_OneOrMore1(new P_Link(rdfsSubClassOf)), iri),
+        t('term, rdfsLabel, 'term_label)))
+    App.executeSPARQLQuery(query, fromMinimalQuerySolution)
   }
 
   def leastCommonSubsumers(iris: Iterable[IRI], source: Option[IRI]): Future[Seq[IRI]] = {

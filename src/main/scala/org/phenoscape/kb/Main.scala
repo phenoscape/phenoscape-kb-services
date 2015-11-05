@@ -147,6 +147,20 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                     }
                   }
                 } ~
+                path("all_ancestors") {
+                  parameters('iri.as[IRI]) { (iri) =>
+                    complete {
+                      Term.allAncestors(iri)
+                    }
+                  }
+                } ~
+                path("all_descendants") {
+                  parameters('iri.as[IRI]) { (iri) =>
+                    complete {
+                      Term.allDescendants(iri)
+                    }
+                  }
+                } ~
                 pathEnd {
                   parameters('iri.as[IRI]) { iri =>
                     complete {
