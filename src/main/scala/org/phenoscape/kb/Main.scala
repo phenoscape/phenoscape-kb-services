@@ -84,7 +84,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
   startServer(interface = "localhost", port = serverPort) {
 
     corsFilter(List("*")) {
-      respondWithHeader(RawHeader("Vary", "Accept")) {
+      respondWithHeader(RawHeader("Vary", "negotiate, Accept")) {
         pathPrefix("kb") {
           path("annotation_summary") {
             complete {
