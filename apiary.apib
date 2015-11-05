@@ -462,11 +462,18 @@ Currently this is the label and taxon.
     + iri (required, URI, `http://zfin.org/ZDB-GENE-040426-731`) ... the gene IRI
 + Response 200 (application/json)
 
-## Gene search [/gene/search{?text}]
+## Gene search [/gene/search{?text,taxon}]
 ### Search for genes by gene symbol [GET]
-Returns matched genes with taxon info for each.
+Returns matched genes with taxon info for each. Requests can optionally filter by a specific model organism taxon. Current valid taxa are:
+
+* `http://purl.obolibrary.org/obo/NCBITaxon_7955` _Danio_ _rerio_ (zebrafish)
+* `http://purl.obolibrary.org/obo/NCBITaxon_10090` _Mus_ _musculus_ (mouse)
+* `http://purl.obolibrary.org/obo/NCBITaxon_8353` _Xenopus_ (frog)
+* `http://purl.obolibrary.org/obo/NCBITaxon_9606` _Homo_ _sapiens_ (human)
+
 + Parameters
     + text (required, String, `brpf1`) ... text to match in the gene symbol
+    + taxon (optional, URI, `http://purl.obolibrary.org/obo/NCBITaxon_7955`) ... NCBI IRI for taxon    
 + Response 200 (application/json)
 
         {
