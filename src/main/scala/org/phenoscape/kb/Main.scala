@@ -410,7 +410,15 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                     Study.queryStudies(entity, taxon)
                   }
                 }
-              }
+              } ~
+                path("matrix") {
+                  parameters('iri.as[IRI]) { (iri) =>
+                    complete {
+                      val prettyPrinter = new scala.xml.PrettyPrinter(9999, 2)
+                      Study.queryMatrix(iri).map(prettyPrinter.format(_))
+                    }
+                  }
+                }
             } ~
             path("genes_expressed_in_structure") {
               parameters('entity.as[IRI]) { entity =>
