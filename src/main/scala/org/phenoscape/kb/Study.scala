@@ -97,10 +97,11 @@ object Study {
       stateGroup <- model.listSubjectsWithProperty(belongs_to_character, character)
         .map(cell => model.listObjectsOfProperty(cell.asResource, has_state).map(_.asResource.getURI))
     } yield character.asResource.getURI -> stateGroup.toSet).toSet[(String, Set[String])].groupBy(_._1).mapValues(_.map(_._2))
-    val stateGroupIDs = for {
+    val allIndividualStatesAsSets = neededStateGroups.values.flatten.flatten.map(Set(_))
+    val stateGroupIDs = (for {
       (character, stateGroups) <- neededStateGroups
       stateGroup <- stateGroups
-    } yield stateGroup -> idForStateGroup(stateGroup)
+    } yield stateGroup -> idForStateGroup(stateGroup)) ++ allIndividualStatesAsSets.map(group => group -> idForStateGroup(group))
     val orderedCharacters = model.listObjectsOfProperty(has_character).toSeq.sortBy(character => model.getProperty(character.asResource, list_index).getInt).map(_.asResource.getURI)
     def label(uri: String): String = model.getProperty(ResourceFactory.createResource(uri), rdfsLabel).getString
     def symbol(stateGroup: Set[String]): String = (stateGroup.map(state => model.getProperty(ResourceFactory.createResource(state), state_symbol).getString)).toSeq.sorted.mkString(" and ")
