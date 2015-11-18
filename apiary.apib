@@ -653,12 +653,58 @@ Services related to studies providing evolutionary data matrices for annotation.
         }
 
 ## Data matrix for study [/study/matrix{?iri}]
-*This service is not yet implemented.*
 ### Return a data matrix in NeXML format containing the data for a given study [GET]
 
 + Parameters
     + iri (required, URI, `http://dx.doi.org/10.1111/j.1096-3642.2008.00407.x`) ... the study IRI
 + Response 200 (application/xml)
+
+        <nexml version="0.9" xsi:schemaLocation="http://www.nexml.org/2009 http://www.nexml.org/2009/nexml.xsd http://www.bioontologies.org/obd/schema/pheno http://purl.org/phenoscape/phenoxml.xsd" xmlns="http://www.nexml.org/2009" xmlns:dc="http://purl.org/dc/terms/" xmlns:dwc="http://rs.tdwg.org/dwc/terms/" xmlns:obo="http://purl.obolibrary.org/obo/" xmlns:ps="http://purl.org/phenoscape/vocab.owl#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <meta xsi:type="ResourceMeta" rel="dc:source" href="http://dx.doi.org/10.1111/j.1096-3642.1981.tb01575.x">
+            <meta xsi:type="LiteralMeta" property="dc:bibliographicCitation"> Fink, S. V, &amp; Fink, W. L. (1981). Interrelationships of the ostariophysan fishes (Teleostei). Zoological Journal of the Linnean Society, 72(4), 297?353.; Fink, S. V, &amp; Fink, W. L. (1996). Interrelationships of the ostariophysan fishes (Teleostei). In M. L. J. Stiassny, L. R. Parenti, &amp; G. D. Johnson (Eds.), Interrelationships of Fishes (pp. 209?249). </meta>
+            <meta xsi:type="LiteralMeta" property="rdfs:label" content="Fink, S. V, &amp; Fink, W. L. (1981); Fink, S. V, &amp; Fink, W. L. (1996)"/>
+          </meta>
+          <otus id="otus_be87ff53-e967-4822-b34e-2a6bd15a03fb">
+            <otu id="otu_58fd80c4-0312-4a9b-af15-0677013fbf58" about="#otu_58fd80c4-0312-4a9b-af15-0677013fbf58" label="Notogoneus osculus">
+              <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href="http://purl.obolibrary.org/obo/VTO_0066303"/>
+            </otu>
+            <otu id="otu_0bda4e13-dd6b-4ffd-8bce-1d8337537a19" about="#otu_0bda4e13-dd6b-4ffd-8bce-1d8337537a19" label="Salmo gairdneri">
+              <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href="http://purl.obolibrary.org/obo/VTO_0058222"/>
+            </otu>
+          </otus>
+          <characters id="characters_f3ae1e68-99d1-4190-a163-9f82346abedb" xsi:type="StandardCells" otus="otus_be87ff53-e967-4822-b34e-2a6bd15a03fb">
+            <format>
+              <states id="states_c7382498-080a-498d-be82-b88ad18c450f">
+                <state id="state_dbb5efe7-28f4-4134-95c1-b4da7648078c" about="#state_dbb5efe7-28f4-4134-95c1-b4da7648078c" label="absent" symbol="1">
+                  <meta xsi:type="ResourceMeta" rel="ps:describes_phenotype" href="http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0002000%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0000468%3E%29+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2Fpato%23towards%3E+value+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2001406%3E%29#264e0620-8a16-411c-aa61-975c73bbc361"> </meta>
+                </state>
+                <state id="state_722dc67a-f9b4-4092-af4f-d4152be45560" about="#state_722dc67a-f9b4-4092-af4f-d4152be45560" label="present" symbol="0">
+                  <meta xsi:type="ResourceMeta" rel="ps:describes_phenotype" href="http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000467%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2001406%3E%29#1121a9e2-487b-46ab-b84e-7ead15c4b179"> </meta>
+                </state>
+              </states>
+              <states id="states_4d605bf9-556e-45ad-a88b-a907e68dd818">
+                <state id="state_0c0037e2-b093-4fd5-8534-8a8bd7b41959" about="#state_0c0037e2-b093-4fd5-8534-8a8bd7b41959" label="vomer articulates anteriorly with the mesethmoid; vomer has a vertical or oblique synchondral joint with the mesethmoid" symbol="1">
+                  <meta xsi:type="ResourceMeta" rel="ps:describes_phenotype" href="http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0001854%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2001680%3E%29#070f4846-e2e0-445d-b41d-f8438c28f8d7"> </meta>
+                </state>
+                <state id="state_8e5b6b69-47dc-4077-b52a-85b0d674475b" about="#state_8e5b6b69-47dc-4077-b52a-85b0d674475b" label="extends anteroventral to the mesethmoid" symbol="0">
+                  <meta xsi:type="ResourceMeta" rel="ps:describes_phenotype" href="http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0001855%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2001680%3E%29#a5ee1311-9ccc-489d-ac76-eb494337b35e"> </meta>
+                </state>
+              </states>
+              <char id="character_c7382498-080a-498d-be82-b88ad18c450f" label="Kinethmoid bone" states="states_c7382498-080a-498d-be82-b88ad18c450f"/>
+              <char id="character_4d605bf9-556e-45ad-a88b-a907e68dd818" label="Vomer" states="states_4d605bf9-556e-45ad-a88b-a907e68dd818"/>
+            </format>
+            <matrix>
+              <row id="row_otu_58fd80c4-0312-4a9b-af15-0677013fbf58" otu="otu_58fd80c4-0312-4a9b-af15-0677013fbf58">
+                    <cell char="character_c7382498-080a-498d-be82-b88ad18c450f" state="state_dbb5efe7-28f4-4134-95c1-b4da7648078c"/>
+                    <cell char="character_4d605bf9-556e-45ad-a88b-a907e68dd818" state="state_8e5b6b69-47dc-4077-b52a-85b0d674475b"/>
+              </row>
+              <row id="row_otu_0bda4e13-dd6b-4ffd-8bce-1d8337537a19" otu="otu_0bda4e13-dd6b-4ffd-8bce-1d8337537a19">
+                <cell char="character_c7382498-080a-498d-be82-b88ad18c450f" state="state_dbb5efe7-28f4-4134-95c1-b4da7648078c"/>
+                <cell char="character_4d605bf9-556e-45ad-a88b-a907e68dd818" state="state_8e5b6b69-47dc-4077-b52a-85b0d674475b"/>
+              </row>
+            </matrix>
+          </characters>
+        </nexml>
 
 
 # Group not yet updated       
