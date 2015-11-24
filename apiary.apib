@@ -38,7 +38,9 @@ The columns are tab-separated.
 + Response 200 (application/json)
 
 ## Term search [/term/search{?text,type,property}]
-### Search for terms in the KB by text match on a property value. `rdfs:label` is searched by default. [GET]
+### Search for terms in the KB by text match on a property value. [GET]
+Specifying the property is optional; `rdfs:label` is searched by default.
+The `matchType` value in the return format can be any of `exact` (case insensitive), `partial`, or `broad`.
 + Parameters
     + text (required, string, `basihyal`) ... the input text to search
     + type (optional, URI, `http://www.w3.org/2002/07/owl#Class`) ... the type of term to search for
@@ -49,22 +51,28 @@ The columns are tab-separated.
         "results": [
             {
             "@id": "http://purl.obolibrary.org/obo/UBERON_3000957",
-            "label": "basihyal"
+            "label": "basihyal",
+            "matchType": "exact"
             }, {
             "@id": "http://purl.obolibrary.org/obo/XAO_0004358",
-            "label": "basihyal"
+            "label": "basihyal",
+            "matchType": "exact"
             }, {
             "@id": "http://purl.obolibrary.org/obo/UBERON_0011618",
-            "label": "basihyal bone"
+            "label": "basihyal bone",
+            "matchType": "partial"
             }, {
             "@id": "http://purl.obolibrary.org/obo/ZFA_0000316",
-            "label": "basihyal bone"
+            "label": "basihyal bone",
+            "matchType": "partial"
             }, {
             "@id": "http://purl.obolibrary.org/obo/UBERON_0011615",
-            "label": "basihyal cartilage"
+            "label": "basihyal cartilage",
+            "matchType": "partial"
             }, {
             "@id": "http://purl.obolibrary.org/obo/ZFA_0001510",
-            "label": "basihyal cartilage"
+            "label": "basihyal cartilage",
+            "matchType": "partial"
             }
         ]
         }
@@ -79,18 +87,48 @@ The columns are tab-separated.
 + Response 200 (application/json)
 
         {
-        "results": [
+          "results": [
             {
-            "@id": "http://purl.obolibrary.org/obo/UBERON_3000957",
-            "label": "basihyal"
-            }, {
-            "@id": "http://purl.obolibrary.org/obo/UBERON_0011618",
-            "label": "basihyal bone"
-            }, {
-            "@id": "http://purl.obolibrary.org/obo/UBERON_0011615",
-            "label": "basihyal cartilage"
+              "@id": "http://purl.obolibrary.org/obo/UBERON_3000957",
+              "label": "basihyal",
+              "matchType": "exact"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0011618",
+              "label": "basihyal bone",
+              "matchType": "partial"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0011615",
+              "label": "basihyal cartilage",
+              "matchType": "partial"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0011614",
+              "label": "basihyal element",
+              "matchType": "partial"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0011620",
+              "label": "basihyal lingual process",
+              "matchType": "partial"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_2001649",
+              "label": "basihyal tooth",
+              "matchType": "partial"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_2001648",
+              "label": "basihyal tooth plate",
+              "matchType": "partial"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/UBERON_0003999",
+              "label": "hyoid bone body",
+              "matchType": "broad"
             }
-        ]
+          ]
         }
 
 ##  Term label [/term/label{?iri}]
@@ -594,21 +632,17 @@ Returns matched genes with taxon info for each. Requests can optionally filter b
 + Response 200 (application/json)
 
         {
-          "results": [{
-            "@id": "http://zfin.org/ZDB-GENE-040426-731",
-            "label": "brpf1",
-            "taxon": {
-              "@id": "http://purl.obolibrary.org/obo/NCBITaxon_7955",
-              "label": "zebrafish"
+          "results": [
+            {
+              "@id": "http://zfin.org/ZDB-GENE-040426-731",
+              "label": "brpf1",
+              "taxon": {
+                "@id": "http://purl.obolibrary.org/obo/NCBITaxon_7955",
+                "label": "Danio rerio"
+              },
+              "matchType": "exact"
             }
-          }, {
-            "@id": "http://www.informatics.jax.org/marker/MGI:1926033",
-            "label": "Brpf1",
-            "taxon": {
-              "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
-              "label": "mouse"
-            }
-          }]
+          ]
         }
 
 + Response 200 (text/plain)
