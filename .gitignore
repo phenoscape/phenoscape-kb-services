@@ -13,3 +13,5 @@ src/main/resources/application.conf
 .classpath
 .project
 .settings
+.cache-main
+bin/
