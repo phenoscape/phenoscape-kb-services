@@ -131,9 +131,9 @@ object Term {
       val lowerLabel = term.label.toLowerCase
       val lowerText = text.toLowerCase
       val location = lowerLabel.indexOf(lowerText)
-      if (lowerLabel == lowerText) startsWithMatches += MatchedTerm(term, ExactLabelMatch)
-      else if (location == 0) startsWithMatches += MatchedTerm(term, PartialLabelMatch)
-      else if (location > 0) containingMatches += MatchedTerm(term, PartialLabelMatch)
+      if (lowerLabel == lowerText) startsWithMatches += MatchedTerm(term, ExactMatch)
+      else if (location == 0) startsWithMatches += MatchedTerm(term, PartialMatch)
+      else if (location > 0) containingMatches += MatchedTerm(term, PartialMatch)
       else synonymMatches += MatchedTerm(term, BroadMatch)
     }
     (startsWithMatches.sortBy(_.term.label.toLowerCase) ++ containingMatches.sortBy(_.term.label.toLowerCase) ++ synonymMatches.sortBy(_.term.label.toLowerCase)).toList
@@ -322,19 +322,19 @@ case class MatchedTerm[T <: LabeledTerm](term: T, matchType: MatchType) extends 
 }
 
 sealed trait MatchType
-case object ExactLabelMatch extends MatchType {
+case object ExactMatch extends MatchType {
 
-  override val toString = "exact_label"
+  override val toString = "exact"
 
 }
-case object PartialLabelMatch extends MatchType {
+case object PartialMatch extends MatchType {
 
-  override val toString = "partial_label"
+  override val toString = "partial"
 
 }
 case object BroadMatch extends MatchType {
 
-  override val toString = "broad_match"
+  override val toString = "broad"
 
 }
 
