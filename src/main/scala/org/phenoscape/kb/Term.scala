@@ -52,11 +52,11 @@ object Term {
 
   private val factory = OWLManager.getOWLDataFactory
 
-  def search(text: String, termType: IRI, property: IRI): Future[Seq[MinimalTerm]] = {
+  def search(text: String, termType: IRI, property: IRI): Future[Seq[MatchedTerm[MinimalTerm]]] = {
     App.executeSPARQLQuery(buildSearchQuery(text, termType, property), Term.fromMinimalQuerySolution).map(orderBySearchedText(_, text))
   }
 
-  def searchOntologyTerms(text: String, definedBy: IRI, limit: Int): Future[Seq[MinimalTerm]] = {
+  def searchOntologyTerms(text: String, definedBy: IRI, limit: Int): Future[Seq[MatchedTerm[MinimalTerm]]] = {
     App.executeSPARQLQuery(buildOntologyTermQuery(text, definedBy, limit), Term.fromMinimalQuerySolution).map(orderBySearchedText(_, text))
   }
 
@@ -123,19 +123,20 @@ object Term {
     App.executeSPARQLQuery(buildTermQuery(iri), Term.fromQuerySolution(iri)).map(_.headOption)
   }
 
-  def orderBySearchedText[T <: LabeledTerm](terms: Seq[T], text: String): Seq[T] = {
-    val startsWithMatches = mutable.ListBuffer.empty[T]
-    val containingMatches = mutable.ListBuffer.empty[T]
-    val synonymMatches = mutable.ListBuffer.empty[T]
+  def orderBySearchedText[T <: LabeledTerm](terms: Seq[T], text: String): Seq[MatchedTerm[T]] = {
+    val startsWithMatches = mutable.ListBuffer.empty[MatchedTerm[T]]
+    val containingMatches = mutable.ListBuffer.empty[MatchedTerm[T]]
+    val synonymMatches = mutable.ListBuffer.empty[MatchedTerm[T]]
     terms.foreach { term =>
       val lowerLabel = term.label.toLowerCase
       val lowerText = text.toLowerCase
       val location = lowerLabel.indexOf(lowerText)
-      if (location == 0) startsWithMatches += term
-      else if (location > 0) containingMatches += term
-      else synonymMatches += term
+      if (lowerLabel == lowerText) startsWithMatches += MatchedTerm(term, ExactLabelMatch)
+      else if (location == 0) startsWithMatches += MatchedTerm(term, PartialLabelMatch)
+      else if (location > 0) containingMatches += MatchedTerm(term, PartialLabelMatch)
+      else synonymMatches += MatchedTerm(term, BroadMatch)
     }
-    (startsWithMatches.sortBy(_.label.toLowerCase) ++ containingMatches.sortBy(_.label.toLowerCase) ++ synonymMatches.sortBy(_.label.toLowerCase)).toList
+    (startsWithMatches.sortBy(_.term.label.toLowerCase) ++ containingMatches.sortBy(_.term.label.toLowerCase) ++ synonymMatches.sortBy(_.term.label.toLowerCase)).toList
   }
 
   def classification(iri: IRI): Future[Classification] = {
@@ -294,7 +295,7 @@ object Term {
 
 }
 
-case class Term(iri: IRI, label: String, definition: String) extends JSONResultItem {
+case class Term(iri: IRI, label: String, definition: String) extends LabeledTerm with JSONResultItem {
 
   def toJSON: JsObject = Map("@id" -> iri.toString, "label" -> label, "definition" -> definition).toJson.asJsObject
 
@@ -310,6 +311,30 @@ case class SourcedMinimalTerm(term: MinimalTerm, sources: Set[IRI]) extends JSON
 
   def toJSON: JsObject = (term.toJSON.fields +
     ("sources" -> sources.map(iri => Map("@id" -> iri.toString)).toJson)).toJson.asJsObject
+
+}
+
+case class MatchedTerm[T <: LabeledTerm](term: T, matchType: MatchType) extends JSONResultItem {
+
+  def toJSON: JsObject = (term.toJSON.fields +
+    ("matchType" -> matchType.toString.toJson)).toJson.asJsObject
+
+}
+
+sealed trait MatchType
+case object ExactLabelMatch extends MatchType {
+
+  override val toString = "exact_label"
+
+}
+case object PartialLabelMatch extends MatchType {
+
+  override val toString = "partial_label"
+
+}
+case object BroadMatch extends MatchType {
+
+  override val toString = "broad_match"
 
 }
 
@@ -331,7 +356,7 @@ case class Classification(term: MinimalTerm, superclasses: Set[MinimalTerm], sub
 
 }
 
-trait LabeledTerm {
+trait LabeledTerm extends JSONResultItem {
 
   def iri: IRI
 
