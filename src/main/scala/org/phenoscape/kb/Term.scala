@@ -47,6 +47,7 @@ import scala.concurrent.duration._
 import com.hp.hpl.jena.sparql.path.P_Link
 import com.hp.hpl.jena.sparql.path.P_ZeroOrMore1
 import com.hp.hpl.jena.sparql.path.P_OneOrMore1
+import scala.language.postfixOps
 
 object Term {
 
