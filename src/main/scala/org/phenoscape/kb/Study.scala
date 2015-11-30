@@ -57,7 +57,6 @@ object Study {
   private val dcBibliographicCitation = factory.getOWLAnnotationProperty(IRI.create("http://rs.tdwg.org/dwc/terms/bibliographicCitation"))
 
   def queryMatrix(study: IRI): Future[Elem] = {
-    val dcBibliographicCitation = factory.getOWLAnnotationProperty(IRI.create("http://rs.tdwg.org/dwc/terms/bibliographicCitation"))
     val pattern = Seq(
       t(study, rdfsLabel, 'study_label),
       t(study, dcBibliographicCitation, 'citation),
@@ -67,6 +66,7 @@ object Study {
       t(study, has_TU, 'otu),
       t('otu, rdfsLabel, 'otu_label),
       t('otu, has_external_reference, 'taxon),
+      t('taxon, rdfsLabel, 'taxon_label),
       t('character, may_have_state_value, 'state),
       t('state, rdfsLabel, 'state_label),
       t('state, state_symbol, 'state_symbol),
@@ -119,11 +119,11 @@ object Study {
         {
           for {
             otu <- model.listObjectsOfProperty(has_TU)
-            label = model.listObjectsOfProperty(otu.asResource, rdfsLabel).next.asLiteral.getLexicalForm
-            taxon = model.listObjectsOfProperty(otu.asResource, has_external_reference).next.asResource.getURI
+            taxon = model.listObjectsOfProperty(otu.asResource, has_external_reference).next.asResource
+            label = model.listObjectsOfProperty(taxon, rdfsLabel).next.asLiteral.getLexicalForm
             otuID = otuToID(otu.asResource.getURI)
           } yield <otu id={ otuID } about={ s"#$otuID" } label={ label }>
-                    <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href={ taxon }/>
+                    <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href={ taxon.getURI }/>
                   </otu>
         }
       </otus>
