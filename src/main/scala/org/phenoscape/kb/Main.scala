@@ -33,6 +33,9 @@ import spray.http.HttpHeaders
 import org.semanticweb.owlapi.model.OWLClass
 import org.semanticweb.owlapi.model.OWLNamedIndividual
 import spray.http.CacheDirectives
+import spray.http.StatusCodes
+import scalaz.Success
+import scalaz.Failure
 
 object Main extends App with SimpleRoutingApp with CORSDirectives {
 
@@ -165,7 +168,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 path("resolve_label_expression") {
                   parameters('expression) { (expression) =>
                     complete {
-                      Term.resolveLabelExpression(expression)
+                      Term.resolveLabelExpression(expression) match {
+                        case Success(expression) => expression
+                        case Failure(error)      => StatusCodes.UnprocessableEntity -> error
+                      }
                     }
                   }
                 } ~

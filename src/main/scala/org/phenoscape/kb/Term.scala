@@ -51,6 +51,9 @@ import scala.language.postfixOps
 import org.semanticweb.owlapi.model.OWLClassExpression
 import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxClassExpressionParser
 import org.semanticweb.owlapi.expression.ParserException
+import scalaz.Validation
+import scalaz.Success
+import scalaz.Failure
 
 object Term {
 
@@ -209,13 +212,12 @@ object Term {
     }
   }
 
-  def resolveLabelExpression(expression: String): Option[OWLClassExpression] = {
+  def resolveLabelExpression(expression: String): Validation[String, OWLClassExpression] = {
     val parser = new ManchesterOWLSyntaxClassExpressionParser(factory, SPARQLEntityChecker)
     try {
-      Option(parser.parse(expression))
+      Success(parser.parse(expression))
     } catch {
-      //FIXME change return type to Validation or something and return error text
-      case e: ParserException => None
+      case e: ParserException => Failure(e.getMessage)
     }
 
   }
