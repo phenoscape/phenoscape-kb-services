@@ -11,6 +11,7 @@ import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary
 import org.phenoscape.kb.OWLFormats.ManchesterSyntaxClassExpression
+import org.phenoscape.kb.OWLFormats.OWLClassExpressionMarshaller
 import com.typesafe.config.ConfigFactory
 import akka.actor.ActorSystem
 import spray.http.HttpHeaders.RawHeader
@@ -158,6 +159,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   parameters('iri.as[IRI]) { (iri) =>
                     complete {
                       Term.allDescendants(iri)
+                    }
+                  }
+                } ~
+                path("resolve_label_expression") {
+                  parameters('expression) { (expression) =>
+                    complete {
+                      Term.resolveLabelExpression(expression)
                     }
                   }
                 } ~

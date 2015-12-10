@@ -48,6 +48,9 @@ import com.hp.hpl.jena.sparql.path.P_Link
 import com.hp.hpl.jena.sparql.path.P_ZeroOrMore1
 import com.hp.hpl.jena.sparql.path.P_OneOrMore1
 import scala.language.postfixOps
+import org.semanticweb.owlapi.model.OWLClassExpression
+import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxClassExpressionParser
+import org.semanticweb.owlapi.expression.ParserException
 
 object Term {
 
@@ -204,6 +207,17 @@ object Term {
     } yield {
       (superClassesResult.toSet -- superSuperClassesResult).toSeq.sorted.map(IRI.create)
     }
+  }
+
+  def resolveLabelExpression(expression: String): Option[OWLClassExpression] = {
+    val parser = new ManchesterOWLSyntaxClassExpressionParser(factory, SPARQLEntityChecker)
+    try {
+      Option(parser.parse(expression))
+    } catch {
+      //FIXME change return type to Validation or something and return error text
+      case e: ParserException => None
+    }
+
   }
 
   def buildTermQuery(iri: IRI): Query = {
