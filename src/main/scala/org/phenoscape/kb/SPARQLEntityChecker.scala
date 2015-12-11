@@ -20,6 +20,11 @@ import com.hp.hpl.jena.datatypes.xsd.XSDDatatype
 import com.hp.hpl.jena.graph.NodeFactory
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.query.QuerySolution
+import com.hp.hpl.jena.sparql.expr.E_NotExists
+import com.hp.hpl.jena.sparql.syntax.Element
+import com.hp.hpl.jena.sparql.syntax.ElementFilter
+import com.hp.hpl.jena.sparql.syntax.ElementGroup
+import org.phenoscape.scowl.OWL._
 
 object SPARQLEntityChecker extends OWLEntityChecker {
 
@@ -47,7 +52,9 @@ object SPARQLEntityChecker extends OWLEntityChecker {
     select_distinct('iri) from "http://kb.phenoscape.org/" where (
       bgp(
         t('iri, rdfsLabel, NodeFactory.createLiteral(label, XSDDatatype.XSDstring)),
-        t('iri, rdfType, entityType))) limit 1
+        t('iri, rdfType, entityType)),
+        new ElementFilter(new E_NotExists(triplesBlock(bgp(
+          t('iri, factory.getRDFSIsDefinedBy, Individual("http://purl.obolibrary.org/obo/ncbitaxon.owl"))))))) limit 1
 
   private def resultFrom[T](func: IRI => T): QuerySolution => T =
     (qs: QuerySolution) => func(IRI.create(qs.getResource("iri").getURI))
@@ -57,6 +64,12 @@ object SPARQLEntityChecker extends OWLEntityChecker {
     else label
     val query = buildQuery(queryLabel, entityType)
     Await.result(App.executeSPARQLQuery(query, resultFrom(entityConstructor)), 60.seconds).headOption.orNull
+  }
+
+  private def triplesBlock(elements: Element*): ElementGroup = {
+    val block = new ElementGroup()
+    elements.foreach(block.addElement)
+    block
   }
 
 }
