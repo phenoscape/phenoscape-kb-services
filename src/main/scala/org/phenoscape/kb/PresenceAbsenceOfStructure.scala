@@ -57,19 +57,19 @@ object PresenceAbsenceOfStructure {
   def statesEntailingPresence(taxon: IRI, entity: IRI): Future[String] =
     App.executeSPARQLQuery(buildPresenceStatesQuery(taxon, entity)).map(App.resultSetToTSV(_))
 
-  def taxaExhibitingPresence(entity: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = {
-    App.executeSPARQLQuery(buildExhibitingPresenceQuery(entity, limit, offset), resultToTaxon)
+  def taxaExhibitingPresence(entity: IRI, taxonFilter: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = {
+    App.executeSPARQLQuery(buildExhibitingPresenceQuery(entity, taxonFilter, limit, offset), resultToTaxon)
   }
 
-  def taxaExhibitingPresenceTotal(entity: IRI): Future[Int] = {
-    App.executeSPARQLQuery(buildExhibitingPresenceTotalQuery(entity)).map(ResultCount.count)
+  def taxaExhibitingPresenceTotal(entity: IRI, taxonFilter: Option[IRI]): Future[Int] = {
+    App.executeSPARQLQuery(buildExhibitingPresenceTotalQuery(entity, taxonFilter)).map(ResultCount.count)
   }
 
-  def taxaExhibitingAbsence(entity: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] =
-    App.executeSPARQLQuery(buildExhibitingAbsenceQuery(entity, limit, offset), resultToTaxon)
+  def taxaExhibitingAbsence(entity: IRI, taxonFilter: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] =
+    App.executeSPARQLQuery(buildExhibitingAbsenceQuery(entity, taxonFilter, limit, offset), resultToTaxon)
 
-  def taxaExhibitingAbsenceTotal(entity: IRI): Future[Int] =
-    App.executeSPARQLQuery(buildExhibitingAbsenceTotalQuery(entity)).map(ResultCount.count)
+  def taxaExhibitingAbsenceTotal(entity: IRI, taxonFilter: Option[IRI]): Future[Int] =
+    App.executeSPARQLQuery(buildExhibitingAbsenceTotalQuery(entity, taxonFilter)).map(ResultCount.count)
 
   def presenceAbsenceMatrix(mainEntityClass: OWLClassExpression, taxonClass: OWLClassExpression, variableOnly: Boolean, includeParts: Boolean): Future[DataSet] = {
     val entityClass = if (includeParts) (part_of some mainEntityClass) else mainEntityClass
@@ -183,14 +183,17 @@ object PresenceAbsenceOfStructure {
         t('matrix_char, may_have_state_value, 'state)))
   }
 
-  def buildExhibitingAbsenceBasicQuery(entityIRI: IRI): Query =
+  def buildExhibitingAbsenceBasicQuery(entityIRI: IRI, taxonFilter: Option[IRI]): Query = {
+    val taxonFilterTriple = taxonFilter.map(t('taxon, rdfsSubClassOf*, _)).toList
     select_distinct() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('taxon, has_absence_of, entityIRI),
-        t('taxon, rdfsLabel, 'taxon_label)))
+      bgp((
+        t('taxon, has_absence_of, entityIRI) ::
+        t('taxon, rdfsLabel, 'taxon_label) ::
+        taxonFilterTriple): _*))
+  }
 
-  def buildExhibitingAbsenceQuery(entityIRI: IRI, limit: Int, offset: Int): Query = {
-    val query = buildExhibitingAbsenceBasicQuery(entityIRI)
+  def buildExhibitingAbsenceQuery(entityIRI: IRI, taxonFilter: Option[IRI], limit: Int, offset: Int): Query = {
+    val query = buildExhibitingAbsenceBasicQuery(entityIRI, taxonFilter)
     query.addResultVar('taxon)
     query.addResultVar('taxon_label)
     query.setOffset(offset)
@@ -200,20 +203,23 @@ object PresenceAbsenceOfStructure {
     query
   }
 
-  def buildExhibitingAbsenceTotalQuery(entityIRI: IRI): Query = {
-    val query = buildExhibitingAbsenceBasicQuery(entityIRI)
+  def buildExhibitingAbsenceTotalQuery(entityIRI: IRI, taxonFilter: Option[IRI]): Query = {
+    val query = buildExhibitingAbsenceBasicQuery(entityIRI, taxonFilter)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
     query
   }
 
-  def buildExhibitingPresenceBasicQuery(entityIRI: IRI): Query =
+  def buildExhibitingPresenceBasicQuery(entityIRI: IRI, taxonFilter: Option[IRI]): Query = {
+    val taxonFilterTriple = taxonFilter.map(t('taxon, rdfsSubClassOf*, _)).toList
     select_distinct() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('taxon, has_presence_of, entityIRI),
-        t('taxon, rdfsLabel, 'taxon_label)))
+      bgp((
+        t('taxon, has_presence_of, entityIRI) ::
+        t('taxon, rdfsLabel, 'taxon_label) ::
+        taxonFilterTriple): _*))
+  }
 
-  def buildExhibitingPresenceQuery(entityIRI: IRI, limit: Int, offset: Int): Query = {
-    val query = buildExhibitingPresenceBasicQuery(entityIRI)
+  def buildExhibitingPresenceQuery(entityIRI: IRI, taxonFilter: Option[IRI], limit: Int, offset: Int): Query = {
+    val query = buildExhibitingPresenceBasicQuery(entityIRI, taxonFilter)
     query.addResultVar('taxon)
     query.addResultVar('taxon_label)
     query.setOffset(offset)
@@ -223,8 +229,8 @@ object PresenceAbsenceOfStructure {
     query
   }
 
-  def buildExhibitingPresenceTotalQuery(entityIRI: IRI): Query = {
-    val query = buildExhibitingPresenceBasicQuery(entityIRI)
+  def buildExhibitingPresenceTotalQuery(entityIRI: IRI, taxonFilter: Option[IRI]): Query = {
+    val query = buildExhibitingPresenceBasicQuery(entityIRI, taxonFilter)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
     query
   }

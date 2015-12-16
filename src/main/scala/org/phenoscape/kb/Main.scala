@@ -329,10 +329,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                     }
                   } ~
                     pathEnd {
-                      parameters('entity.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, limit, offset, totalOnly) =>
+                      parameters('entity.as[IRI], 'in_taxon.as[IRI].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxonFilter, limit, offset, totalOnly) =>
                         complete {
-                          if (totalOnly) PresenceAbsenceOfStructure.taxaExhibitingAbsenceTotal(entity).map(ResultCount(_))
-                          else PresenceAbsenceOfStructure.taxaExhibitingAbsence(entity, limit = limit, offset = offset)
+                          if (totalOnly) PresenceAbsenceOfStructure.taxaExhibitingAbsenceTotal(entity, taxonFilter).map(ResultCount(_))
+                          else PresenceAbsenceOfStructure.taxaExhibitingAbsence(entity, taxonFilter, limit = limit, offset = offset)
                         }
                       }
                     }
@@ -347,10 +347,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                     }
                   } ~
                     pathEnd {
-                      parameters('entity.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, limit, offset, totalOnly) =>
+                      parameters('entity.as[IRI], 'in_taxon.as[IRI].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxonFilter, limit, offset, totalOnly) =>
                         complete {
-                          if (totalOnly) PresenceAbsenceOfStructure.taxaExhibitingPresenceTotal(entity).map(ResultCount(_))
-                          else PresenceAbsenceOfStructure.taxaExhibitingPresence(entity, limit = limit, offset = offset)
+                          if (totalOnly) PresenceAbsenceOfStructure.taxaExhibitingPresenceTotal(entity, taxonFilter).map(ResultCount(_))
+                          else PresenceAbsenceOfStructure.taxaExhibitingPresence(entity, taxonFilter, limit = limit, offset = offset)
                         }
                       }
                     }
