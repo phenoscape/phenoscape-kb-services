@@ -657,7 +657,7 @@ Returns matched genes with taxon info for each. Requests can optionally filter b
 + Parameters
     + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618`) ... anatomical entity IRI
     + parts (optional, boolean, `false`) ... whether to include phenotypes of parts of the entity
-    + limit (optional, integer, `20`) ... maximum number of results to return
+    + limit (optional, integer, `20`) ... maximum number of results to return (use 0 for no limit)
     + offset (optional, integer, `0`)
     + total (optional, boolean, `false`) ... whether to return the total result count rather than the results
 + Response 200 (text/plain)
@@ -694,12 +694,38 @@ Returns matched genes with taxon info for each. Requests can optionally filter b
 Expression within parts of the given entity is automatically included.
 
 + Parameters
-    + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618`) ... anatomical entity IRI
-    + limit (optional, integer, `20`) ... maximum number of results to return
+    + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0002389`) ... anatomical entity IRI
+    + limit (optional, integer, `20`) ... maximum number of results to return (use 0 for no limit)
     + offset (optional, integer, `0`)
     + total (optional, boolean, `false`) ... whether to return the total result count rather than the results
 + Response 200 (text/plain)
+
+        IRI    label    taxon
+        http://www.informatics.jax.org/marker/MGI:105378    Adam12    Mus musculus
+        http://www.informatics.jax.org/marker/MGI:87934    Adra2a    Mus musculus
+        
 + Response 200 (application/json)
+
+        {
+          "results": [
+            {
+              "@id": "http://www.informatics.jax.org/marker/MGI:105378",
+              "label": "Adam12",
+              "taxon": {
+                "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+                "label": "Mus musculus"
+              }
+            },
+            {
+              "@id": "http://www.informatics.jax.org/marker/MGI:87934",
+              "label": "Adra2a",
+              "taxon": {
+                "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+                "label": "Mus musculus"
+              }
+            }
+            ]
+        }
 
 # Group Studies
 Services related to studies providing evolutionary data matrices for annotation.
