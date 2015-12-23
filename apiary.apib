@@ -660,7 +660,34 @@ Returns matched genes with taxon info for each. Requests can optionally filter b
     + limit (optional, integer, `20`) ... maximum number of results to return
     + offset (optional, integer, `0`)
     + total (optional, boolean, `false`) ... whether to return the total result count rather than the results
++ Response 200 (text/plain)
+
+        IRI    label    taxon
+        http://zfin.org/ZDB-GENE-040426-731    brpf1    Danio rerio
+        http://zfin.org/ZDB-GENE-030131-2317    ewsr1a    Danio rerio
+        
 + Response 200 (application/json)
+
+        {
+          "results": [
+            {
+              "@id": "http://zfin.org/ZDB-GENE-040426-731",
+              "label": "brpf1",
+              "taxon": {
+                "@id": "http://purl.obolibrary.org/obo/NCBITaxon_7955",
+                "label": "Danio rerio"
+              }
+            },
+            {
+              "@id": "http://zfin.org/ZDB-GENE-030131-2317",
+              "label": "ewsr1a",
+              "taxon": {
+                "@id": "http://purl.obolibrary.org/obo/NCBITaxon_7955",
+                "label": "Danio rerio"
+              }
+            }
+            ]
+        }
 
 ## Genes with entity expression [/gene/expressed_within_entity{?iri,limit,offset,total}]
 ### Query for genes expressed within a given anatomical entity [GET]
@@ -671,6 +698,7 @@ Expression within parts of the given entity is automatically included.
     + limit (optional, integer, `20`) ... maximum number of results to return
     + offset (optional, integer, `0`)
     + total (optional, boolean, `false`) ... whether to return the total result count rather than the results
++ Response 200 (text/plain)
 + Response 200 (application/json)
 
 # Group Studies
