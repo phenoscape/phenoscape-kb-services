@@ -650,6 +650,28 @@ Returns matched genes with taxon info for each. Requests can optionally filter b
         IRI    label    taxon
         http://zfin.org/ZDB-GENE-040426-731    brpf1    zebrafish
         http://www.informatics.jax.org/marker/MGI:1926033    Brpf1    mouse
+        
+## Genes with entity phenotype [/gene/affecting_entity_phenotype{?iri,parts,limit,offset,total}]
+### Query for genes associated with phenotypes of a given anatomical entity [GET]
+
++ Parameters
+    + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618`) ... anatomical entity IRI
+    + parts (optional, boolean, `false`) ... whether to include phenotypes of parts of the entity
+    + limit (optional, integer, `20`) ... maximum number of results to return
+    + offset (optional, integer, `0`)
+    + total (optional, boolean, `false`) ... whether to return the total result count rather than the results
++ Response 200 (application/json)
+
+## Genes with entity expression [/gene/expressed_within_entity{?iri,limit,offset,total}]
+### Query for genes expressed within a given anatomical entity [GET]
+Expression within parts of the given entity is automatically included.
+
++ Parameters
+    + iri (required, URI, `http://purl.obolibrary.org/obo/UBERON_0011618`) ... anatomical entity IRI
+    + limit (optional, integer, `20`) ... maximum number of results to return
+    + offset (optional, integer, `0`)
+    + total (optional, boolean, `false`) ... whether to return the total result count rather than the results
++ Response 200 (application/json)
 
 # Group Studies
 Services related to studies providing evolutionary data matrices for annotation.
