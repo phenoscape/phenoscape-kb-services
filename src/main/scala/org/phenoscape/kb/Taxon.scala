@@ -59,16 +59,22 @@ object Taxon {
   def query(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = for {
     query <- App.expandWithOwlet(buildQuery(entity, taxon, publications, limit, offset))
     descriptions <- App.executeSPARQLQuery(query, Taxon(_))
-  } yield {
-    descriptions
-  }
+  } yield descriptions
 
   def queryTotal(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Future[ResultCount] = for {
     query <- App.expandWithOwlet(buildTotalQuery(entity, taxon, publications))
     result <- App.executeSPARQLQuery(query)
-  } yield {
-    ResultCount(result)
-  }
+  } yield ResultCount(result)
+
+  def withPhenotype(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = for {
+    query <- buildTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt, limit, offset)
+    taxa <- App.executeSPARQLQuery(query, Taxon(_))
+  } yield taxa
+
+  def withPhenotypeTotal(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI]): Future[Int] = for {
+    query <- buildTaxaWithPhenotypeTotalQuery(entity, quality, inTaxonOpt)
+    result <- App.executeSPARQLQuery(query)
+  } yield ResultCount.count(result)
 
   def variationProfileFor(taxon: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
     val results = App.executeSPARQLQuery(buildVariationProfileQuery(taxon, limit, offset), result => {
@@ -160,6 +166,41 @@ object Taxon {
         publicationFilters: _*)
   }
 
+  private def buildBasicTaxaWithPhenotypeQuery(entity: OWLClassExpression = owlThing, quality: OWLClassExpression = owlThing, inTaxonOpt: Option[IRI]): Future[Query] = {
+    val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf*, _)).toList
+    val query = select_distinct('taxon, 'taxon_label) where (
+      bgp(
+        t('state, describes_phenotype, 'phenotype) ::
+          t('taxon, exhibits_state, 'state) ::
+          t('taxon, rdfsLabel, 'taxon_label) ::
+          t('phenotype, rdfsSubClassOf, (quality and (phenotype_of some entity)).asOMN) ::
+          taxonPatterns: _*))
+    App.expandWithOwlet(query)
+  }
+
+  def buildTaxaWithPhenotypeQuery(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Query] = {
+    for {
+      rawQuery <- buildBasicTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt)
+    } yield {
+      val query = rawQuery from "http://kb.phenoscape.org/"
+      query.setOffset(offset)
+      if (limit > 0) query.setLimit(limit)
+      query.addOrderBy('taxon_label)
+      query.addOrderBy('taxon)
+      query
+    }
+  }
+
+  def buildTaxaWithPhenotypeTotalQuery(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI]): Future[Query] = {
+    for {
+      rawQuery <- buildBasicTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt)
+    } yield {
+      val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(rawQuery))
+      query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
+      query
+    }
+  }
+
   def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
     val query = buildBasicQuery(entity, taxon, publications)
     query.addResultVar('taxon)
@@ -198,7 +239,7 @@ object Taxon {
 
   def buildVariationProfileQuery(taxon: IRI, limit: Int, offset: Int): Query = {
     val query = buildBasicVariationProfileQuery(taxon) from "http://kb.phenoscape.org/"
-    if (limit > 1) {
+    if (limit > 0) {
       query.setOffset(offset)
       query.setLimit(limit)
     }

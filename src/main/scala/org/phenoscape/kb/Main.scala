@@ -290,6 +290,15 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                     }
                   }
                 } ~
+                path("with_phenotype") {
+                  parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'quality.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'in_taxon.as[IRI].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                    (entity, quality, taxonOpt, limit, offset, total) =>
+                      complete {
+                        if (total) Taxon.withPhenotypeTotal(entity, quality, taxonOpt).map(ResultCount(_))
+                        else Taxon.withPhenotype(entity, quality, taxonOpt, limit, offset)
+                      }
+                  }
+                } ~
                 path("newick") {
                   parameters('iri.as[IRI]) { (taxon) =>
                     complete {
