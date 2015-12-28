@@ -275,10 +275,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
               } ~
                 path("phenotypes") {
-                  parameters('taxon.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (taxon, limit, offset, total) =>
+                  parameters('taxon.as[IRI], 'entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (taxon, entityOpt, qualityOpt, limit, offset, total) =>
                     complete {
-                      if (total) Taxon.directPhenotypesTotalFor(taxon).map(ResultCount(_))
-                      else Taxon.directPhenotypesFor(taxon, limit, offset)
+                      if (total) Taxon.directPhenotypesTotalFor(taxon, entityOpt, qualityOpt).map(ResultCount(_))
+                      else Taxon.directPhenotypesFor(taxon, entityOpt, qualityOpt, limit, offset)
                     }
                   }
                 } ~

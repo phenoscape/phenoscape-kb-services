@@ -99,48 +99,60 @@ object Taxon {
     App.executeSPARQLQuery(buildPhylopicQuery(taxon), CommonGroup(_)).map(_.headOption)
   }
 
-  def directPhenotypesFor(taxon: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
-    val query = buildPhenotypesSubQuery(taxon) from "http://kb.phenoscape.org/"
-    if (limit > 1) {
-      query.setOffset(offset)
-      query.setLimit(limit)
-    }
-    query.addOrderBy('description)
-    query.addOrderBy('phenotype)
-    val results = App.executeSPARQLQuery(query, result => {
-      Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
-        AnnotatedCharacterDescription(
-          CharacterDescription(
-            IRI.create(result.getResource("state").getURI),
-            result.getLiteral("description").getLexicalForm,
-            CharacterMatrix(
-              IRI.create(result.getResource("matrix").getURI),
-              result.getLiteral("matrix_label").getLexicalForm)),
-          phenotype)
+  def directPhenotypesFor(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
+    val queryFuture = for {
+      rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt)
+    } yield {
+      val query = rawQuery from "http://kb.phenoscape.org/"
+      if (limit > 1) {
+        query.setOffset(offset)
+        query.setLimit(limit)
       }
-    })
+      query.addOrderBy('description)
+      query.addOrderBy('phenotype)
+      query
+    }
+    val results = for {
+      query <- queryFuture
+      result <- App.executeSPARQLQuery(query, result => {
+        Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
+          AnnotatedCharacterDescription(
+            CharacterDescription(
+              IRI.create(result.getResource("state").getURI),
+              result.getLiteral("description").getLexicalForm,
+              CharacterMatrix(
+                IRI.create(result.getResource("matrix").getURI),
+                result.getLiteral("matrix_label").getLexicalForm)),
+            phenotype)
+        }
+      })
+    } yield result
     results.flatMap(Future.sequence(_))
   }
 
-  def directPhenotypesTotalFor(taxon: IRI): Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(buildPhenotypesSubQuery(taxon)))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
-    App.executeSPARQLQuery(query).map(ResultCount.count)
-  }
+  def directPhenotypesTotalFor(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression]): Future[Int] = for {
+    rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt)
+    query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(rawQuery))
+    _ = query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
+    result <- App.executeSPARQLQuery(query).map(ResultCount.count)
+  } yield result
 
-  //  private def buildPhenotypesQuery(taxon: IRI): Query =
-  //    select_distinct() from "http://kb.phenoscape.org/" where (
-  //      bgp(
-  //        t(taxon, exhibits_state / describes_phenotype, 'phenotype)))
-
-  private def buildPhenotypesSubQuery(taxon: IRI): Query =
-    select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
+  private def buildPhenotypesSubQuery(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression]): Future[Query] = {
+    val phenotypePattern = if (entityOpt.nonEmpty || qualityOpt.nonEmpty) {
+      val entity = entityOpt.getOrElse(owlThing)
+      val quality = qualityOpt.getOrElse(owlThing)
+      t('phenotype, rdfsSubClassOf, (quality and (phenotype_of some entity)).asOMN) :: Nil
+    } else Nil
+    val query = select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
       bgp(
-        t(taxon, exhibits_state, 'state),
-        t('state, describes_phenotype, 'phenotype),
-        t('state, dcDescription, 'description),
-        t('matrix, has_character / may_have_state_value, 'state),
-        t('matrix, rdfsLabel, 'matrix_label)))
+        t(taxon, exhibits_state, 'state) ::
+          t('state, describes_phenotype, 'phenotype) ::
+          t('state, dcDescription, 'description) ::
+          t('matrix, has_character / may_have_state_value, 'state) ::
+          t('matrix, rdfsLabel, 'matrix_label) ::
+          phenotypePattern: _*))
+    App.expandWithOwlet(query)
+  }
 
   def phyloPicAcknowledgments: Future[Seq[IRI]] = {
     val query = select_distinct('pic) where (bgp(t('subject, phylopic, 'pic)))
