@@ -63,13 +63,11 @@ object PresenceAbsenceOfStructure {
   def statesEntailingPresenceTotal(taxon: IRI, entity: IRI): Future[Int] =
     App.executeSPARQLQuery(buildPresenceStatesQueryTotal(taxon, entity)).map(ResultCount.count)
 
-  def taxaExhibitingPresence(entity: IRI, taxonFilter: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = {
+  def taxaExhibitingPresence(entity: IRI, taxonFilter: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] =
     App.executeSPARQLQuery(buildExhibitingPresenceQuery(entity, taxonFilter, limit, offset), resultToTaxon)
-  }
 
-  def taxaExhibitingPresenceTotal(entity: IRI, taxonFilter: Option[IRI]): Future[Int] = {
+  def taxaExhibitingPresenceTotal(entity: IRI, taxonFilter: Option[IRI]): Future[Int] =
     App.executeSPARQLQuery(buildExhibitingPresenceTotalQuery(entity, taxonFilter)).map(ResultCount.count)
-  }
 
   def taxaExhibitingAbsence(entity: IRI, taxonFilter: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] =
     App.executeSPARQLQuery(buildExhibitingAbsenceQuery(entity, taxonFilter, limit, offset), resultToTaxon)
@@ -212,7 +210,7 @@ object PresenceAbsenceOfStructure {
   }
 
   def buildPresenceStatesQueryBase(taxonIRI: IRI, entityIRI: IRI): Query = {
-    select_distinct('phenotype, 'state, 'description, 'matrix, 'matrix_label) from "http://kb.phenoscape.org/" where (
+    select_distinct('phenotype, 'state, 'description, 'matrix, 'matrix_label) where (
       bgp(
         t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
