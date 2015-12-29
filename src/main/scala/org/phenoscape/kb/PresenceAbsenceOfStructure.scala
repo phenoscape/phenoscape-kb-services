@@ -1,49 +1,49 @@
 package org.phenoscape.kb
 
-import org.phenoscape.kb.Main.system.dispatcher
+import java.net.URI
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import scala.collection.JavaConversions._
+import scala.collection.mutable
 import scala.concurrent.Future
+import scala.language.implicitConversions
+import scala.language.postfixOps
 import org.apache.log4j.Logger
+import org.obo.datamodel.impl.OBOClassImpl
+import org.phenoscape.io.NeXMLUtil
 import org.phenoscape.kb.App.withOwlery
+import org.phenoscape.kb.KBVocab._
+import org.phenoscape.kb.KBVocab.rdfsLabel
+import org.phenoscape.kb.KBVocab.rdfsSubClassOf
+import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.model.Character
+import org.phenoscape.model.DataSet
+import org.phenoscape.model.MultipleState
+import org.phenoscape.model.MultipleState.MODE
+import org.phenoscape.model.State
+import org.phenoscape.model.{ Taxon => MatrixTaxon }
+import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl.OWL._
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsLabel
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.semanticweb.owlapi.model.IRI
+import org.semanticweb.owlapi.model.OWLClassExpression
 import org.semanticweb.owlapi.model.OWLEntity
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.query.QuerySolution
-import org.semanticweb.owlapi.model.OWLClassExpression
-import org.phenoscape.model.DataSet
-import com.hp.hpl.jena.sparql.path.P_Link
-import com.hp.hpl.jena.sparql.expr.ExprList
-import com.hp.hpl.jena.sparql.expr.ExprVar
-import com.hp.hpl.jena.sparql.expr.E_OneOf
-import com.hp.hpl.jena.sparql.syntax.ElementFilter
-import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
-import scala.collection.JavaConversions._
-import scala.collection.mutable
-import org.phenoscape.model.State
-import org.phenoscape.model.MultipleState
-import org.phenoscape.model.MultipleState.MODE
-import org.phenoscape.model.Character
-import org.phenoscape.model.{ Taxon => MatrixTaxon }
-import org.phenoscape.io.NeXMLUtil
-import com.hp.hpl.jena.rdf.model.Statement
 import com.hp.hpl.jena.rdf.model.Property
 import com.hp.hpl.jena.rdf.model.ResourceFactory
-import scala.language.implicitConversions
-import org.phenoscape.owl.util.OBOUtil
-import java.net.URI
-import org.obo.datamodel.impl.OBOClassImpl
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import scala.language.postfixOps
-import org.phenoscape.owl.NamedRestrictionGenerator
-import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
+import com.hp.hpl.jena.rdf.model.Statement
 import com.hp.hpl.jena.sparql.core.Var
+import com.hp.hpl.jena.sparql.expr.E_OneOf
+import com.hp.hpl.jena.sparql.expr.ExprList
+import com.hp.hpl.jena.sparql.expr.ExprVar
+import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
+import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
+import com.hp.hpl.jena.sparql.syntax.ElementFilter
+import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
+import com.hp.hpl.jena.sparql.expr.aggregate.AggCountDistinct
 
 object PresenceAbsenceOfStructure {
 
@@ -51,11 +51,17 @@ object PresenceAbsenceOfStructure {
 
   implicit def owlEntityToJenaProperty(prop: OWLEntity): Property = ResourceFactory.createProperty(prop.getIRI.toString)
 
-  def statesEntailingAbsence(taxon: IRI, entity: IRI): Future[String] =
-    App.executeSPARQLQuery(buildAbsenceStatesQuery(taxon, entity)).map(App.resultSetToTSV(_))
+  def statesEntailingAbsence(taxon: IRI, entity: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] =
+    App.executeSPARQLQuery(buildAbsenceStatesQuery(taxon, entity, limit, offset), AnnotatedCharacterDescription.fromQuerySolution).flatMap(Future.sequence(_))
 
-  def statesEntailingPresence(taxon: IRI, entity: IRI): Future[String] =
-    App.executeSPARQLQuery(buildPresenceStatesQuery(taxon, entity)).map(App.resultSetToTSV(_))
+  def statesEntailingAbsenceTotal(taxon: IRI, entity: IRI): Future[Int] =
+    App.executeSPARQLQuery(buildAbsenceStatesQueryTotal(taxon, entity)).map(ResultCount.count)
+
+  def statesEntailingPresence(taxon: IRI, entity: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] =
+    App.executeSPARQLQuery(buildPresenceStatesQuery(taxon, entity, limit, offset), AnnotatedCharacterDescription.fromQuerySolution).flatMap(Future.sequence(_))
+
+  def statesEntailingPresenceTotal(taxon: IRI, entity: IRI): Future[Int] =
+    App.executeSPARQLQuery(buildPresenceStatesQueryTotal(taxon, entity)).map(ResultCount.count)
 
   def taxaExhibitingPresence(entity: IRI, taxonFilter: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = {
     App.executeSPARQLQuery(buildExhibitingPresenceQuery(entity, taxonFilter, limit, offset), resultToTaxon)
@@ -159,25 +165,59 @@ object PresenceAbsenceOfStructure {
     App.expandWithOwlet(query)
   }
 
-  def buildAbsenceStatesQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
-    select_distinct('state, 'state_label, 'matrix_label) from "http://kb.phenoscape.org/" where (
+  def buildAbsenceStatesQuery(taxonIRI: IRI, entityIRI: IRI, limit: Int, offset: Int): Query = {
+    val query = buildAbsenceStatesQueryBase(taxonIRI, entityIRI) from "http://kb.phenoscape.org/"
+    if (limit > 1) {
+      query.setOffset(offset)
+      query.setLimit(limit)
+    }
+    query.addOrderBy('phenotype)
+    query.addOrderBy('description)
+    query
+  }
+
+  def buildAbsenceStatesQueryTotal(taxonIRI: IRI, entityIRI: IRI): Query = {
+    val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(buildAbsenceStatesQueryBase(taxonIRI, entityIRI)))
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
+    query
+  }
+
+  def buildAbsenceStatesQueryBase(taxonIRI: IRI, entityIRI: IRI): Query = {
+    select_distinct('phenotype, 'state, 'description, 'matrix, 'matrix_label) where (
       bgp(
         t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
         t('phenotype, (rdfsSubClassOf *) / ABSENCE_OF, entityIRI), //FIXME needs to inhere in organism
-        t('state, dcDescription, 'state_label),
+        t('state, dcDescription, 'description),
         t('matrix, has_character, 'matrix_char),
         t('matrix, rdfsLabel, 'matrix_label),
         t('matrix_char, may_have_state_value, 'state)))
   }
 
-  def buildPresenceStatesQuery(taxonIRI: IRI, entityIRI: IRI): Query = {
-    select_distinct('state, 'state_label, 'matrix_label) from "http://kb.phenoscape.org/" where (
+  def buildPresenceStatesQuery(taxonIRI: IRI, entityIRI: IRI, limit: Int, offset: Int): Query = {
+    val query = buildPresenceStatesQueryBase(taxonIRI, entityIRI) from "http://kb.phenoscape.org/"
+    if (limit > 1) {
+      query.setOffset(offset)
+      query.setLimit(limit)
+    }
+    query.addOrderBy('phenotype)
+    query.addOrderBy('description)
+    query
+  }
+
+  def buildPresenceStatesQueryTotal(taxonIRI: IRI, entityIRI: IRI): Query = {
+    val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(buildPresenceStatesQueryBase(taxonIRI, entityIRI)))
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
+    query
+  }
+
+  def buildPresenceStatesQueryBase(taxonIRI: IRI, entityIRI: IRI): Query = {
+    select_distinct('phenotype, 'state, 'description, 'matrix, 'matrix_label) from "http://kb.phenoscape.org/" where (
       bgp(
         t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
         t('phenotype, (rdfsSubClassOf *) / implies_presence_of_some, entityIRI),
-        t('state, dcDescription, 'state_label),
+        t('state, dcDescription, 'description),
         t('matrix, has_character, 'matrix_char),
         t('matrix, rdfsLabel, 'matrix_label),
         t('matrix_char, may_have_state_value, 'state)))

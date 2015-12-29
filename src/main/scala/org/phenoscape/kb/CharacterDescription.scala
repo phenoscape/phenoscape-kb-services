@@ -75,9 +75,7 @@ object CharacterDescription {
         t('matrix, has_character / may_have_state_value, 'state),
         t('matrix, rdfsLabel, 'matrix_label)))
     val result = App.executeSPARQLQuery(query, result => {
-      println("Result: " + result)
       Term.computedLabel(iri).map { phenotype =>
-        println("Phenotype: " + phenotype)
         AnnotatedCharacterDescription(
           CharacterDescription(
             IRI.create(result.getResource("state").getURI),
@@ -230,6 +228,24 @@ object CharacterDescriptionAnnotation {
 case class AnnotatedCharacterDescription(characterDescription: CharacterDescription, phenotype: MinimalTerm) extends JSONResultItem {
 
   def toJSON: JsObject = (characterDescription.toJSON.fields ++ Map("phenotype" -> phenotype.toJSON)).toJson.asJsObject
+
+}
+
+object AnnotatedCharacterDescription {
+
+  def fromQuerySolution(result: QuerySolution): Future[AnnotatedCharacterDescription] = {
+    Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
+      AnnotatedCharacterDescription(
+        CharacterDescription(
+          IRI.create(result.getResource("state").getURI),
+          result.getLiteral("description").getLexicalForm,
+          CharacterMatrix(
+            IRI.create(result.getResource("matrix").getURI),
+            result.getLiteral("matrix_label").getLexicalForm)),
+        phenotype)
+    }
+
+  }
 
 }
 

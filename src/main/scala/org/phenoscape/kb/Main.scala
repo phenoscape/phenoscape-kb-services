@@ -331,9 +331,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
               } ~
                 pathPrefix("absence") {
                   path("evidence") {
-                    parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
+                    parameters('taxon.as[IRI], 'entity.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (taxon, entity, limit, offset, totalOnly) =>
                       complete {
-                        PresenceAbsenceOfStructure.statesEntailingAbsence(taxon, entity)
+                        if (totalOnly) PresenceAbsenceOfStructure.statesEntailingAbsenceTotal(taxon, entity).map(ResultCount(_))
+                        else PresenceAbsenceOfStructure.statesEntailingAbsence(taxon, entity, limit, offset)
                       }
                     }
                   } ~
@@ -349,9 +350,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 } ~
                 pathPrefix("presence") {
                   path("evidence") {
-                    parameters('taxon.as[IRI], 'entity.as[IRI]) { (taxon, entity) =>
+                    parameters('taxon.as[IRI], 'entity.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (taxon, entity, limit, offset, totalOnly) =>
                       complete {
-                        PresenceAbsenceOfStructure.statesEntailingPresence(taxon, entity)
+                        if (totalOnly) PresenceAbsenceOfStructure.statesEntailingPresenceTotal(taxon, entity).map(ResultCount(_))
+                        else PresenceAbsenceOfStructure.statesEntailingPresence(taxon, entity, limit, offset)
                       }
                     }
                   } ~

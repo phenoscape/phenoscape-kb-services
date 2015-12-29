@@ -108,24 +108,13 @@ object Taxon {
         query.setOffset(offset)
         query.setLimit(limit)
       }
-      query.addOrderBy('description)
       query.addOrderBy('phenotype)
+      query.addOrderBy('description)
       query
     }
     val results = for {
       query <- queryFuture
-      result <- App.executeSPARQLQuery(query, result => {
-        Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
-          AnnotatedCharacterDescription(
-            CharacterDescription(
-              IRI.create(result.getResource("state").getURI),
-              result.getLiteral("description").getLexicalForm,
-              CharacterMatrix(
-                IRI.create(result.getResource("matrix").getURI),
-                result.getLiteral("matrix_label").getLexicalForm)),
-            phenotype)
-        }
-      })
+      result <- App.executeSPARQLQuery(query, AnnotatedCharacterDescription.fromQuerySolution)
     } yield result
     results.flatMap(Future.sequence(_))
   }
