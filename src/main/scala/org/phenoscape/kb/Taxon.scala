@@ -324,7 +324,7 @@ object Taxon {
   }
 
   val TaxaTextMarshaller = Marshaller.delegate[Seq[Taxon], String](MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`) { taxa =>
-    val header = "IRI\tlabel\ttaxon"
+    val header = "IRI\tlabel"
     s"$header\n${taxa.map(_.toString).mkString("\n")}"
   }
 
