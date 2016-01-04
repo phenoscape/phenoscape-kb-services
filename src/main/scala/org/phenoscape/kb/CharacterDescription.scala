@@ -37,6 +37,7 @@ import com.hp.hpl.jena.sparql.core.Var
 import TaxonEQAnnotation.ps_entity_term
 import TaxonEQAnnotation.ps_quality_term
 import TaxonEQAnnotation.ps_related_entity_term
+import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 
 object CharacterDescription {
 
@@ -229,6 +230,10 @@ case class AnnotatedCharacterDescription(characterDescription: CharacterDescript
 
   def toJSON: JsObject = (characterDescription.toJSON.fields ++ Map("phenotype" -> phenotype.toJSON)).toJson.asJsObject
 
+  override def toString(): String = {
+    s"${phenotype.iri}\t${phenotype.label}\t${characterDescription.iri}\t${characterDescription.description}\t${characterDescription.matrix.iri}\t${characterDescription.matrix.label}"
+  }
+
 }
 
 object AnnotatedCharacterDescription {
@@ -244,8 +249,14 @@ object AnnotatedCharacterDescription {
             result.getLiteral("matrix_label").getLexicalForm)),
         phenotype)
     }
-
   }
+
+  val AnnotatedCharacterDescriptionsTextMarshaller = Marshaller.delegate[Seq[AnnotatedCharacterDescription], String](MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`) { annotations =>
+    val header = "phenotype IRI\tphenotype\tcharacter description IRI\tcharacter description\tstudy IRI\tstudy"
+    s"$header\n${annotations.map(_.toString).mkString("\n")}"
+  }
+
+  implicit val ComboAnnotatedCharacterDescriptionsMarshaller = ToResponseMarshaller.oneOf(MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`, MediaTypes.`application/json`)(AnnotatedCharacterDescriptionsTextMarshaller, JSONResultItemsMarshaller)
 
 }
 
