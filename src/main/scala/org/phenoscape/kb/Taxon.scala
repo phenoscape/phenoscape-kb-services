@@ -45,6 +45,7 @@ import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueString
 import com.hp.hpl.jena.sparql.syntax.ElementBind
 import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
 import com.hp.hpl.jena.sparql.expr.aggregate.AggCountDistinct
+import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 
 object Taxon {
 
@@ -322,6 +323,13 @@ object Taxon {
     s"$subtree$escapedLabel"
   }
 
+  val TaxaTextMarshaller = Marshaller.delegate[Seq[Taxon], String](MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`) { taxa =>
+    val header = "IRI\tlabel\ttaxon"
+    s"$header\n${taxa.map(_.toString).mkString("\n")}"
+  }
+
+  implicit val ComboTaxaMarshaller = ToResponseMarshaller.oneOf(MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`, MediaTypes.`application/json`)(TaxaTextMarshaller, JSONResultItemsMarshaller)
+
 }
 
 case class CommonGroup(label: String, phylopic: Option[IRI]) extends JSONResultItem {
@@ -349,6 +357,10 @@ case class Taxon(iri: IRI, label: String) extends JSONResultItem {
 
   def toJSON: JsObject = {
     Map("@id" -> iri.toString.toJson, "label" -> label.toJson).toJson.asJsObject
+  }
+
+  override def toString(): String = {
+    s"$iri\t$label"
   }
 
 }
