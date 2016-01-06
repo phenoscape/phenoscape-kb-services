@@ -443,6 +443,12 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                       Study.queryMatrix(iri).map(prettyPrinter.format(_))
                     }
                   }
+                } ~ pathEnd {
+                  parameters('iri.as[IRI]) { iri =>
+                    complete {
+                      Study.withIRI(iri)
+                    }
+                  }
                 }
             } ~
             path("genes_expressed_in_structure") {

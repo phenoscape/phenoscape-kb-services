@@ -22,11 +22,32 @@ import com.hp.hpl.jena.rdf.model.ResourceFactory
 import scala.language.implicitConversions
 import org.semanticweb.owlapi.model.OWLEntity
 import scala.collection.JavaConversions._
+import spray.json._
+import spray.http._
+import spray.httpx._
+import spray.httpx.SprayJsonSupport._
+import spray.httpx.marshalling._
+import spray.json.DefaultJsonProtocol._
 
 object Study {
 
   val AnatomicalEntity = Class(ANATOMICAL_ENTITY)
   val Chordata = Class(CHORDATA)
+
+  def withIRI(iri: IRI): Future[Option[Study]] = {
+    App.executeSPARQLQuery(buildStudyQuery(iri), Study.fromIRIQuery(iri)).map(_.headOption)
+  }
+
+  def buildStudyQuery(iri: IRI): Query =
+    select_distinct('label, 'citation) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t(iri, rdfsLabel, 'label),
+        t(iri, dcBibliographicCitation, 'citation)))
+
+  def fromIRIQuery(iri: IRI)(result: QuerySolution): Study = Study(
+    iri,
+    result.getLiteral("label").getLexicalForm,
+    result.getLiteral("citation").getLexicalForm)
 
   def queryStudies(entityOpt: Option[OWLClassExpression], taxonOpt: Option[OWLClassExpression]): Future[Seq[MinimalTerm]] = for {
     query <- App.expandWithOwlet(buildQuery(entityOpt, taxonOpt))
@@ -187,5 +208,15 @@ object Study {
   private def queryToTerm(result: QuerySolution): MinimalTerm =
     MinimalTerm(IRI.create(result.getResource("study").getURI),
       result.getLiteral("study_label").getLexicalForm)
+
+}
+
+case class Study(iri: IRI, label: String, citation: String) extends JSONResultItem {
+
+  def toJSON: JsObject = {
+    (Map("@id" -> iri.toString.toJson,
+      "label" -> label.toJson,
+      "citation" -> citation.toJson)).toJson.asJsObject
+  }
 
 }

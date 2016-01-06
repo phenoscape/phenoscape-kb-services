@@ -221,7 +221,7 @@ object Taxon {
   }
 
   def buildTaxonQuery(iri: IRI): Query =
-    select('label, 'is_extinct, 'rank, 'rank_label) from "http://kb.phenoscape.org/" where (
+    select_distinct('label, 'is_extinct, 'rank, 'rank_label) from "http://kb.phenoscape.org/" where (
       bgp(
         t(iri, rdfsLabel, 'label),
         t(iri, rdfsIsDefinedBy, VTO)),
