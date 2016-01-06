@@ -28,6 +28,9 @@ import spray.httpx._
 import spray.httpx.SprayJsonSupport._
 import spray.httpx.marshalling._
 import spray.json.DefaultJsonProtocol._
+import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
+import com.hp.hpl.jena.sparql.expr.aggregate.AggCountDistinct
+import com.hp.hpl.jena.sparql.core.Var
 
 object Study {
 
@@ -71,6 +74,88 @@ object Study {
 
     query.addOrderBy('study_label)
     query.addOrderBy('study)
+    query
+  }
+
+  def annotatedTaxa(study: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] =
+    App.executeSPARQLQuery(buildAnnotatedTaxaQuery(study, limit, offset), Taxon(_))
+
+  def annotatedTaxaTotal(study: IRI): Future[Int] =
+    App.executeSPARQLQuery(buildAnnotatedTaxaTotalQuery(study)).map(ResultCount.count)
+
+  def annotatedPhenotypes(study: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
+    val futureDescriptions = Term.label(study).map { studyTermOpt =>
+      studyTermOpt.map { studyTerm =>
+        val matrix = CharacterMatrix(studyTerm.iri, studyTerm.label)
+        App.executeSPARQLQuery(buildPhenotypesQuery(study, limit, offset), annotationFromQueryResult(matrix))
+      }
+    }
+    for {
+      o <- futureDescriptions
+      s <- Future.sequence(o.toSeq)
+      descriptions <- Future.sequence(s.flatten)
+    } yield descriptions
+  }
+
+  def annotatedPhenotypesTotal(study: IRI): Future[Int] =
+    App.executeSPARQLQuery(buildPhenotypesTotalQuery(study)).map(ResultCount.count)
+
+  private def buildAnnotatedTaxaSubQuery(study: IRI): Query =
+    select_distinct('taxon, 'taxon_label) where (
+      bgp(
+        t(study, rdfType, CharacterStateDataMatrix),
+        t(study, has_TU / has_external_reference, 'taxon),
+        t('taxon, rdfsLabel, 'taxon_label)))
+
+  def buildAnnotatedTaxaQuery(study: IRI, limit: Int, offset: Int): Query = {
+    val query = buildAnnotatedTaxaSubQuery(study) from "http://kb.phenoscape.org/"
+    query.setOffset(offset)
+    if (limit > 0) query.setLimit(limit)
+    query.addOrderBy('taxon_label)
+    query.addOrderBy('taxon)
+    query
+  }
+
+  def buildAnnotatedTaxaTotalQuery(study: IRI): Query = {
+    val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(buildAnnotatedTaxaSubQuery(study)))
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
+    query
+  }
+
+  private def annotationFromQueryResult(matrix: CharacterMatrix)(result: QuerySolution): Future[AnnotatedCharacterDescription] = {
+    Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
+      AnnotatedCharacterDescription(
+        CharacterDescription(
+          IRI.create(result.getResource("state").getURI),
+          result.getLiteral("description").getLexicalForm,
+          matrix),
+        phenotype)
+    }
+
+  }
+
+  private def buildPhenotypesSubQuery(study: IRI): Query =
+    select_distinct('state, 'description, 'phenotype) where (
+      bgp(
+        t(study, rdfType, CharacterStateDataMatrix),
+        t(study, has_TU / has_external_reference, 'taxon),
+        t(study, has_character, 'character),
+        t('character, may_have_state_value, 'state),
+        t('state, dcDescription, 'description),
+        t('state, describes_phenotype, 'phenotype)))
+
+  def buildPhenotypesQuery(study: IRI, limit: Int, offset: Int): Query = {
+    val query = buildPhenotypesSubQuery(study) from "http://kb.phenoscape.org/"
+    query.setOffset(offset)
+    if (limit > 0) query.setLimit(limit)
+    query.addOrderBy('description)
+    query.addOrderBy('phenotype)
+    query
+  }
+
+  def buildPhenotypesTotalQuery(study: IRI): Query = {
+    val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(buildPhenotypesSubQuery(study)))
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
     query
   }
 

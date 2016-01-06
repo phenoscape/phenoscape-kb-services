@@ -436,6 +436,22 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   }
                 }
               } ~
+                path("taxa") {
+                  parameters('iri.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (studyIRI, limit, offset, total) =>
+                    complete {
+                      if (total) Study.annotatedTaxaTotal(studyIRI).map(ResultCount(_))
+                      else Study.annotatedTaxa(studyIRI, limit, offset)
+                    }
+                  }
+                } ~
+                path("phenotypes") {
+                  parameters('iri.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (studyIRI, limit, offset, total) =>
+                    complete {
+                      if (total) Study.annotatedPhenotypesTotal(studyIRI).map(ResultCount(_))
+                      else Study.annotatedPhenotypes(studyIRI, limit, offset)
+                    }
+                  }
+                } ~
                 path("matrix") {
                   parameters('iri.as[IRI]) { (iri) =>
                     complete {
@@ -443,7 +459,8 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                       Study.queryMatrix(iri).map(prettyPrinter.format(_))
                     }
                   }
-                } ~ pathEnd {
+                } ~
+                pathEnd {
                   parameters('iri.as[IRI]) { iri =>
                     complete {
                       Study.withIRI(iri)
