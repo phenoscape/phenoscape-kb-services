@@ -187,7 +187,7 @@ object Study {
     modelFuture.map(matrix(study, _))
   }
 
-  def matrix(study: IRI, model: Model) = { //FIXME add about=#
+  def matrix(study: IRI, model: Model): Elem = { //FIXME add about=#
     val otusID = s"otus_${UUID.randomUUID.toString}"
     val otuToID = (for {
       otu <- model.listObjectsOfProperty(has_TU)
