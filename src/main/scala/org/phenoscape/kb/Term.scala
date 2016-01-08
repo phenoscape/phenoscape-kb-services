@@ -150,7 +150,10 @@ object Term {
     implicit val timeout = Timeout(10.minutes)
     def shouldHide(term: MinimalTerm) = {
       val termID = term.iri.toString
-      termID.startsWith("http://example.org") || termID == "http://www.w3.org/2002/07/owl#Nothing" || termID == "http://www.w3.org/2002/07/owl#Thing"
+      termID.startsWith("http://example.org") ||
+        termID.startsWith("http://purl.org/phenoscape/") ||
+        termID == "http://www.w3.org/2002/07/owl#Nothing" ||
+        termID == "http://www.w3.org/2002/07/owl#Thing"
     }
     val pipeline = sendReceive ~> unmarshal[JsObject]
     val query = Uri.Query("object" -> s"<$iri>", "direct" -> "true")
