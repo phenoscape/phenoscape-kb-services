@@ -142,8 +142,8 @@ object Similarity {
     } yield {
       val values = results.toMap
       val differenceOpt = for {
-        taxonIC <- values.get("http://kb.phenoscape.org/ic")
-        geneIC <- values.get("http://kb.phenoscape.org/gene_ic")
+        taxonIC <- values.get("http://kb.phenoscape.org/sim/taxa")
+        geneIC <- values.get("http://kb.phenoscape.org/sim/genes")
       } yield {
         taxonIC - geneIC
       }
@@ -171,7 +171,7 @@ object Similarity {
   }
 
   def geneToTaxonProfileQuery(gene: IRI, resultLimit: Int, resultOffset: Int): Query = {
-    val query = select_distinct('taxon, 'taxon_label, 'median_score, 'expect_score) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/ic" where (
+    val query = select_distinct('taxon, 'taxon_label, 'median_score, 'expect_score) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/sim/taxa" where (
       bgp(
         t(gene, has_phenotypic_profile, 'gene_profile),
         t('comparison, for_query_profile, 'gene_profile),
@@ -188,7 +188,7 @@ object Similarity {
   }
 
   def comparisonSubsumersQuery(gene: IRI, taxon: IRI): Query =
-    select_distinct('subsumer, 'ic) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/ic" where (
+    select_distinct('subsumer, 'ic) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/sim/taxa" where (
       bgp(
         t(gene, has_phenotypic_profile, 'gene_profile),
         t(taxon, has_phenotypic_profile, 'taxon_profile),
@@ -198,7 +198,7 @@ object Similarity {
         t('subsumer, has_ic, 'ic)))
 
   def subsumedAnnotationsQuery(instance: OWLNamedIndividual, subsumer: OWLClass): Query =
-    select_distinct('annotation) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/ic" where (
+    select_distinct('annotation) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/sim/taxa" where (
       bgp(
         t(instance, has_phenotypic_profile / rdfType, 'annotation)),
         new ElementSubQuery(select('annotation) where (
