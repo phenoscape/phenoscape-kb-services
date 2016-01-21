@@ -229,8 +229,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   }
                 } ~
                 path("corpus_size") {
-                  complete {
-                    Similarity.corpusSize.map(ResultCount(_))
+                  parameters('corpus_graph.as[IRI]) { (corpusGraph) =>
+                    complete {
+                      Similarity.corpusSize(corpusGraph).map(ResultCount(_))
+                    }
                   }
                 } ~
                 path("ic_disparity") {

@@ -164,12 +164,11 @@ object Similarity {
     icDisparity(Class(subsumer.term.iri), queryGraph, corpusGraph).map(SubsumerWithDisparity(subsumer, _))
 
   //FIXME this query is way too slow
-  def corpusSize: Future[Int] = {
-    val query = select() where (
+  def corpusSize(corpusGraph: IRI): Future[Int] = {
+    val query = select() from corpusGraph.toString where (
       bgp(
-        t('taxon, has_phenotypic_profile, 'taxon_profile)),
-        new ElementFilter(new E_Exists(triplesBlock(bgp(t('comparison, for_corpus_profile, 'taxon_profile))))))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon_profile"))))
+        t('comparison, for_corpus_profile, 'profile)))
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("profile"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
