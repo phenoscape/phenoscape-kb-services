@@ -194,23 +194,23 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             } ~
             pathPrefix("similarity") {
               path("query") {
-                parameters('iri.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0)) { (query, limit, offset) =>
+                parameters('iri.as[IRI], 'corpus_graph.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0)) { (query, corpusGraph, limit, offset) =>
                   complete {
-                    Similarity.evolutionaryProfilesSimilarToGene(query, limit, offset)
+                    Similarity.querySimilarProfiles(query, corpusGraph, limit, offset)
                   }
                 }
               } ~
                 path("best_matches") {
-                  parameters('query_iri.as[IRI], 'corpus_iri.as[IRI]) { (queryItem, corpusItem) =>
+                  parameters('query_iri.as[IRI], 'corpus_iri.as[IRI], 'query_graph.as[IRI], 'corpus_graph.as[IRI]) { (queryItem, corpusItem, queryGraph, corpusGraph) =>
                     complete {
-                      Similarity.bestAnnotationsMatchesForComparison(queryItem, corpusItem)
+                      Similarity.bestAnnotationsMatchesForComparison(queryItem, queryGraph, corpusItem, corpusGraph)
                     }
                   }
                 } ~
                 path("best_subsumers") {
-                  parameters('query_iri.as[IRI], 'corpus_iri.as[IRI]) { (queryItem, corpusItem) =>
+                  parameters('query_iri.as[IRI], 'corpus_iri.as[IRI], 'corpus_graph.as[IRI]) { (queryItem, corpusItem, corpusGraph) =>
                     complete {
-                      Similarity.bestSubsumersForComparison(queryItem, corpusItem)
+                      Similarity.bestSubsumersForComparison(queryItem, corpusItem, corpusGraph)
                     }
                   }
                 } ~
@@ -234,9 +234,9 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   }
                 } ~
                 path("ic_disparity") {
-                  parameters('iri.as[OWLClass]) { (term) =>
+                  parameters('iri.as[OWLClass], 'queryGraph.as[IRI], 'corpus_graph.as[IRI]) { (term, queryGraph, corpusGraph) =>
                     complete {
-                      Similarity.icDisparity(term).map(value => JsObject("value" -> value.toJson))
+                      Similarity.icDisparity(term, queryGraph, corpusGraph).map(value => JsObject("value" -> value.toJson))
                     }
                   }
                 }
