@@ -50,7 +50,7 @@ object Similarity {
   val GenesCorpus = IRI.create("http://kb.phenoscape.org/sim/genes")
   private val has_phenotypic_profile = ObjectProperty(Vocab.has_phenotypic_profile)
   private val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
-  
+
   val availableCorpora = Seq(TaxaCorpus, GenesCorpus)
 
   def evolutionaryProfilesSimilarToGene(gene: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[SimilarityMatch]] =
@@ -185,7 +185,7 @@ object Similarity {
         t(queryItem, has_phenotypic_profile, 'query_profile),
         t('comparison, for_query_profile, 'query_profile),
         t('comparison, combined_score, 'median_score),
-        t('comparison, combined_score, 'expect_score), //FIXME
+        t('comparison, has_expect_score, 'expect_score),
         t('comparison, for_corpus_profile, 'corpus_profile),
         t('corpus_item, has_phenotypic_profile, 'corpus_profile),
         t('corpus_item, Vocab.rdfsLabel, 'corpus_item_label))) order_by (asc('expect_score), asc('median_score), asc('corpus_item_label))
