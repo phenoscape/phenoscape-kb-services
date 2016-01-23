@@ -221,7 +221,7 @@ object Taxon {
   }
 
   def buildTaxonQuery(iri: IRI): Query =
-    select_distinct('label, 'is_extinct, 'rank, 'rank_label) from "http://kb.phenoscape.org/" where (
+    select_distinct('label, 'is_extinct, 'rank, 'rank_label, 'common_name) from "http://kb.phenoscape.org/" where (
       bgp(
         t(iri, rdfsLabel, 'label),
         t(iri, rdfsIsDefinedBy, VTO)),
@@ -231,7 +231,13 @@ object Taxon {
           optional(
             bgp(
               t(iri, has_rank, 'rank),
-              t('rank, rdfsLabel, 'rank_label))))
+              t('rank, rdfsLabel, 'rank_label))),
+            optional(
+              bgp(
+                t('common_name_axiom, owlAnnotatedSource, iri),
+                t('common_name_axiom, owlAnnotatedProperty, hasRelatedSynonym),
+                t('common_name_axiom, owlAnnotatedTarget, 'common_name),
+                t('common_name_axiom, hasSynonymType, CommonNameSynonymType))))
 
   def buildVariationProfileTotalQuery(taxon: IRI): Query = {
     val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(buildBasicVariationProfileQuery(taxon)))
@@ -287,6 +293,7 @@ object Taxon {
     iri,
     result.getLiteral("label").getLexicalForm,
     Option(result.getLiteral("rank_label")).map(label => MinimalTerm(IRI.create(result.getResource("rank").getURI), label.getLexicalForm)),
+    Option(result.getLiteral("common_name")).map(_.getString),
     Option(result.getLiteral("is_extinct")).map(_.getBoolean).getOrElse(false))
 
   def newickTreeWithRoot(iri: IRI): Future[String] = {
@@ -365,12 +372,14 @@ case class Taxon(iri: IRI, label: String) extends JSONResultItem {
 
 }
 
-case class TaxonInfo(iri: IRI, label: String, rank: Option[MinimalTerm], extinct: Boolean) extends JSONResultItem {
+case class TaxonInfo(iri: IRI, label: String, rank: Option[MinimalTerm], commonName: Option[String], extinct: Boolean) extends JSONResultItem {
 
   def toJSON: JsObject = {
     (Map("@id" -> iri.toString.toJson,
       "label" -> label.toJson,
-      "extinct" -> extinct.toJson) ++ rank.map("rank" -> _.toJSON)).toJson.asJsObject
+      "extinct" -> extinct.toJson) ++
+      rank.map("rank" -> _.toJSON) ++
+      commonName.map("common_name" -> _.toJson)).toJson.asJsObject
   }
 
 }
