@@ -22,6 +22,8 @@ object KBVocab {
   val owlAnnotatedSource = IRI.create(OWL2.annotatedSource.getURI)
   val owlAnnotatedProperty = IRI.create(OWL2.annotatedProperty.getURI)
   val owlAnnotatedTarget = IRI.create(OWL2.annotatedTarget.getURI)
+  val owlOnProperty = IRI.create(OWL2.onProperty.getURI)
+  val owlSomeValuesFrom = IRI.create(OWL2.someValuesFrom.getURI)
   val hasSynonymType = IRI.create("http://www.geneontology.org/formats/oboInOwl#hasSynonymType")
   val CommonNameSynonymType = IRI.create("http://purl.obolibrary.org/obo/vto#COMMONNAME")
   val rdfsIsDefinedBy = ObjectProperty(RDFS.isDefinedBy.getURI)

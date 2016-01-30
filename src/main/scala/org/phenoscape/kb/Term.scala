@@ -54,6 +54,8 @@ import org.semanticweb.owlapi.expression.ParserException
 import scalaz.Validation
 import scalaz.Success
 import scalaz.Failure
+import com.hp.hpl.jena.sparql.expr.aggregate.AggMin
+import com.hp.hpl.jena.sparql.core.Var
 
 object Term {
 
@@ -127,7 +129,18 @@ object Term {
   }
 
   def withIRI(iri: IRI): Future[Option[Term]] = {
-    App.executeSPARQLQuery(buildTermQuery(iri), Term.fromQuerySolution(iri)).map(_.headOption)
+    def termResult(result: QuerySolution) = (result.getLiteral("label").getLexicalForm,
+      Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""))
+    val termFuture = App.executeSPARQLQuery(buildTermQuery(iri), termResult).map(_.headOption)
+    val relsFuture = termRelationships(iri)
+    for {
+      termOpt <- termFuture
+      relationships <- relsFuture
+    } yield {
+      termOpt.map {
+        case (label, definition) => Term(iri, label, definition, relationships)
+      }
+    }
   }
 
   def orderBySearchedText[T <: LabeledTerm](terms: Seq[T], text: String): Seq[MatchedTerm[T]] = {
@@ -222,16 +235,40 @@ object Term {
     } catch {
       case e: ParserException => Failure(e.getMessage)
     }
-
   }
 
-  def buildTermQuery(iri: IRI): Query = {
-    select('label, 'definition) from "http://kb.phenoscape.org/" where (
+  def buildTermQuery(iri: IRI): Query =
+    select_distinct('label, 'definition) from "http://kb.phenoscape.org/" where (
       bgp(
         t(iri, rdfsLabel, 'label)),
-        optional(
-          bgp(
-            t(iri, definition, 'definition))))
+        optional(bgp(
+          t(iri, definition, 'definition))))
+
+  def termRelationships(iri: IRI): Future[Seq[TermRelationship]] =
+    App.executeSPARQLQuery(buildRelationsQuery(iri), (result) => TermRelationship(
+      MinimalTerm(
+        IRI.create(result.getResource("relation").getURI),
+        result.getLiteral("relation_name").getString),
+      MinimalTerm(
+        IRI.create(result.getResource("filler").getURI),
+        result.getLiteral("filler_name").getString)))
+
+  def buildRelationsQuery(iri: IRI): Query = {
+    val query = select('relation, 'filler) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t(iri, rdfsSubClassOf, 'restriction),
+        t('restriction, owlOnProperty, 'relation),
+        t('relation, rdfsLabel, 'relation_label),
+        t('restriction, owlSomeValuesFrom, 'filler),
+        t('filler, rdfsLabel, 'filler_label)),
+        new ElementFilter(new E_IsIRI(new ExprVar('relation))),
+        new ElementFilter(new E_IsIRI(new ExprVar('filler))))
+    // We need to handle multiple labels in the DB for properties (and possibly classes)
+    query.getProject.add(Var.alloc("filler_name"), query.allocAggregate(new AggMin(new ExprVar('filler_label))))
+    query.getProject.add(Var.alloc("relation_name"), query.allocAggregate(new AggMin(new ExprVar('relation_label))))
+    query.addGroupBy("relation")
+    query.addGroupBy("filler")
+    query
   }
 
   def buildSearchQuery(text: String, termType: IRI, property: IRI): Query = {
@@ -265,7 +302,7 @@ object Term {
         t('term, rdfsLabel, 'term_label),
         t('term, rdfsIsDefinedBy, definedBy),
         t('term, rdfType, owlClass)),
-        new ElementFilter((new E_IsIRI(new ExprVar('term)))),
+        new ElementFilter(new E_IsIRI(new ExprVar('term))),
         new ElementFilter(new E_NotExists(triplesBlock(bgp(t('term, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
     query.addOrderBy('rank, Query.ORDER_ASCENDING)
     if (limit > 0) query.setLimit(limit)
@@ -305,19 +342,19 @@ object Term {
     new JsObject(Map("results" -> results.map(iri => Map("@id" -> iri.toString.toJson)).toJson))
   }
 
-  def fromQuerySolution(iri: IRI)(result: QuerySolution): Term = Term(iri,
-    result.getLiteral("label").getLexicalForm,
-    Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""))
-
   def fromMinimalQuerySolution(result: QuerySolution): MinimalTerm = MinimalTerm(
     IRI.create(result.getResource("term").getURI),
     result.getLiteral("term_label").getLexicalForm)
 
 }
 
-case class Term(iri: IRI, label: String, definition: String) extends LabeledTerm with JSONResultItem {
+case class Term(iri: IRI, label: String, definition: String, relationships: Seq[TermRelationship]) extends LabeledTerm with JSONResultItem {
 
-  def toJSON: JsObject = Map("@id" -> iri.toString, "label" -> label, "definition" -> definition).toJson.asJsObject
+  def toJSON: JsObject = Map(
+    "@id" -> iri.toString.toJson,
+    "label" -> label.toJson,
+    "definition" -> definition.toJson,
+    "relationships" -> relationships.map(_.toJSON).toJson).toJson.asJsObject
 
 }
 
@@ -373,6 +410,14 @@ case class Classification(term: MinimalTerm, superclasses: Set[MinimalTerm], sub
       Map("subClassOf" -> superclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson,
         "superClassOf" -> subclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson,
         "equivalentTo" -> equivalents.toSeq.sortBy(_.label).map(_.toJSON).toJson))
+
+}
+
+case class TermRelationship(property: MinimalTerm, value: MinimalTerm) extends JSONResultItem {
+
+  def toJSON: JsObject = JsObject(
+    "property" -> property.toJSON,
+    "value" -> value.toJSON)
 
 }
 
