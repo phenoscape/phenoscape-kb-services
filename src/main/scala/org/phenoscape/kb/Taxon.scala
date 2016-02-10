@@ -57,15 +57,15 @@ object Taxon {
   def withIRI(iri: IRI): Future[Option[TaxonInfo]] =
     App.executeSPARQLQuery(buildTaxonQuery(iri), Taxon.fromIRIQuery(iri)).map(_.headOption)
 
-  def query(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = for {
-    query <- App.expandWithOwlet(buildQuery(entity, taxon, publications, limit, offset))
-    descriptions <- App.executeSPARQLQuery(query, Taxon(_))
-  } yield descriptions
-
-  def queryTotal(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Future[ResultCount] = for {
-    query <- App.expandWithOwlet(buildTotalQuery(entity, taxon, publications))
-    result <- App.executeSPARQLQuery(query)
-  } yield ResultCount(result)
+//  def query(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = for {
+//    query <- App.expandWithOwlet(buildQuery(entity, taxon, publications, limit, offset))
+//    descriptions <- App.executeSPARQLQuery(query, Taxon(_))
+//  } yield descriptions
+//
+//  def queryTotal(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Future[ResultCount] = for {
+//    query <- App.expandWithOwlet(buildTotalQuery(entity, taxon, publications))
+//    result <- App.executeSPARQLQuery(query)
+//  } yield ResultCount(result)
 
   def withPhenotype(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = for {
     query <- buildTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt, limit, offset)
@@ -131,7 +131,7 @@ object Taxon {
     val phenotypePattern = if (entityOpt.nonEmpty || qualityOpt.nonEmpty) {
       val entity = entityOpt.getOrElse(owlThing)
       val quality = qualityOpt.getOrElse(owlThing)
-      t('phenotype, rdfsSubClassOf, (quality and (phenotype_of some entity)).asOMN) :: Nil
+      t('phenotype, rdfsSubClassOf, (has_part some (quality and (phenotype_of some entity))).asOMN) :: Nil //FIXME fix up has_part after redefining phenotype_of
     } else Nil
     val query = select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
       bgp(
@@ -149,24 +149,24 @@ object Taxon {
     App.executeSPARQLQuery(query, result => IRI.create(result.getResource("pic").getURI))
   }
 
-  private def buildBasicQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
-    val entityPatterns = if (entity == owlThing) Nil else
-      t('phenotype, ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
-    val (publicationFilters, publicationPatterns) = if (publications.isEmpty) (Nil, Nil) else
-      (new ElementFilter(new E_OneOf(new ExprVar('matrix), new ExprList(publications.map(new NodeValueNode(_)).toList))) :: Nil,
-        t('matrix, has_character / may_have_state_value, 'state) :: Nil)
-    val taxonPatterns = if (taxon == owlThing) Nil else
-      t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
-    select_distinct() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('state, describes_phenotype, 'phenotype) ::
-          t('taxon, exhibits_state, 'state) ::
-          t('taxon, rdfsLabel, 'taxon_label) ::
-          entityPatterns ++
-          publicationPatterns ++
-          taxonPatterns: _*) ::
-        publicationFilters: _*)
-  }
+//  private def buildBasicQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
+//    val entityPatterns = if (entity == owlThing) Nil else
+//      t('phenotype, ps_entity_term | ps_related_entity_term, 'entity) :: t('entity, rdfsSubClassOf, entity.asOMN) :: Nil
+//    val (publicationFilters, publicationPatterns) = if (publications.isEmpty) (Nil, Nil) else
+//      (new ElementFilter(new E_OneOf(new ExprVar('matrix), new ExprList(publications.map(new NodeValueNode(_)).toList))) :: Nil,
+//        t('matrix, has_character / may_have_state_value, 'state) :: Nil)
+//    val taxonPatterns = if (taxon == owlThing) Nil else
+//      t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
+//    select_distinct() from "http://kb.phenoscape.org/" where (
+//      bgp(
+//        t('state, describes_phenotype, 'phenotype) ::
+//          t('taxon, exhibits_state, 'state) ::
+//          t('taxon, rdfsLabel, 'taxon_label) ::
+//          entityPatterns ++
+//          publicationPatterns ++
+//          taxonPatterns: _*) ::
+//        publicationFilters: _*)
+//  }
 
   private def buildBasicTaxaWithPhenotypeQuery(entity: OWLClassExpression = owlThing, quality: OWLClassExpression = owlThing, inTaxonOpt: Option[IRI]): Future[Query] = {
     val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf*, _)).toList
@@ -175,7 +175,7 @@ object Taxon {
         t('state, describes_phenotype, 'phenotype) ::
           t('taxon, exhibits_state, 'state) ::
           t('taxon, rdfsLabel, 'taxon_label) ::
-          t('phenotype, rdfsSubClassOf, (quality and (phenotype_of some entity)).asOMN) ::
+          t('phenotype, rdfsSubClassOf, (has_part some (quality and (phenotype_of some entity))).asOMN) :: //FIXME fix up has_part after redefining phenotype_of
           taxonPatterns: _*))
     App.expandWithOwlet(query)
   }
@@ -203,22 +203,22 @@ object Taxon {
     }
   }
 
-  def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
-    val query = buildBasicQuery(entity, taxon, publications)
-    query.addResultVar('taxon)
-    query.addResultVar('taxon_label)
-    query.setOffset(offset)
-    if (limit > 0) query.setLimit(limit)
-    query.addOrderBy('taxon_label)
-    query.addOrderBy('taxon)
-    query
-  }
-
-  def buildTotalQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
-    val query = buildBasicQuery(entity, taxon, publications)
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
-    query
-  }
+//  def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
+//    val query = buildBasicQuery(entity, taxon, publications)
+//    query.addResultVar('taxon)
+//    query.addResultVar('taxon_label)
+//    query.setOffset(offset)
+//    if (limit > 0) query.setLimit(limit)
+//    query.addOrderBy('taxon_label)
+//    query.addOrderBy('taxon)
+//    query
+//  }
+//
+//  def buildTotalQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
+//    val query = buildBasicQuery(entity, taxon, publications)
+//    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
+//    query
+//  }
 
   def buildTaxonQuery(iri: IRI): Query =
     select_distinct('label, 'is_extinct, 'rank, 'rank_label, 'common_name) from "http://kb.phenoscape.org/" where (

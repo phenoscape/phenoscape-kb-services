@@ -49,23 +49,6 @@ object KB {
   }
 
   def annotationReport: Future[String] = {
-//    val query = select() from "http://kb.phenoscape.org/" where (
-//      bgp(
-//        t('state, rdfsLabel, 'state_label),
-//        t('matrix, has_character, 'matrix_char),
-//        t('matrix_char, rdfsLabel, 'char_label),
-//        t('matrix, rdfsLabel, 'matrix_label),
-//        t('matrix_char, may_have_state_value, 'state),
-//        t('state, state_symbol, 'symbol),
-//        t('state, describes_phenotype, 'phenotype),
-//        t('state, rdfsLabel, 'state_label),
-//        t('phenotype, entity_term, 'entity),
-//        t('phenotype, quality_term, 'quality)),
-//        optional(bgp(t('entity, rdfsLabel, 'entity_label))),
-//        optional(bgp(t('quality, rdfsLabel, 'quality_label))),
-//        optional(
-//          bgp(t('phenotype, related_entity_term, 'related_entity)),
-//          optional(bgp(t('related_entity, rdfsLabel, 'related_entity_label)))))
     val queryFromText = QueryFactory.create("""
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -86,7 +69,8 @@ WHERE
 ?matrix rdfs:label ?matrix_label .
 ?matrix_char ps:may_have_state_value ?state .
 ?state ps:state_symbol ?symbol .
-?state ps:describes_phenotype ?phenotype .
+?state ps:describes_phenotype ?phenotypeGroup .
+?phenotypeGroup rdfs:subClassOf ?phenotype .
 ?phenotype ps:entity_term ?entity . 
 OPTIONAL {   
 ?entity rdfs:label ?entity_label .

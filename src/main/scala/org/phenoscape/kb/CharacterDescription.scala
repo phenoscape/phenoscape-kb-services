@@ -236,7 +236,7 @@ case class AnnotatedCharacterDescription(characterDescription: CharacterDescript
 
 }
 
-object AnnotatedCharacterDescription {
+object AnnotatedCharacterDescription { //FIXME
 
   def fromQuerySolution(result: QuerySolution): Future[AnnotatedCharacterDescription] = {
     Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>

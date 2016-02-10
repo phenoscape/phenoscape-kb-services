@@ -268,14 +268,14 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
             } ~
             pathPrefix("taxon") {
-              path("query") { //undocumented
-                parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
-                  complete {
-                    if (total) Taxon.queryTotal(entity, taxon, Nil)
-                    else Taxon.query(entity, taxon, Nil, limit, offset)
-                  }
-                }
-              } ~
+//              path("query") { //undocumented
+//                parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
+//                  complete {
+//                    if (total) Taxon.queryTotal(entity, taxon, Nil)
+//                    else Taxon.query(entity, taxon, Nil, limit, offset)
+//                  }
+//                }
+//              } ~
                 path("phenotypes") {
                   parameters('taxon.as[IRI], 'entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (taxon, entityOpt, qualityOpt, limit, offset, total) =>
                     complete {
