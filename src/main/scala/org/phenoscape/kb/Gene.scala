@@ -268,30 +268,6 @@ object Gene {
           App.BigdataRunPriorFirst)
   }
 
-  def expressedWithinStructure(entity: IRI): Future[String] = {
-    val header = "gene\tgeneLabel\ttaxon\tsource\n"
-    val result = App.executeSPARQLQuery(buildExpressionQuery(entity), formatResult)
-    result.map(header + _.mkString("\n"))
-  }
-
-  private def buildExpressionQuery(entityIRI: IRI): Query = {
-    val entity = Class(entityIRI)
-    select_distinct('gene, 'gene_label, 'taxon_label, 'source) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('structure, rdfType, 'entity),
-        t('expression, occurs_in, 'structure),
-        t('expression, rdfType, GeneExpression),
-        t('expression, associated_with_taxon, 'taxon),
-        t('taxon, rdfsLabel, 'taxon_label),
-        t('expression, associated_with_gene, 'gene),
-        t('gene, rdfsLabel, 'gene_label)),
-        optional(bgp(
-          t('expression, dcSource, 'source))),
-        withOwlery(
-          t('entity, rdfsSubClassOf, (part_of some entity).asOMN)),
-          App.BigdataRunPriorFirst)
-  }
-
   def taxonForGeneIRI(iri: IRI): Taxon = geneIDPrefixToTaxon.collectFirst {
     case (prefix, taxon) if iri.toString.startsWith(prefix) => taxon
   }.getOrElse(Taxon(factory.getOWLThing.getIRI, "unknown"))

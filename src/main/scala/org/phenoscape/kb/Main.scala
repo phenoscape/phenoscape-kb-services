@@ -470,13 +470,6 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   }
                 }
             } ~
-            path("genes_expressed_in_structure") {
-              parameters('entity.as[IRI]) { entity =>
-                complete {
-                  Gene.expressedWithinStructure(entity)
-                }
-              }
-            } ~
             pathPrefix("report") {
               path("data_coverage_figure") {
                 complete {
