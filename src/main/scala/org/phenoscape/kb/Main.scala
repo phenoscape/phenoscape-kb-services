@@ -462,6 +462,15 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   }
                 }
             } ~
+            pathPrefix("phenotype") {
+              path("direct_annotations") {
+                parameters('iri.as[IRI]) { (iri) =>
+                  complete {
+                    CharacterDescription.eqAnnotationsForPhenotype(iri)
+                  }
+                }
+              }
+            } ~
             pathPrefix("report") {
               path("data_coverage_figure") {
                 complete {

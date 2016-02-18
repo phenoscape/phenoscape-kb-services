@@ -197,6 +197,18 @@ object CharacterDescription {
       IRI.create(result.getResource("matrix").getURI),
       result.getLiteral("matrix_label").getLexicalForm))
 
+  def eqAnnotationsForPhenotype(iri: IRI): Future[Seq[MinimalTerm]] = {
+    val query = select_distinct('eq) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t(iri, rdfsSubClassOf, 'eq)))
+    println(query)
+    for {
+      eqs <- App.executeSPARQLQuery(query, result => IRI.create(result.getResource("eq").getURI))
+      _ = println(eqs)
+      labeledEQs <- Future.sequence(eqs.map(Term.computedLabel))
+    } yield labeledEQs
+  }
+
 }
 
 case class CharacterDescription(iri: IRI, description: String, matrix: CharacterMatrix) extends JSONResultItem {
