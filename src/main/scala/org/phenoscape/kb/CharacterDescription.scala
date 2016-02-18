@@ -201,12 +201,13 @@ object CharacterDescription {
     val query = select_distinct('eq) from "http://kb.phenoscape.org/" where (
       bgp(
         t(iri, rdfsSubClassOf, 'eq)))
-    println(query)
     for {
       eqs <- App.executeSPARQLQuery(query, result => IRI.create(result.getResource("eq").getURI))
-      _ = println(eqs)
       labeledEQs <- Future.sequence(eqs.map(Term.computedLabel))
-    } yield labeledEQs
+    } yield labeledEQs.groupBy(_.label).map {
+      case (label, terms) => //FIXME this groupBy is to work around extra inferred identical EQs; need to fix in Phenex translation
+        terms.head
+    }.toSeq
   }
 
 }
