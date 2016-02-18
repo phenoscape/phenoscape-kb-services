@@ -109,8 +109,8 @@ object Taxon {
         query.setOffset(offset)
         query.setLimit(limit)
       }
-      query.addOrderBy('phenotype)
       query.addOrderBy('description)
+      query.addOrderBy('phenotype)
       query
     }
     val results = for {
