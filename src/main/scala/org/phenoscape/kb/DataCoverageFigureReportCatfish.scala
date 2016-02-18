@@ -79,7 +79,7 @@ object DataCoverageFigureReportCatfish {
         t('taxon, rdfsLabel, 'taxon_label),
         t('state, describes_phenotype, 'phenotype),
         t('taxon, ObjectProperty(rdfsSubClassOf) *, Siluriformes),
-        t('phenotype, rdfsSubClassOf, ((phenotype_of some entityClass) or (towards value entityInd)).asOMN)))
+        t('phenotype, rdfsSubClassOf, ((phenotype_of some (part_of some entityClass)) or (towards value entityInd)).asOMN)))
     query.getProject.add(Var.alloc("taxon"))
     query.getProject.add(Var.alloc("taxon_label"))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
