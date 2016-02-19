@@ -86,18 +86,18 @@ object EQForGene {
 
   def annotationSuperQualityQuery(annotationID: String): Query = {
     val annotationIRI = IRI.create(annotationID)
-    select_distinct('quality) from "http://kb.phenoscape.org/" where (
+    select_distinct('quality) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
       bgp(
-        t(annotationIRI, rdfType / (rdfsSubClassOf*), 'has_quality),
+        t(annotationIRI, rdfType / rdfsSubClassOf, 'has_quality),
         t('has_quality, has_part_some, 'quality),
         t('quality, rdfsIsDefinedBy, PATO)))
   }
 
   def qualitySuperQualityQuery(termID: String): Query = {
     val termIRI = IRI.create(termID)
-    select_distinct('quality) from "http://kb.phenoscape.org/" where (
+    select_distinct('quality) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
       bgp(
-        t(termIRI, rdfsSubClassOf*, 'has_quality),
+        t(termIRI, rdfsSubClassOf, 'has_quality),
         t('has_quality, has_part_some, 'quality),
         t('quality, rdfsIsDefinedBy, PATO)))
   }
@@ -124,18 +124,18 @@ object EQForGene {
 
   def annotationEntityTypesQuery(annotationID: String): Query = {
     val annotationIRI = IRI.create(annotationID)
-    select_distinct('description) from "http://kb.phenoscape.org/" where (
+    select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
       bgp(
-        t(annotationIRI, rdfType / (rdfsSubClassOf*), 'description),
+        t(annotationIRI, rdfType / rdfsSubClassOf, 'description),
         t('description, has_part_inhering_in_some, 'bearer),
         t('bearer, rdfsIsDefinedBy, UBERON)))
   }
 
   def entitySuperClassesQuery(termID: String): Query = {
     val termIRI = IRI.create(termID)
-    select_distinct('bearer) from "http://kb.phenoscape.org/" where (
+    select_distinct('bearer) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
       bgp(
-        t(termIRI, rdfsSubClassOf*, 'description),
+        t(termIRI, rdfsSubClassOf, 'description),
         t('description, has_part_inhering_in_some, 'bearer),
         t('bearer, rdfsIsDefinedBy, UBERON)))
   }
