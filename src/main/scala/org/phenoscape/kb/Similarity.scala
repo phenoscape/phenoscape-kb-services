@@ -3,7 +3,6 @@ package org.phenoscape.kb
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import scala.language.postfixOps
-
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
@@ -14,7 +13,6 @@ import org.phenoscape.scowl.OWL._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClass
 import org.semanticweb.owlapi.model.OWLNamedIndividual
-
 import com.hp.hpl.jena.graph.Node_Variable
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.query.QuerySolution
@@ -30,13 +28,14 @@ import com.hp.hpl.jena.sparql.syntax.ElementFilter
 import com.hp.hpl.jena.sparql.syntax.ElementGroup
 import com.hp.hpl.jena.sparql.syntax.ElementNamedGraph
 import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
-
 import spray.http._
 import spray.httpx._
 import spray.httpx.SprayJsonSupport._
 import spray.httpx.marshalling._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
+import com.hp.hpl.jena.graph.NodeFactory
+import org.semanticweb.elk.reasoner.saturation.conclusions.Subsumer
 
 object Similarity {
 
@@ -206,12 +205,13 @@ object Similarity {
         t('subsumer, has_ic, 'ic)))
 
   def subsumedAnnotationsQuery(instance: OWLNamedIndividual, subsumer: OWLClass): Query =
-    select_distinct('annotation) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
+    select_distinct('annotation) from "http://kb.phenoscape.org/" where (
       bgp(
         t(instance, has_phenotypic_profile / rdfType, 'annotation)),
         new ElementSubQuery(select('annotation) where (
-          bgp(
-            t('annotation, rdfsSubClassOf, subsumer)))))
+          new ElementNamedGraph(NodeFactory.createURI("http://kb.phenoscape.org/closure"),
+            bgp(
+              t('annotation, rdfsSubClassOf, subsumer))))))
 
   def constructMatchFor(queryItem: IRI): QuerySolution => SimilarityMatch =
     (result: QuerySolution) => SimilarityMatch(
