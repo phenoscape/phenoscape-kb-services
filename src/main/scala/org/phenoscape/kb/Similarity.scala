@@ -206,12 +206,12 @@ object Similarity {
         t('subsumer, has_ic, 'ic)))
 
   def subsumedAnnotationsQuery(instance: OWLNamedIndividual, subsumer: OWLClass): Query =
-    select_distinct('annotation) from "http://kb.phenoscape.org/" where (
+    select_distinct('annotation) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
       bgp(
         t(instance, has_phenotypic_profile / rdfType, 'annotation)),
         new ElementSubQuery(select('annotation) where (
           bgp(
-            t('annotation, rdfsSubClassOf*, subsumer)))))
+            t('annotation, rdfsSubClassOf, subsumer)))))
 
   def constructMatchFor(queryItem: IRI): QuerySolution => SimilarityMatch =
     (result: QuerySolution) => SimilarityMatch(
