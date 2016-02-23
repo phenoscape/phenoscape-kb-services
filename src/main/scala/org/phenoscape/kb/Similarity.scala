@@ -131,7 +131,7 @@ object Similarity {
   } yield labelledTerms
 
   def profileSize(profileSubject: IRI): Future[Int] = {
-    val query = select() where (
+    val query = select() from "http://kb.phenoscape.org/" where (
       bgp(
         t(profileSubject, has_phenotypic_profile / rdfType, 'annotation)),
         new ElementFilter(new E_NotOneOf(new ExprVar('annotation), new ExprList(List(
