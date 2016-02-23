@@ -35,7 +35,6 @@ import spray.httpx.marshalling._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import com.hp.hpl.jena.graph.NodeFactory
-import org.semanticweb.elk.reasoner.saturation.conclusions.Subsumer
 
 object Similarity {
 
