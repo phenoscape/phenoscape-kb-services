@@ -585,6 +585,126 @@ Currently this is the label, extinction status, and an optional rank.
         }
         }
 
+## Taxa with phenotype [/taxon/with_phenotype{?entity,quality,in_taxon,limit,offset,total}]
+### Retrieve taxa with annotated phenotypes related to the given anatomical entity or quality. [GET]
++ Parameters
+    + entity (optional, string `<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/UBERON_0003097>`) ... Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+    + quality (optional, string `<http://purl.obolibrary.org/obo/PATO_0000052>`) ... Quality class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+    + in\_taxon (optional, URI, `http://purl.obolibrary.org/obo/VTO_0034991`) ... A taxon group to limit the results
+    + limit (optional, integer `20`)
+    + offset (optional, integer, `0`)
+    + total (optional, boolean, `false`) ... whether to return the total result count rather than the results
++ Response 200 (application/json)
+
+        {
+          "results": [
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0059975",
+              "label": "Acanthicus hystrix"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0061854",
+              "label": "Acanthocleithron chapini"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0061312",
+              "label": "Acrochordonichthys ischnosoma"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0061314",
+              "label": "Acrochordonichthys pachyderma"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0035553",
+              "label": "Acrochordonichthys rugosus"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0061318",
+              "label": "Acrochordonichthys sp. (de Pinna 1993)"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0036705",
+              "label": "Agamyxis albomaculatus"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0035046",
+              "label": "Ageneiosus atronasus"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0060572",
+              "label": "Ageneiosus cf. guianensis (Mo 1991)"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0035045",
+              "label": "Ageneiosus inermis"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0060583",
+              "label": "Ageneiosus magoi"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0060581",
+              "label": "Ageneiosus pardalis"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0060575",
+              "label": "Ageneiosus sp. (de Pinna 1993)"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0060571",
+              "label": "Ageneiosus sp. 1 (Mo 1991)"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0060580",
+              "label": "Ageneiosus sp. 2 (Mo 1991)"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0060570",
+              "label": "Ageneiosus sp. 3 (Mo 1991)"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0035047",
+              "label": "Ageneiosus ucayalensis"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0036184",
+              "label": "Ailia coila"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0061478",
+              "label": "Ailiichthys punctata"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0061303",
+              "label": "Akysis sp. (Friel 1994)"
+            }
+          ]
+        }
+        
++ Response 200 (text/plain)
+
+        IRI  label
+        http://purl.obolibrary.org/obo/VTO_0059975  Acanthicus hystrix
+        http://purl.obolibrary.org/obo/VTO_0061854  Acanthocleithron chapini
+        http://purl.obolibrary.org/obo/VTO_0061312  Acrochordonichthys ischnosoma
+        http://purl.obolibrary.org/obo/VTO_0061314  Acrochordonichthys pachyderma
+        http://purl.obolibrary.org/obo/VTO_0035553  Acrochordonichthys rugosus
+        http://purl.obolibrary.org/obo/VTO_0061318  Acrochordonichthys sp. (de Pinna 1993)
+        http://purl.obolibrary.org/obo/VTO_0036705  Agamyxis albomaculatus
+        http://purl.obolibrary.org/obo/VTO_0035046  Ageneiosus atronasus
+        http://purl.obolibrary.org/obo/VTO_0060572  Ageneiosus cf. guianensis (Mo 1991)
+        http://purl.obolibrary.org/obo/VTO_0035045  Ageneiosus inermis
+        http://purl.obolibrary.org/obo/VTO_0060583  Ageneiosus magoi
+        http://purl.obolibrary.org/obo/VTO_0060581  Ageneiosus pardalis
+        http://purl.obolibrary.org/obo/VTO_0060575  Ageneiosus sp. (de Pinna 1993)
+        http://purl.obolibrary.org/obo/VTO_0060571  Ageneiosus sp. 1 (Mo 1991)
+        http://purl.obolibrary.org/obo/VTO_0060580  Ageneiosus sp. 2 (Mo 1991)
+        http://purl.obolibrary.org/obo/VTO_0060570  Ageneiosus sp. 3 (Mo 1991)
+        http://purl.obolibrary.org/obo/VTO_0035047  Ageneiosus ucayalensis
+        http://purl.obolibrary.org/obo/VTO_0036184  Ailia coila
+        http://purl.obolibrary.org/obo/VTO_0061478  Ailiichthys punctata
+        http://purl.obolibrary.org/obo/VTO_0061303  Akysis sp. (Friel 1994)
+
 ## Taxon phenotypes [/taxon/phenotypes{?taxon,limit,offset,total}]
 ### Retrieve direct phenotype annotations for a given taxon [GET]
 + Parameters
