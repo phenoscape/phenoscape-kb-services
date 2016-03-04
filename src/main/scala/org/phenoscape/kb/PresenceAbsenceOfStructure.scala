@@ -225,6 +225,7 @@ object PresenceAbsenceOfStructure {
     val taxonFilterTriple = taxonFilter.map(t('taxon, rdfsSubClassOf*, _)).toList
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp((
+        App.BigdataAnalyticQuery ::
         t('taxon, has_absence_of, entityIRI) ::
         t('taxon, rdfsLabel, 'taxon_label) ::
         taxonFilterTriple): _*))
@@ -251,6 +252,7 @@ object PresenceAbsenceOfStructure {
     val taxonFilterTriple = taxonFilter.map(t('taxon, rdfsSubClassOf*, _)).toList
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp((
+        App.BigdataAnalyticQuery ::
         t('taxon, has_presence_of, entityIRI) ::
         t('taxon, rdfsLabel, 'taxon_label) ::
         taxonFilterTriple): _*))
