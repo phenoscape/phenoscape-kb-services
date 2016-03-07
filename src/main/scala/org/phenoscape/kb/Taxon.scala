@@ -46,6 +46,7 @@ import com.hp.hpl.jena.sparql.syntax.ElementBind
 import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
 import com.hp.hpl.jena.sparql.expr.aggregate.AggCountDistinct
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import com.hp.hpl.jena.sparql.syntax.ElementNamedGraph
 
 object Taxon {
 
@@ -147,6 +148,28 @@ object Taxon {
   def phyloPicAcknowledgments: Future[Seq[IRI]] = {
     val query = select_distinct('pic) where (bgp(t('subject, phylopic, 'pic)))
     App.executeSPARQLQuery(query, result => IRI.create(result.getResource("pic").getURI))
+  }
+
+  def taxaWithRank(rank: IRI, inTaxon: IRI): Future[Seq[MinimalTerm]] = {
+    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('term, has_rank, rank),
+        t('term, rdfsLabel, 'term_label)),
+        new ElementNamedGraph(NodeFactory.createURI("http://kb.phenoscape.org/closure"),
+          bgp(
+            t('term, rdfsSubClassOf, inTaxon))))
+    App.executeSPARQLQuery(query, Term.fromMinimalQuerySolution)
+  }
+
+  def countOfAnnotatedTaxa(inTaxon: IRI): Future[Int] = {
+    val query = select() from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('taxon, exhibits_state / describes_phenotype, 'phenotype)),
+        new ElementNamedGraph(NodeFactory.createURI("http://kb.phenoscape.org/closure"),
+          bgp(
+            t('taxon, rdfsSubClassOf, inTaxon))))
+    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
+    App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   //  private def buildBasicQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {

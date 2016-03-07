@@ -293,6 +293,20 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                       }
                   }
                 } ~
+                path("with_rank") {
+                  parameters('rank.as[IRI], 'in_taxon.as[IRI]) { (rank, inTaxon) =>
+                    complete {
+                      Taxon.taxaWithRank(rank, inTaxon)
+                    }
+                  }
+                } ~
+                path("annotated_taxa_count") {
+                  parameter('in_taxon.as[IRI]) { inTaxon =>
+                    complete {
+                      Taxon.countOfAnnotatedTaxa(inTaxon).map(ResultCount(_))
+                    }
+                  }
+                } ~
                 path("newick") {
                   parameters('iri.as[IRI]) { (taxon) =>
                     complete {
