@@ -585,6 +585,235 @@ Currently this is the label, extinction status, and an optional rank.
         }
         }
 
+## Taxa with rank [/taxon/with_rank{?rank,in_taxon}]
+### Retrieve all taxa with a given taxonomic rank, within the given super-taxon. [GET]
++ Parameters
+    + rank (required, URI, `http://purl.obolibrary.org/obo/TAXRANK_0000003`) ... taxonomic rank IRI
+    + in\_taxon (required, URI, `http://purl.obolibrary.org/obo/VTO_0033666`) ... taxonomic group within which to search    
++ Response 200 (application/json)
+
+        {
+          "results": [
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0041714",
+              "label": "Polymixiiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0041730",
+              "label": "Stephanoberyciformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0041825",
+              "label": "Dactylopteriformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0041834",
+              "label": "Tetraodontiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0079702",
+              "label": "Cetomimiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0042306",
+              "label": "Perciformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0070136",
+              "label": "Gobiesociformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0052503",
+              "label": "Scorpaeniformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0053586",
+              "label": "Synbranchiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0053669",
+              "label": "Syngnathiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0053907",
+              "label": "Gasterosteiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0053945",
+              "label": "Mugiliformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0054071",
+              "label": "Cyprinodontiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0071639",
+              "label": "Elassomatiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0055028",
+              "label": "Beloniformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0055262",
+              "label": "Atheriniformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0055603",
+              "label": "Pleuronectiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0056166",
+              "label": "Beryciformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0056319",
+              "label": "Zeiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0056375",
+              "label": "Lophiiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0056592",
+              "label": "Gadiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0056946",
+              "label": "Percopsiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0056976",
+              "label": "Batrachoidiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0057041",
+              "label": "Ophidiiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0057204",
+              "label": "Lampriformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0057251",
+              "label": "Myctophiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0057490",
+              "label": "Aulopiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0057725",
+              "label": "Ateleopodiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0057738",
+              "label": "Stomiiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0058011",
+              "label": "Esociformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0058036",
+              "label": "Salmoniformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0058256",
+              "label": "Osmeriformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0066344",
+              "label": "Ellimmichthyiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_9029595",
+              "label": "Lampridiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_9031428",
+              "label": "Alepisauriformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_9027864",
+              "label": "Tselfatiiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_9031963",
+              "label": "Crossognathiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_9030589",
+              "label": "Ionoscopiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_9031087",
+              "label": "Ctenothrissiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_9032978",
+              "label": "Pachycormiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_9010506",
+              "label": "Incertae"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0033668",
+              "label": "Osteoglossiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0066731",
+              "label": "Hiodontiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0033927",
+              "label": "Elopiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0033946",
+              "label": "Notacanthiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0033969",
+              "label": "Albuliformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0034001",
+              "label": "Anguilliformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0034544",
+              "label": "Clupeiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0067542",
+              "label": "Saccopharyngiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0034955",
+              "label": "Gonorynchiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0034991",
+              "label": "Siluriformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0037378",
+              "label": "Gymnotiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0037519",
+              "label": "Characiformes"
+            },
+            {
+              "@id": "http://purl.obolibrary.org/obo/VTO_0038678",
+              "label": "Cypriniformes"
+            }
+          ]
+        }
+
+
 ## Taxa with phenotype [/taxon/with_phenotype{?entity,quality,in_taxon,limit,offset,total}]
 ### Retrieve taxa with annotated phenotypes related to the given anatomical entity or quality. [GET]
 + Parameters
@@ -704,6 +933,16 @@ Currently this is the label, extinction status, and an optional rank.
         http://purl.obolibrary.org/obo/VTO_0036184  Ailia coila
         http://purl.obolibrary.org/obo/VTO_0061478  Ailiichthys punctata
         http://purl.obolibrary.org/obo/VTO_0061303  Akysis sp. (Friel 1994)
+
+## Count of annotated taxa [/taxon/annotated_taxa_count{?in_taxon}]
+### Retrieve count of taxa with direct annotations within the given super-taxon [GET]
++ Parameters
+    + in\_taxon (optional, URI, `http://purl.obolibrary.org/obo/VTO_0034991`) ... A taxon group to limit the results
++ Response 200 (application/json)   
+
+        {
+        "total": 1299
+        }
 
 ## Taxon phenotypes [/taxon/phenotypes{?taxon,limit,offset,total}]
 ### Retrieve direct phenotype annotations for a given taxon [GET]
