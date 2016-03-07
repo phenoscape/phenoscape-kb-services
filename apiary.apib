@@ -587,6 +587,7 @@ Currently this is the label, extinction status, and an optional rank.
 
 ## Taxa with rank [/taxon/with_rank{?rank,in_taxon}]
 ### Retrieve all taxa with a given taxonomic rank, within the given super-taxon. [GET]
+Ranks are terms from the taxonomic rank ontology such as [order](http://purl.obolibrary.org/obo/TAXRANK_0000003), [family](http://purl.obolibrary.org/obo/TAXRANK_0000004), [genus](http://purl.obolibrary.org/obo/TAXRANK_0000005), [species](http://purl.obolibrary.org/obo/TAXRANK_0000006).
 + Parameters
     + rank (required, URI, `http://purl.obolibrary.org/obo/TAXRANK_0000003`) ... taxonomic rank IRI
     + in\_taxon (required, URI, `http://purl.obolibrary.org/obo/VTO_0033666`) ... taxonomic group within which to search    
