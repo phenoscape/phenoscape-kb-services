@@ -176,7 +176,7 @@ object Taxon {
           t('state, describes_phenotype, 'phenotype) ::
           t('taxon, exhibits_state, 'state) ::
           t('taxon, rdfsLabel, 'taxon_label) ::
-          t('phenotype, rdfsSubClassOf, (has_part some (quality and (phenotype_of some entity))).asOMN) :: //FIXME fix up has_part after redefining phenotype_of
+          t('phenotype, rdfsSubClassOf, ((has_part some quality) and (phenotype_of some entity)).asOMN) ::
           taxonPatterns: _*))
     App.expandWithOwlet(query)
   }
