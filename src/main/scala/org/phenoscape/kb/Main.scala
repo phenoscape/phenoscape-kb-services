@@ -138,9 +138,9 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   }
                 } ~
                 path("classification") {
-                  parameters('iri.as[IRI]) { (iri) =>
+                  parameters('iri.as[IRI], 'definedBy.as[IRI].?) { (iri, source) =>
                     complete {
-                      Term.classification(iri)
+                      Term.classification(iri, source)
                     }
                   }
                 } ~

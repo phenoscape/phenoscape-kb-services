@@ -160,7 +160,7 @@ object Term {
     (startsWithMatches.sortBy(_.term.label.toLowerCase) ++ containingMatches.sortBy(_.term.label.toLowerCase) ++ synonymMatches.sortBy(_.term.label.toLowerCase)).toList
   }
 
-  def classification(iri: IRI): Future[Classification] = {
+  def classification(iri: IRI, source: Option[IRI]): Future[Classification] = {
     def shouldHide(term: MinimalTerm) = {
       val termID = term.iri.toString
       termID.startsWith("http://example.org") ||
@@ -168,9 +168,9 @@ object Term {
         termID == "http://www.w3.org/2002/07/owl#Nothing" ||
         termID == "http://www.w3.org/2002/07/owl#Thing"
     }
-    val superclassesFuture = querySuperClasses(iri)
-    val subclassesFuture = querySubClasses(iri)
-    val equivalentsFuture = queryEquivalentClasses(iri)
+    val superclassesFuture = querySuperClasses(iri, source)
+    val subclassesFuture = querySubClasses(iri, source)
+    val equivalentsFuture = queryEquivalentClasses(iri, source)
     val termFuture = computedLabel(iri)
     for {
       term <- termFuture
@@ -180,29 +180,35 @@ object Term {
     } yield Classification(term, superclasses.filterNot(shouldHide).toSet, subclasses.filterNot(shouldHide).toSet, equivalents.filterNot(shouldHide).toSet)
   }
 
-  def querySuperClasses(iri: IRI): Future[Seq[MinimalTerm]] = {
+  def querySuperClasses(iri: IRI, source: Option[IRI]): Future[Seq[MinimalTerm]] = {
+    val definedByTriple = source.map(t('term, rdfsIsDefinedBy, _)).toList
     val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
       bgp(
-        t(iri, rdfsSubClassOf, 'term),
-        t('term, rdfsLabel, 'term_label)))
+        (t(iri, rdfsSubClassOf, 'term) ::
+          t('term, rdfsLabel, 'term_label) ::
+          definedByTriple): _*))
     App.executeSPARQLQuery(query, fromMinimalQuerySolution)
   }
 
-  def querySubClasses(iri: IRI): Future[Seq[MinimalTerm]] = {
+  def querySubClasses(iri: IRI, source: Option[IRI]): Future[Seq[MinimalTerm]] = {
+    val definedByTriple = source.map(t('term, rdfsIsDefinedBy, _)).toList
     val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
       bgp(
-        t('term, rdfsSubClassOf, iri),
-        t('term, rdfsLabel, 'term_label)))
+        (t('term, rdfsSubClassOf, iri) ::
+          t('term, rdfsLabel, 'term_label) ::
+          definedByTriple): _*))
     App.executeSPARQLQuery(query, fromMinimalQuerySolution)
   }
 
-  def queryEquivalentClasses(iri: IRI): Future[Seq[MinimalTerm]] = {
+  def queryEquivalentClasses(iri: IRI, source: Option[IRI]): Future[Seq[MinimalTerm]] = {
+    val definedByTriple = source.map(t('term, rdfsIsDefinedBy, _)).toList
     val union = new ElementUnion()
     union.addElement(bgp(t('term, owlEquivalentClass, iri)))
     union.addElement(bgp(t(iri, owlEquivalentClass, 'term)))
     val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
       bgp(
-        t('term, rdfsLabel, 'term_label)),
+        (t('term, rdfsLabel, 'term_label) ::
+          definedByTriple): _*),
         union)
     App.executeSPARQLQuery(query, fromMinimalQuerySolution)
   }
