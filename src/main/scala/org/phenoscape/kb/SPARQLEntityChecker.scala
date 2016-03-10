@@ -24,7 +24,7 @@ import com.hp.hpl.jena.sparql.expr.E_NotExists
 import com.hp.hpl.jena.sparql.syntax.Element
 import com.hp.hpl.jena.sparql.syntax.ElementFilter
 import com.hp.hpl.jena.sparql.syntax.ElementGroup
-import org.phenoscape.scowl.OWL._
+import org.phenoscape.scowl._
 
 object SPARQLEntityChecker extends OWLEntityChecker {
 

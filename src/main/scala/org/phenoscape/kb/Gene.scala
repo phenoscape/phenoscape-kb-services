@@ -11,7 +11,7 @@ import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.scowl.OWL._
+import org.phenoscape.scowl._
 import org.semanticweb.owlapi.model.IRI
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.query.QuerySolution
@@ -40,8 +40,11 @@ import com.hp.hpl.jena.rdf.model.Resource
 import com.hp.hpl.jena.rdf.model.Property
 import org.semanticweb.owlapi.model.OWLObjectProperty
 import scala.language.implicitConversions
+import org.semanticweb.owlapi.apibinding.OWLManager
 
 object Gene {
+
+  private val factory = OWLManager.getOWLDataFactory
 
   //FIXME this is a temporary hack until genes are directly associated with taxa in the KB
   val geneIDPrefixToTaxon = Map(

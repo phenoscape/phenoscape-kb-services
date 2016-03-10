@@ -5,7 +5,7 @@ import scala.concurrent.Future
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.scowl.OWL._
+import org.phenoscape.scowl._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClassExpression
 import com.hp.hpl.jena.query.Query
@@ -13,6 +13,7 @@ import com.hp.hpl.jena.sparql.core.Var
 import com.hp.hpl.jena.sparql.expr.ExprVar
 import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
 import com.hp.hpl.jena.query.QuerySolution
+import scala.language.postfixOps
 
 object DataCoverageFigureReportCatfish {
 

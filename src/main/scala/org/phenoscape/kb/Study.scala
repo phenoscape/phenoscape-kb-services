@@ -1,7 +1,7 @@
 package org.phenoscape.kb
 
 import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.scowl.OWL._
+import org.phenoscape.scowl._
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
@@ -31,9 +31,11 @@ import spray.json.DefaultJsonProtocol._
 import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
 import com.hp.hpl.jena.sparql.expr.aggregate.AggCountDistinct
 import com.hp.hpl.jena.sparql.core.Var
+import org.semanticweb.owlapi.apibinding.OWLManager
 
 object Study {
 
+  private val factory = OWLManager.getOWLDataFactory
   val AnatomicalEntity = Class(ANATOMICAL_ENTITY)
   val Chordata = Class(CHORDATA)
 

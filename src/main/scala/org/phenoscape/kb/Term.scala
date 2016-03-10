@@ -6,7 +6,7 @@ import Main.system
 import system.dispatcher
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.scowl.OWL._
+import org.phenoscape.scowl._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary.RDFS_LABEL
 import com.hp.hpl.jena.graph.NodeFactory
@@ -34,7 +34,8 @@ import com.hp.hpl.jena.datatypes.xsd.XSDDatatype
 import com.hp.hpl.jena.sparql.expr.E_NotExists
 import com.hp.hpl.jena.sparql.syntax.ElementGroup
 import com.hp.hpl.jena.sparql.syntax.Element
-import org.phenoscape.owl.util.ExpressionUtil
+import org.phenoscape.kb.ingest.util.ExpressionUtil
+import org.phenoscape.owl.util.ExpressionsUtil
 import java.util.regex.Pattern
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.OWLEntity
@@ -112,7 +113,7 @@ object Term {
   }
 
   def labelForNamedExpression(iri: IRI): Future[MinimalTerm] =
-    ExpressionUtil.expressionForName(Class(iri)).map { expression =>
+    ExpressionsUtil.expressionForName(Class(iri)).map { expression =>
       for {
         terms <- Future.sequence(expression.getSignature.map(term => computedLabel(term.getIRI)))
         labelMap = terms.map(term => term.iri -> term.label).toMap

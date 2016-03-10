@@ -11,7 +11,7 @@ import com.hp.hpl.jena.sparql.expr.ExprVar
 import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
 import com.hp.hpl.jena.sparql.syntax.ElementNotExists
 import com.hp.hpl.jena.vocabulary.OWL2
-import org.phenoscape.scowl.OWL._
+import org.phenoscape.scowl._
 import com.hp.hpl.jena.datatypes.xsd.XSDDatatype
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.sparql.syntax.ElementFilter
