@@ -247,6 +247,7 @@ object Gene {
     val entityClass = if (includeParts) part_of some Class(entityIRI) else Class(entityIRI)
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
+        App.BigdataAnalyticQuery,
         t('gene, rdfsLabel, 'gene_label),
         t('gene, rdfType, Vocab.Gene),
         t('gene, hasPhenotypicProfile / rdfType, 'phenotype),
@@ -258,6 +259,7 @@ object Gene {
   private def buildGeneExpressedInEntityQuery(entityIRI: IRI): Query = {
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
+        App.BigdataAnalyticQuery,
         t('gene, rdfsLabel, 'gene_label),
         t('expression, associated_with_gene, 'gene),
         t('expression, rdfType, GeneExpression),

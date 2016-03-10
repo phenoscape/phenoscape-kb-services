@@ -62,7 +62,7 @@ object Study {
   def buildQuery(entityOpt: Option[OWLClassExpression], taxonOpt: Option[OWLClassExpression]): Query = {
     val entityPatterns = entityOpt.toList.flatMap(entity =>
       t('study, has_character / may_have_state_value / describes_phenotype, 'phenotype) ::
-        t('phenotype, rdfsSubClassOf, (phenotype_of some entity).asOMN) :: Nil)
+        t('phenotype, rdfsSubClassOf, (has_part some (phenotype_of some entity)).asOMN) :: Nil) //FIXME fix up has_part after redefining phenotype_of
     val taxonPatterns = taxonOpt.toList.flatMap(taxon =>
       t('study, has_TU / has_external_reference, 'taxon) ::
         t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil)

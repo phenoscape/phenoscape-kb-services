@@ -33,13 +33,21 @@ import java.io.ByteArrayInputStream
 import akka.util.Timeout
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import com.hp.hpl.jena.graph.NodeFactory
+import com.hp.hpl.jena.datatypes.RDFDatatype
+import com.hp.hpl.jena.vocabulary.XSD
 
 object App {
 
   implicit val timeout = Timeout(10 minutes)
   private val Prior = IRI.create("http://www.bigdata.com/queryHints#Prior")
   private val RunFirst = IRI.create("http://www.bigdata.com/queryHints#runFirst")
+  private val HintQuery = IRI.create("http://www.bigdata.com/queryHints#Query")
+  private val HintAnalytic = IRI.create("http://www.bigdata.com/queryHints#analytic")
+  private val HintOptimizer = IRI.create("http://www.bigdata.com/queryHints#optimizer")
   val BigdataRunPriorFirst = bgp(t(Prior, RunFirst, "true" ^^ XSDDatatype.XSDboolean))
+  val BigdataAnalyticQuery = t(HintQuery, HintAnalytic, "true" ^^ XSDDatatype.XSDboolean)
+  val BigdataNoOptimizer = t(HintQuery, HintOptimizer, "None" ^^ XSDDatatype.XSDstring)
   val `application/sparql-query` = MediaTypes.register(MediaType.custom("application/sparql-query"))
   val `application/sparql-results+xml` = MediaTypes.register(MediaType.custom("application/sparql-results+xml"))
   val `application/rdf+xml` = MediaTypes.register(MediaType.custom("application/rdf+xml"))

@@ -268,22 +268,14 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
             } ~
             pathPrefix("taxon") {
-              path("query") { //undocumented
-                parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
+              path("phenotypes") {
+                parameters('taxon.as[IRI], 'entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (taxon, entityOpt, qualityOpt, limit, offset, total) =>
                   complete {
-                    if (total) Taxon.queryTotal(entity, taxon, Nil)
-                    else Taxon.query(entity, taxon, Nil, limit, offset)
+                    if (total) Taxon.directPhenotypesTotalFor(taxon, entityOpt, qualityOpt).map(ResultCount(_))
+                    else Taxon.directPhenotypesFor(taxon, entityOpt, qualityOpt, limit, offset)
                   }
                 }
               } ~
-                path("phenotypes") {
-                  parameters('taxon.as[IRI], 'entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (taxon, entityOpt, qualityOpt, limit, offset, total) =>
-                    complete {
-                      if (total) Taxon.directPhenotypesTotalFor(taxon, entityOpt, qualityOpt).map(ResultCount(_))
-                      else Taxon.directPhenotypesFor(taxon, entityOpt, qualityOpt, limit, offset)
-                    }
-                  }
-                } ~
                 path("variation_profile") {
                   parameters('taxon.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (taxon, limit, offset, total) =>
                     complete {
@@ -299,6 +291,20 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                         if (total) Taxon.withPhenotypeTotal(entity, quality, taxonOpt).map(ResultCount(_))
                         else Taxon.withPhenotype(entity, quality, taxonOpt, limit, offset)
                       }
+                  }
+                } ~
+                path("with_rank") {
+                  parameters('rank.as[IRI], 'in_taxon.as[IRI]) { (rank, inTaxon) =>
+                    complete {
+                      Taxon.taxaWithRank(rank, inTaxon)
+                    }
+                  }
+                } ~
+                path("annotated_taxa_count") {
+                  parameter('in_taxon.as[IRI]) { inTaxon =>
+                    complete {
+                      Taxon.countOfAnnotatedTaxa(inTaxon).map(ResultCount(_))
+                    }
                   }
                 } ~
                 path("newick") {
@@ -470,12 +476,26 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   }
                 }
             } ~
+            pathPrefix("phenotype") {
+              path("direct_annotations") {
+                parameters('iri.as[IRI]) { (iri) =>
+                  complete {
+                    CharacterDescription.eqAnnotationsForPhenotype(iri)
+                  }
+                }
+              }
+            } ~
             pathPrefix("report") {
               path("data_coverage_figure") {
                 complete {
                   DataCoverageFigureReport.query()
                 }
               } ~
+                path("data_coverage_figure_catfish") {
+                  complete {
+                    DataCoverageFigureReportCatfish.query()
+                  }
+                } ~
                 path("data_coverage_figure_any_taxon") {
                   complete {
                     DataCoverageFigureReportAnyTaxon.query()

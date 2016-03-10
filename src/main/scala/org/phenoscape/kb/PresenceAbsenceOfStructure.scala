@@ -164,18 +164,18 @@ object PresenceAbsenceOfStructure {
   }
 
   def buildAbsenceStatesQuery(taxonIRI: IRI, entityIRI: IRI, limit: Int, offset: Int): Query = {
-    val query = buildAbsenceStatesQueryBase(taxonIRI, entityIRI) from "http://kb.phenoscape.org/"
+    val query = buildAbsenceStatesQueryBase(taxonIRI, entityIRI) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure"
     if (limit > 1) {
       query.setOffset(offset)
       query.setLimit(limit)
     }
-    query.addOrderBy('phenotype)
     query.addOrderBy('description)
+    query.addOrderBy('phenotype)
     query
   }
 
   def buildAbsenceStatesQueryTotal(taxonIRI: IRI, entityIRI: IRI): Query = {
-    val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(buildAbsenceStatesQueryBase(taxonIRI, entityIRI)))
+    val query = select() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (new ElementSubQuery(buildAbsenceStatesQueryBase(taxonIRI, entityIRI)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
     query
   }
@@ -185,7 +185,7 @@ object PresenceAbsenceOfStructure {
       bgp(
         t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
-        t('phenotype, (rdfsSubClassOf *) / ABSENCE_OF, entityIRI), //FIXME needs to inhere in organism
+        t('phenotype, rdfsSubClassOf / ABSENCE_OF, entityIRI), //FIXME needs to inhere in organism
         t('state, dcDescription, 'description),
         t('matrix, has_character, 'matrix_char),
         t('matrix, rdfsLabel, 'matrix_label),
@@ -193,18 +193,18 @@ object PresenceAbsenceOfStructure {
   }
 
   def buildPresenceStatesQuery(taxonIRI: IRI, entityIRI: IRI, limit: Int, offset: Int): Query = {
-    val query = buildPresenceStatesQueryBase(taxonIRI, entityIRI) from "http://kb.phenoscape.org/"
+    val query = buildPresenceStatesQueryBase(taxonIRI, entityIRI) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure"
     if (limit > 1) {
       query.setOffset(offset)
       query.setLimit(limit)
     }
-    query.addOrderBy('phenotype)
     query.addOrderBy('description)
+    query.addOrderBy('phenotype)
     query
   }
 
   def buildPresenceStatesQueryTotal(taxonIRI: IRI, entityIRI: IRI): Query = {
-    val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(buildPresenceStatesQueryBase(taxonIRI, entityIRI)))
+    val query = select() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (new ElementSubQuery(buildPresenceStatesQueryBase(taxonIRI, entityIRI)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
     query
   }
@@ -214,7 +214,7 @@ object PresenceAbsenceOfStructure {
       bgp(
         t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
-        t('phenotype, (rdfsSubClassOf *) / implies_presence_of_some, entityIRI),
+        t('phenotype, rdfsSubClassOf / implies_presence_of_some, entityIRI),
         t('state, dcDescription, 'description),
         t('matrix, has_character, 'matrix_char),
         t('matrix, rdfsLabel, 'matrix_label),
@@ -225,6 +225,7 @@ object PresenceAbsenceOfStructure {
     val taxonFilterTriple = taxonFilter.map(t('taxon, rdfsSubClassOf*, _)).toList
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp((
+        App.BigdataAnalyticQuery ::
         t('taxon, has_absence_of, entityIRI) ::
         t('taxon, rdfsLabel, 'taxon_label) ::
         taxonFilterTriple): _*))
@@ -251,6 +252,7 @@ object PresenceAbsenceOfStructure {
     val taxonFilterTriple = taxonFilter.map(t('taxon, rdfsSubClassOf*, _)).toList
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp((
+        App.BigdataAnalyticQuery ::
         t('taxon, has_presence_of, entityIRI) ::
         t('taxon, rdfsLabel, 'taxon_label) ::
         taxonFilterTriple): _*))

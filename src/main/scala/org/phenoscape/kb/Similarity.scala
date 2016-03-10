@@ -3,7 +3,6 @@ package org.phenoscape.kb
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import scala.language.postfixOps
-
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
@@ -14,7 +13,6 @@ import org.phenoscape.scowl.OWL._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClass
 import org.semanticweb.owlapi.model.OWLNamedIndividual
-
 import com.hp.hpl.jena.graph.Node_Variable
 import com.hp.hpl.jena.query.Query
 import com.hp.hpl.jena.query.QuerySolution
@@ -30,13 +28,13 @@ import com.hp.hpl.jena.sparql.syntax.ElementFilter
 import com.hp.hpl.jena.sparql.syntax.ElementGroup
 import com.hp.hpl.jena.sparql.syntax.ElementNamedGraph
 import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
-
 import spray.http._
 import spray.httpx._
 import spray.httpx.SprayJsonSupport._
 import spray.httpx.marshalling._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
+import com.hp.hpl.jena.graph.NodeFactory
 
 object Similarity {
 
@@ -131,7 +129,7 @@ object Similarity {
   } yield labelledTerms
 
   def profileSize(profileSubject: IRI): Future[Int] = {
-    val query = select() where (
+    val query = select() from "http://kb.phenoscape.org/" where (
       bgp(
         t(profileSubject, has_phenotypic_profile / rdfType, 'annotation)),
         new ElementFilter(new E_NotOneOf(new ExprVar('annotation), new ExprList(List(
@@ -210,8 +208,9 @@ object Similarity {
       bgp(
         t(instance, has_phenotypic_profile / rdfType, 'annotation)),
         new ElementSubQuery(select('annotation) where (
-          bgp(
-            t('annotation, rdfsSubClassOf*, subsumer)))))
+          new ElementNamedGraph(NodeFactory.createURI("http://kb.phenoscape.org/closure"),
+            bgp(
+              t('annotation, rdfsSubClassOf, subsumer))))))
 
   def constructMatchFor(queryItem: IRI): QuerySolution => SimilarityMatch =
     (result: QuerySolution) => SimilarityMatch(

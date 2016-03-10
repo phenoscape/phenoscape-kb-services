@@ -56,6 +56,7 @@ import scalaz.Success
 import scalaz.Failure
 import com.hp.hpl.jena.sparql.expr.aggregate.AggMin
 import com.hp.hpl.jena.sparql.core.Var
+import com.hp.hpl.jena.sparql.syntax.ElementUnion
 
 object Term {
 
@@ -78,9 +79,8 @@ object Term {
     App.executeSPARQLQuery(buildLabelsQuery(iris: _*), Term.fromMinimalQuerySolution)
   }
 
-  //FIXME remove check for named expressions once label generation has been corrected in the build
   def computedLabel(iri: IRI): Future[MinimalTerm] = (for {
-    labelOpt <- if (iri.toString.startsWith(ExpressionUtil.namedExpressionPrefix) || iri.toString.startsWith(ExpressionUtil.namedSubClassPrefix)) Future.successful(None) else label(iri)
+    labelOpt <- label(iri)
   } yield {
     labelOpt.map(Future.successful).getOrElse {
       computeLabelForAnonymousTerm(iri)
@@ -160,7 +160,6 @@ object Term {
   }
 
   def classification(iri: IRI): Future[Classification] = {
-    implicit val timeout = Timeout(10.minutes)
     def shouldHide(term: MinimalTerm) = {
       val termID = term.iri.toString
       termID.startsWith("http://example.org") ||
@@ -168,23 +167,43 @@ object Term {
         termID == "http://www.w3.org/2002/07/owl#Nothing" ||
         termID == "http://www.w3.org/2002/07/owl#Thing"
     }
-    val pipeline = sendReceive ~> unmarshal[JsObject]
-    val query = Uri.Query("object" -> s"<$iri>", "direct" -> "true")
-    def toTerm(list: JsValue): Future[Set[MinimalTerm]] =
-      Future.sequence(list.convertTo[List[String]].toSet[String].map(IRI.create).map(label)).map(_.flatten)
-    val superclassesFuture = pipeline(Get(App.Owlery.copy(path = App.Owlery.path / "superclasses", query = query)))
-      .map(_.fields("subClassOf")).flatMap(toTerm)
-    val subclassesFuture = pipeline(Get(App.Owlery.copy(path = App.Owlery.path / "subclasses", query = query)))
-      .map(_.fields("superClassOf")).flatMap(toTerm)
-    val equivalentsFuture = pipeline(Get(App.Owlery.copy(path = App.Owlery.path / "equivalent", query = query)))
-      .map(_.fields("equivalentClass")).flatMap(toTerm)
+    val superclassesFuture = querySuperClasses(iri)
+    val subclassesFuture = querySubClasses(iri)
+    val equivalentsFuture = queryEquivalentClasses(iri)
     val termFuture = computedLabel(iri)
     for {
       term <- termFuture
       superclasses <- superclassesFuture
       subclasses <- subclassesFuture
       equivalents <- equivalentsFuture
-    } yield Classification(term, superclasses.filterNot(shouldHide), subclasses.filterNot(shouldHide), equivalents.filterNot(shouldHide))
+    } yield Classification(term, superclasses.filterNot(shouldHide).toSet, subclasses.filterNot(shouldHide).toSet, equivalents.filterNot(shouldHide).toSet)
+  }
+
+  def querySuperClasses(iri: IRI): Future[Seq[MinimalTerm]] = {
+    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t(iri, rdfsSubClassOf, 'term),
+        t('term, rdfsLabel, 'term_label)))
+    App.executeSPARQLQuery(query, fromMinimalQuerySolution)
+  }
+
+  def querySubClasses(iri: IRI): Future[Seq[MinimalTerm]] = {
+    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('term, rdfsSubClassOf, iri),
+        t('term, rdfsLabel, 'term_label)))
+    App.executeSPARQLQuery(query, fromMinimalQuerySolution)
+  }
+
+  def queryEquivalentClasses(iri: IRI): Future[Seq[MinimalTerm]] = {
+    val union = new ElementUnion()
+    union.addElement(bgp(t('term, owlEquivalentClass, iri)))
+    union.addElement(bgp(t(iri, owlEquivalentClass, 'term)))
+    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
+      bgp(
+        t('term, rdfsLabel, 'term_label)),
+        union)
+    App.executeSPARQLQuery(query, fromMinimalQuerySolution)
   }
 
   def allAncestors(iri: IRI): Future[Seq[MinimalTerm]] = {
