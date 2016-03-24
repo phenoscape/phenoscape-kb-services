@@ -31,9 +31,9 @@ import com.hp.hpl.jena.sparql.expr.E_NotOneOf
 import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
 import com.hp.hpl.jena.sparql.syntax.ElementFilter
 import scala.io.Source
-
 import akka.util.Timeout
 import scala.concurrent.duration._
+import com.hp.hpl.jena.sparql.function.library.FN_StrLowerCase
 
 case class GeneExpressionAnnotation(gene: MinimalTerm, location: MinimalTerm, source: Option[IRI]) extends JSONResultItem {
 
@@ -67,7 +67,7 @@ object GeneExpressionAnnotation {
     MinimalTerm(IRI.create(result.getResource("gene").getURI),
       result.getLiteral("gene_label").getLexicalForm),
     MinimalTerm(IRI.create(result.getResource("location").getURI),
-      result.getLiteral("location_label").getLexicalForm),
+      Option(result.getLiteral("location_label")).map(v => v.getLexicalForm).getOrElse("")),
     Option(result.getResource("source")).map(v => IRI.create(v.getURI)))
 
   private def buildBasicGeneExpressionAnnotationsQuery(entity: Option[OWLClassExpression], inTaxonOpt: Option[IRI]): Future[Query] = {
@@ -81,10 +81,10 @@ object GeneExpressionAnnotation {
           t('annotation, associated_with_gene, 'gene) ::
           t('gene, rdfsLabel, 'gene_label) ::
           t('annotation, occurs_in / rdfType, 'location) ::
-          t('location, rdfsLabel, 'location_label) ::
-          //t('annotation, associated_with_taxon, 'taxon) ::
+          t('annotation, associated_with_taxon, 'taxon) ::
           phenotypeTriple ++
           taxonPatterns: _*),
+        optional(bgp(t('location, rdfsLabel, 'location_label))),
         optional(bgp(t('annotation, dcSource, 'source))),
         new ElementFilter(new E_NotOneOf(new ExprVar('location), new ExprList(List(new NodeValueNode(owlNamedIndividual))))))
     App.expandWithOwlet(query)

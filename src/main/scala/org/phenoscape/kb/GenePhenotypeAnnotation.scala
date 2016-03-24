@@ -30,6 +30,10 @@ import com.hp.hpl.jena.sparql.expr.ExprList
 import com.hp.hpl.jena.sparql.expr.E_NotOneOf
 import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
 import com.hp.hpl.jena.sparql.syntax.ElementFilter
+import com.hp.hpl.jena.sparql.function.library.FN_StrLowerCase
+import com.hp.hpl.jena.graph.NodeFactory
+import com.hp.hpl.jena.sparql.expr.E_StrLowerCase
+import com.hp.hpl.jena.query.SortCondition
 
 case class GenePhenotypeAnnotation(gene: MinimalTerm, phenotype: MinimalTerm, source: Option[IRI]) extends JSONResultItem {
 
@@ -98,7 +102,7 @@ object GenePhenotypeAnnotation {
       val query = rawQuery from KBMainGraph
       query.setOffset(offset)
       if (limit > 0) query.setLimit(limit)
-      query.addOrderBy('gene_label)
+      query.addOrderBy(new SortCondition(new E_StrLowerCase(new NodeValueNode(NodeFactory.createVariable("gene_label"))), Query.ORDER_DEFAULT))
       query.addOrderBy('gene)
       query.addOrderBy('phenotype_label)
       query.addOrderBy('phenotype)
