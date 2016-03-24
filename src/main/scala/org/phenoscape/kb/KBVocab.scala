@@ -34,5 +34,8 @@ object KBVocab {
   val owlThing = OWLManager.getOWLDataFactory.getOWLThing
   val Uberon = IRI.create("http://purl.obolibrary.org/obo/uberon.owl")
   val VTO = IRI.create("http://purl.obolibrary.org/obo/vto.owl")
+  val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
+
+  val KBMainGraph = "http://kb.phenoscape.org/"
 
 }

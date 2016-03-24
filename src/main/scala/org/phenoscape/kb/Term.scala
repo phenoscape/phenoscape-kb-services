@@ -164,7 +164,6 @@ object Term {
     def shouldHide(term: MinimalTerm) = {
       val termID = term.iri.toString
       termID.startsWith("http://example.org") ||
-        termID.startsWith("http://purl.org/phenoscape/") ||
         termID == "http://www.w3.org/2002/07/owl#Nothing" ||
         termID == "http://www.w3.org/2002/07/owl#Thing"
     }

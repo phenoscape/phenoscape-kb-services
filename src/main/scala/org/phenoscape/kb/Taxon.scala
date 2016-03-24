@@ -24,7 +24,6 @@ import com.hp.hpl.jena.sparql.expr.E_OneOf
 import com.hp.hpl.jena.sparql.expr.E_IsIRI
 import com.hp.hpl.jena.sparql.expr.ExprVar
 import com.hp.hpl.jena.sparql.syntax.ElementFilter
-import scala.collection.JavaConversions._
 import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import com.hp.hpl.jena.query.Query

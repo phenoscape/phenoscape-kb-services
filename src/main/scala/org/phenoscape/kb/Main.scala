@@ -293,6 +293,15 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                       }
                   }
                 } ~
+                path("annotations") {
+                  parameters('entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'in_taxon.as[IRI].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                    (entity, quality, taxonOpt, limit, offset, total) =>
+                      complete {
+                        if (total) TaxonPhenotypeAnnotation.queryAnnotationsTotal(entity, quality, taxonOpt).map(ResultCount(_))
+                        else TaxonPhenotypeAnnotation.queryAnnotations(entity, quality, taxonOpt, limit, offset)
+                      }
+                  }
+                } ~
                 path("with_rank") {
                   parameters('rank.as[IRI], 'in_taxon.as[IRI]) { (rank, inTaxon) =>
                     complete {
@@ -390,6 +399,24 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                     }
                   }
                 } ~
+                path("phenotype_annotations") {
+                  parameters('entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'in_taxon.as[IRI].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                    (entity, quality, taxonOpt, limit, offset, total) =>
+                      complete {
+                        if (total) GenePhenotypeAnnotation.queryAnnotationsTotal(entity, quality, taxonOpt).map(ResultCount(_))
+                        else GenePhenotypeAnnotation.queryAnnotations(entity, quality, taxonOpt, limit, offset)
+                      }
+                  }
+                } ~
+                path("expression_annotations") {
+                  parameters('entity.as[OWLClassExpression].?, 'in_taxon.as[IRI].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                    (entity, taxonOpt, limit, offset, total) =>
+                      complete {
+                        if (total) GeneExpressionAnnotation.queryAnnotationsTotal(entity, taxonOpt).map(ResultCount(_))
+                        else GeneExpressionAnnotation.queryAnnotations(entity, taxonOpt, limit, offset)
+                      }
+                  }
+                } ~
                 path("query") {
                   parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
                     complete {
@@ -413,10 +440,10 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   }
                 } ~
                 path("affecting_entity_phenotype") {
-                  parameters('iri.as[IRI], 'parts.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (iri, includeParts, limit, offset, total) =>
+                  parameters('iri.as[IRI], 'quality.as[IRI].?, 'parts.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (iri, quality, includeParts, limit, offset, total) =>
                     complete {
-                      if (total) Gene.affectingPhenotypeOfEntityTotal(iri, includeParts).map(ResultCount(_))
-                      else Gene.affectingPhenotypeOfEntity(iri, includeParts, limit, offset)
+                      if (total) Gene.affectingPhenotypeOfEntityTotal(iri, quality, includeParts).map(ResultCount(_))
+                      else Gene.affectingPhenotypeOfEntity(iri, quality, includeParts, limit, offset)
                     }
                   }
                 } ~
@@ -483,7 +510,14 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                     CharacterDescription.eqAnnotationsForPhenotype(iri)
                   }
                 }
-              }
+              } ~
+                path("nearest_eq") {
+                  parameters('iri.as[IRI]) { (iri) =>
+                    complete {
+                      Phenotype.eqForPhenotype(iri)
+                    }
+                  }
+                }
             } ~
             pathPrefix("report") {
               path("data_coverage_figure") {

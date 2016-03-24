@@ -2,7 +2,6 @@ akka {
   loglevel = INFO
 }
 
-
 spray.can {
 	server {
 		request-timeout = infinite
@@ -10,9 +9,13 @@ spray.can {
 	}
 	client {
 		request-timeout = infinite
+        idle-timeout = infinite
 		response-chunk-aggregation-limit = 500m
 		parsing.max-content-length = 500m
 	}
+    host-connector {
+        max-connections = 100
+    }
 }
 
 kb-services {

@@ -134,8 +134,8 @@ object Gene {
     result.getLiteral("gene_label").getLexicalForm,
     taxonForGeneIRI(iri))
 
-  def affectingPhenotypeOfEntity(entity: IRI, includeParts: Boolean, limit: Int, offset: Int): Future[Seq[Gene]] = {
-    val query = buildGeneForPhenotypeQuery(entity, includeParts)
+  def affectingPhenotypeOfEntity(entity: IRI, quality: Option[IRI], includeParts: Boolean, limit: Int, offset: Int): Future[Seq[Gene]] = {
+    val query = buildGeneForPhenotypeQuery(entity, quality, includeParts)
     query.addResultVar('gene)
     query.addResultVar('gene_label)
     if (limit > 1) {
@@ -150,8 +150,8 @@ object Gene {
     } yield genes
   }
 
-  def affectingPhenotypeOfEntityTotal(entity: IRI, includeParts: Boolean): Future[Int] = {
-    val query = buildGeneForPhenotypeQuery(entity, includeParts)
+  def affectingPhenotypeOfEntityTotal(entity: IRI, quality: Option[IRI], includeParts: Boolean): Future[Int] = {
+    val query = buildGeneForPhenotypeQuery(entity, quality, includeParts)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("gene"))))
     for {
       expandedQuery <- App.expandWithOwlet(query)
@@ -245,17 +245,20 @@ object Gene {
     s"$gene\t$geneLabel\t$taxon\t$source"
   }
 
-  private def buildGeneForPhenotypeQuery(entityIRI: IRI, includeParts: Boolean): Query = {
+  private def buildGeneForPhenotypeQuery(entityIRI: IRI, quality: Option[IRI], includeParts: Boolean): Query = {
     val hasPhenotypicProfile = ObjectProperty(has_phenotypic_profile)
     val entityClass = if (includeParts) part_of some Class(entityIRI) else Class(entityIRI)
+    val phenotypeExpression = quality match {
+      case Some(qualityTerm) => (has_part some Class(qualityTerm)) and (phenotype_of some entityClass)
+      case None              => (phenotype_of some entityClass) or (has_part some (towards value Individual(entityIRI)))
+    }
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         App.BigdataAnalyticQuery,
         t('gene, rdfsLabel, 'gene_label),
         t('gene, rdfType, Vocab.Gene),
         t('gene, hasPhenotypicProfile / rdfType, 'phenotype),
-        t('phenotype, rdfsSubClassOf,
-          ((has_part some (phenotype_of some entityClass)) or (has_part some (towards value Individual(entityIRI)))).asOMN)))
+        t('phenotype, rdfsSubClassOf, phenotypeExpression.asOMN)))
     //TODO add part_of instance graph so could say (towards some (part_of value Individual(entityIRI)))???
   }
 
