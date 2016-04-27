@@ -165,6 +165,22 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                     }
                   }
                 } ~
+                pathPrefix("property_neighbors") {
+                  path("object") {
+                    parameters('term.as[IRI], 'property.as[IRI]) { (term, property) =>
+                      complete {
+                        Graph.propertyNeighborsForObject(term, property)
+                      }
+                    }
+                  } ~
+                    path("subject") {
+                      parameters('term.as[IRI], 'property.as[IRI]) { (term, property) =>
+                        complete {
+                          Graph.propertyNeighborsForSubject(term, property)
+                        }
+                      }
+                    }
+                } ~
                 path("resolve_label_expression") {
                   parameters('expression) { (expression) =>
                     complete {
