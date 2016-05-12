@@ -871,12 +871,13 @@ Ranks are terms from the taxonomic rank ontology such as [order](http://purl.obo
         }
 
 
-## Taxa with phenotype [/taxon/with_phenotype{?entity,quality,in_taxon,limit,offset,total}]
+## Taxa with phenotype [/taxon/with_phenotype{?entity,quality,in_taxon,parts,limit,offset,total}]
 ### Retrieve taxa with annotated phenotypes related to the given anatomical entity or quality. [GET]
 + Parameters
     + entity (optional, string `<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/UBERON_0003097>`) ... Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
     + quality (optional, string `<http://purl.obolibrary.org/obo/PATO_0000052>`) ... Quality class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
     + `in_taxon` (optional, URI, `http://purl.obolibrary.org/obo/VTO_0034991`) ... A taxon group to limit the results
+    + parts (optional, boolean, `false`) ... whether to include parts of the entity in the query
     + limit (optional, integer `20`)
     + offset (optional, integer, `0`)
     + total (optional, boolean, `false`) ... whether to return the total result count rather than the results
