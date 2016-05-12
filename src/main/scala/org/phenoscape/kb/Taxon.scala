@@ -67,13 +67,13 @@ object Taxon {
   //    result <- App.executeSPARQLQuery(query)
   //  } yield ResultCount(result)
 
-  def withPhenotype(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = for {
-    query <- buildTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt, limit, offset)
+  def withPhenotype(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = for {
+    query <- buildTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt, includeParts, limit, offset)
     taxa <- App.executeSPARQLQuery(query, Taxon(_))
   } yield taxa
 
-  def withPhenotypeTotal(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI]): Future[Int] = for {
-    query <- buildTaxaWithPhenotypeTotalQuery(entity, quality, inTaxonOpt)
+  def withPhenotypeTotal(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean): Future[Int] = for {
+    query <- buildTaxaWithPhenotypeTotalQuery(entity, quality, inTaxonOpt, includeParts)
     result <- App.executeSPARQLQuery(query)
   } yield ResultCount.count(result)
 
@@ -190,7 +190,8 @@ object Taxon {
   //        publicationFilters: _*)
   //  }
 
-  private def buildBasicTaxaWithPhenotypeQuery(entity: OWLClassExpression = owlThing, quality: OWLClassExpression = owlThing, inTaxonOpt: Option[IRI]): Future[Query] = {
+  private def buildBasicTaxaWithPhenotypeQuery(entity: OWLClassExpression = owlThing, quality: OWLClassExpression = owlThing, inTaxonOpt: Option[IRI], includeParts: Boolean): Future[Query] = {
+    val entityExpression = if (includeParts) (part_of some entity) else entity
     val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf*, _)).toList
     val query = select_distinct('taxon, 'taxon_label) where (
       bgp(
@@ -198,14 +199,14 @@ object Taxon {
           t('state, describes_phenotype, 'phenotype) ::
           t('taxon, exhibits_state, 'state) ::
           t('taxon, rdfsLabel, 'taxon_label) ::
-          t('phenotype, rdfsSubClassOf, ((has_part some quality) and (phenotype_of some entity)).asOMN) ::
+          t('phenotype, rdfsSubClassOf, ((has_part some quality) and (phenotype_of some entityExpression)).asOMN) ::
           taxonPatterns: _*))
     App.expandWithOwlet(query)
   }
 
-  def buildTaxaWithPhenotypeQuery(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Query] = {
+  def buildTaxaWithPhenotypeQuery(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean, limit: Int = 20, offset: Int = 0): Future[Query] = {
     for {
-      rawQuery <- buildBasicTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt)
+      rawQuery <- buildBasicTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt, includeParts)
     } yield {
       val query = rawQuery from "http://kb.phenoscape.org/"
       query.setOffset(offset)
@@ -216,9 +217,9 @@ object Taxon {
     }
   }
 
-  def buildTaxaWithPhenotypeTotalQuery(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI]): Future[Query] = {
+  def buildTaxaWithPhenotypeTotalQuery(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean): Future[Query] = {
     for {
-      rawQuery <- buildBasicTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt)
+      rawQuery <- buildBasicTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt, includeParts)
     } yield {
       val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(rawQuery))
       query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
