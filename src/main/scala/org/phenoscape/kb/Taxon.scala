@@ -100,9 +100,9 @@ object Taxon {
     App.executeSPARQLQuery(buildPhylopicQuery(taxon), CommonGroup(_)).map(_.headOption)
   }
 
-  def directPhenotypesFor(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
+  def directPhenotypesFor(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
     val queryFuture = for {
-      rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt)
+      rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt, includeParts)
     } yield {
       val query = rawQuery from "http://kb.phenoscape.org/"
       if (limit > 1) {
@@ -120,18 +120,19 @@ object Taxon {
     results.flatMap(Future.sequence(_))
   }
 
-  def directPhenotypesTotalFor(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression]): Future[Int] = for {
-    rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt)
+  def directPhenotypesTotalFor(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean): Future[Int] = for {
+    rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt, includeParts)
     query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(rawQuery))
     _ = query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
     result <- App.executeSPARQLQuery(query).map(ResultCount.count)
   } yield result
 
-  private def buildPhenotypesSubQuery(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression]): Future[Query] = {
+  private def buildPhenotypesSubQuery(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean): Future[Query] = {
     val phenotypePattern = if (entityOpt.nonEmpty || qualityOpt.nonEmpty) {
       val entity = entityOpt.getOrElse(owlThing)
       val quality = qualityOpt.getOrElse(owlThing)
-      t('phenotype, rdfsSubClassOf, (has_part some (quality and (phenotype_of some entity))).asOMN) :: Nil //FIXME fix up has_part after redefining phenotype_of
+      val entityExpression = if (includeParts) (part_of some entity) else entity
+      t('phenotype, rdfsSubClassOf, (has_part some (quality and (phenotype_of some entityExpression))).asOMN) :: Nil //FIXME fix up has_part after redefining phenotype_of
     } else Nil
     val query = select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
       bgp(
