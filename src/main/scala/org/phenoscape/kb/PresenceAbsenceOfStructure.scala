@@ -222,8 +222,8 @@ object PresenceAbsenceOfStructure {
   }
 
   def buildExhibitingAbsenceBasicQuery(entityIRI: IRI, taxonFilter: Option[IRI]): Query = {
-    val taxonFilterTriple = taxonFilter.map(t('taxon, rdfsSubClassOf*, _)).toList
-    select_distinct() from "http://kb.phenoscape.org/" where (
+    val taxonFilterTriple = taxonFilter.map(t('taxon, rdfsSubClassOf, _)).toList
+    select_distinct() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
       bgp((
         App.BigdataAnalyticQuery ::
         t('taxon, has_absence_of, entityIRI) ::
