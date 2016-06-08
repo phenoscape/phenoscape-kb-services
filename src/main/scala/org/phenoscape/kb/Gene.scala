@@ -41,6 +41,7 @@ import com.hp.hpl.jena.rdf.model.Property
 import org.semanticweb.owlapi.model.OWLObjectProperty
 import scala.language.implicitConversions
 import org.semanticweb.owlapi.apibinding.OWLManager
+import org.phenoscape.owl.NamedRestrictionGenerator
 
 object Gene {
 
@@ -263,17 +264,14 @@ object Gene {
   }
 
   private def buildGeneExpressedInEntityQuery(entityIRI: IRI): Query = {
-    select_distinct() from "http://kb.phenoscape.org/" where (
+    val partOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
+    select_distinct() from KBMainGraph from KBClosureGraph where (
       bgp(
         App.BigdataAnalyticQuery,
         t('gene, rdfsLabel, 'gene_label),
         t('expression, associated_with_gene, 'gene),
         t('expression, rdfType, GeneExpression),
-        t('expression, occurs_in, 'structure),
-        t('structure, rdfType, 'structure_class)),
-        withOwlery(
-          t('structure_class, rdfsSubClassOf, (part_of some Class(entityIRI)).asOMN)),
-          App.BigdataRunPriorFirst)
+        t('expression, occurs_in / ObjectProperty(rdfType) / rdfsSubClassOf / partOfSome, entityIRI)))
   }
 
   def taxonForGeneIRI(iri: IRI): Taxon = geneIDPrefixToTaxon.collectFirst {
