@@ -37,5 +37,6 @@ object KBVocab {
   val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
 
   val KBMainGraph = "http://kb.phenoscape.org/"
+  val KBClosureGraph = "http://kb.phenoscape.org/closure"
 
 }

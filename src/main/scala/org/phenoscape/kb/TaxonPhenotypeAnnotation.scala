@@ -68,7 +68,7 @@ object TaxonPhenotypeAnnotation {
       case (None, None)                          => None
     }
     val phenotypeTriple = phenotypeExpression.map(desc => t('phenotype, rdfsSubClassOf, desc.asOMN)).toList
-    val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf*, _)).toList
+    val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf, _)).toList
     val query = select_distinct('taxon, 'taxon_label, 'phenotype, 'phenotype_label, 'matrix, 'matrix_label) where (
       bgp(
         App.BigdataAnalyticQuery ::
@@ -87,7 +87,7 @@ object TaxonPhenotypeAnnotation {
     for {
       rawQuery <- buildBasicTaxonPhenotypeAnnotationsQuery(entity, quality, inTaxonOpt)
     } yield {
-      val query = rawQuery from KBMainGraph
+      val query = rawQuery from KBMainGraph from KBClosureGraph
       query.setOffset(offset)
       if (limit > 0) query.setLimit(limit)
       query.addOrderBy('taxon_label)
@@ -100,7 +100,7 @@ object TaxonPhenotypeAnnotation {
     for {
       rawQuery <- buildBasicTaxonPhenotypeAnnotationsQuery(entity, quality, inTaxonOpt)
     } yield {
-      val query = select() from KBMainGraph where (new ElementSubQuery(rawQuery))
+      val query = select() from KBMainGraph from KBClosureGraph where (new ElementSubQuery(rawQuery))
       query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
       query
     }
