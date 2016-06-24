@@ -250,10 +250,10 @@ object Gene {
     val hasPhenotypicProfile = ObjectProperty(has_phenotypic_profile)
     val entityClass = Class(entityIRI)
     val homologousEntityClass = if (includeHomologs) (entityClass or (homologous_to some entityClass)) else entityClass
-    val entityExpression = if (includeParts) part_of some homologousEntityClass else homologousEntityClass
+    val entityExpression = if (includeParts) (part_of some homologousEntityClass) else homologousEntityClass
     val phenotypeExpression = quality match {
-      case Some(qualityTerm) => (has_part some Class(qualityTerm)) and (phenotype_of some entityClass)
-      case None              => (phenotype_of some entityClass) or (has_part some (towards value Individual(entityIRI)))
+      case Some(qualityTerm) => (has_part some Class(qualityTerm)) and (phenotype_of some entityExpression)
+      case None              => (phenotype_of some entityExpression) or (has_part some (towards value Individual(entityIRI)))
     }
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
