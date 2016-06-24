@@ -53,7 +53,6 @@ object Taxon {
   val group_label = ObjectProperty("http://purl.org/phenoscape/phylopics.owl#group_label")
   val is_extinct = ObjectProperty("http://purl.obolibrary.org/obo/vto#is_extinct")
   val has_rank = ObjectProperty("http://purl.obolibrary.org/obo/vto#has_rank")
-  val homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000007")
 
   def withIRI(iri: IRI): Future[Option[TaxonInfo]] =
     App.executeSPARQLQuery(buildTaxonQuery(iri), Taxon.fromIRIQuery(iri)).map(_.headOption)

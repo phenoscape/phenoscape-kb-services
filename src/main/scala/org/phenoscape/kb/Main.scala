@@ -457,11 +457,12 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   }
                 } ~
                 path("affecting_entity_phenotype") {
-                  parameters('iri.as[IRI], 'quality.as[IRI].?, 'parts.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (iri, quality, includeParts, limit, offset, total) =>
-                    complete {
-                      if (total) Gene.affectingPhenotypeOfEntityTotal(iri, quality, includeParts).map(ResultCount(_))
-                      else Gene.affectingPhenotypeOfEntity(iri, quality, includeParts, limit, offset)
-                    }
+                  parameters('iri.as[IRI], 'quality.as[IRI].?, 'parts.as[Boolean].?(false), 'homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                    (iri, quality, includeParts, includeHomologs, limit, offset, total) =>
+                      complete {
+                        if (total) Gene.affectingPhenotypeOfEntityTotal(iri, quality, includeParts, includeHomologs).map(ResultCount(_))
+                        else Gene.affectingPhenotypeOfEntity(iri, quality, includeParts, includeHomologs, limit, offset)
+                      }
                   }
                 } ~
                 path("expressed_within_entity") {
