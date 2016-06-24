@@ -301,11 +301,11 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   }
                 } ~
                 path("with_phenotype") {
-                  parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'quality.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'in_taxon.as[IRI].?, 'parts.as[Boolean] ? (false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                    (entity, quality, taxonOpt, includeParts, limit, offset, total) =>
+                  parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'quality.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                    (entity, quality, taxonOpt, includeParts, includeHomologs, limit, offset, total) =>
                       complete {
-                        if (total) Taxon.withPhenotypeTotal(entity, quality, taxonOpt, includeParts).map(ResultCount(_))
-                        else Taxon.withPhenotype(entity, quality, taxonOpt, includeParts, limit, offset)
+                        if (total) Taxon.withPhenotypeTotal(entity, quality, taxonOpt, includeParts, includeHomologs).map(ResultCount(_))
+                        else Taxon.withPhenotype(entity, quality, taxonOpt, includeParts, includeHomologs, limit, offset)
                       }
                   }
                 } ~
