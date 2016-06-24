@@ -101,9 +101,9 @@ object Taxon {
     App.executeSPARQLQuery(buildPhylopicQuery(taxon), CommonGroup(_)).map(_.headOption)
   }
 
-  def directPhenotypesFor(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
+  def directPhenotypesFor(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean, includeHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
     val queryFuture = for {
-      rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt, includeParts)
+      rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt, includeParts, includeHomologs)
     } yield {
       val query = rawQuery from "http://kb.phenoscape.org/"
       if (limit > 1) {
@@ -121,19 +121,20 @@ object Taxon {
     results.flatMap(Future.sequence(_))
   }
 
-  def directPhenotypesTotalFor(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean): Future[Int] = for {
-    rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt, includeParts)
+  def directPhenotypesTotalFor(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean, includeHomologs: Boolean): Future[Int] = for {
+    rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt, includeParts, includeHomologs)
     query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(rawQuery))
     _ = query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
     result <- App.executeSPARQLQuery(query).map(ResultCount.count)
   } yield result
 
-  private def buildPhenotypesSubQuery(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean): Future[Query] = {
+  private def buildPhenotypesSubQuery(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean, includeHomologs: Boolean): Future[Query] = {
     val phenotypePattern = if (entityOpt.nonEmpty || qualityOpt.nonEmpty) {
       val entity = entityOpt.getOrElse(owlThing)
       val quality = qualityOpt.getOrElse(owlThing)
-      val entityExpression = if (includeParts) (part_of some entity) else entity
-      t('phenotype, rdfsSubClassOf, (has_part some (quality and (phenotype_of some entityExpression))).asOMN) :: Nil //FIXME fix up has_part after redefining phenotype_of
+      val actualEntity = if (includeHomologs) (entity or (homologous_to some entity)) else entity
+      val entityExpression = if (includeParts) (part_of some actualEntity) else actualEntity
+      t('phenotype, rdfsSubClassOf, ((has_part some quality) and (phenotype_of some entityExpression)).asOMN) :: Nil
     } else Nil
     val query = select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
       bgp(

@@ -285,11 +285,12 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             } ~
             pathPrefix("taxon") {
               path("phenotypes") {
-                parameters('taxon.as[IRI], 'entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'parts.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (taxon, entityOpt, qualityOpt, includeParts, limit, offset, total) =>
-                  complete {
-                    if (total) Taxon.directPhenotypesTotalFor(taxon, entityOpt, qualityOpt, includeParts).map(ResultCount(_))
-                    else Taxon.directPhenotypesFor(taxon, entityOpt, qualityOpt, includeParts, limit, offset)
-                  }
+                parameters('taxon.as[IRI], 'entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'parts.as[Boolean].?(false), 'homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                  (taxon, entityOpt, qualityOpt, includeParts, includeHomologs, limit, offset, total) =>
+                    complete {
+                      if (total) Taxon.directPhenotypesTotalFor(taxon, entityOpt, qualityOpt, includeParts, includeHomologs).map(ResultCount(_))
+                      else Taxon.directPhenotypesFor(taxon, entityOpt, qualityOpt, includeParts, includeHomologs, limit, offset)
+                    }
                 }
               } ~
                 path("variation_profile") {
