@@ -48,11 +48,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
 
   implicit object IRIValue extends Deserializer[String, IRI] {
 
-    def apply(text: String): Deserialized[IRI] = {
-      log.debug(s"Converting string to IRI: $text")
-      val iri = IRI.create(text)
-      Right(iri)
-    }
+    def apply(text: String): Deserialized[IRI] = Right(IRI.create(text))
 
   }
 
