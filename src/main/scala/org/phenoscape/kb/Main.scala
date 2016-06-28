@@ -514,7 +514,6 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   parameters('iri.as[IRI]) { (iri) =>
                     complete {
                       val prettyPrinter = new scala.xml.PrettyPrinter(9999, 2)
-                      println("Getting study: " + iri)
                       Study.queryMatrix(iri).map(prettyPrinter.format(_))
                     }
                   }

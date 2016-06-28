@@ -45,19 +45,20 @@ libraryDependencies ++= {
     "io.spray"               %%  "spray-json"             % "1.3.1",
     "io.spray"               %%  "spray-testkit"          % sprayV  % "test",
     "com.typesafe.akka"      %%  "akka-actor"             % akkaV,
+    "com.typesafe.akka"      %%  "akka-slf4j"             % akkaV,
     "com.typesafe.akka"      %%  "akka-testkit"           % akkaV   % "test",
     "net.sourceforge.owlapi" %   "owlapi-distribution"    % "3.5.0",
-    "org.phenoscape"         %   "owlet"                  % "1.3",
+    "org.phenoscape"         %   "owlet"                  % "1.3" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
     "org.phenoscape"         %%  "scowl"                  % "1.0.1",
-    "org.phenoscape"         %%   "kb-owl-tools"          % "1.4.4",
+    "org.phenoscape"         %%   "kb-owl-tools"          % "1.4.4" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
     "org.phenoscape"         %%   "phenoscape-kb-ingest"  % "1.4.5",
-    "org.phenoscape"         %   "phenex"                 % "1.17.2",
-    "commons-io"             %   "commons-io"             % "2.4",
-    "org.apache.jena"        %   "apache-jena-libs"       % "2.11.2",
+    "org.phenoscape"         %   "phenex"                 % "1.17.2" exclude("org.slf4j", "slf4j-log4j12"),
+    "commons-io"             %   "commons-io"             % "2.4", // exclude("log4j", "log4j"),
+    "org.apache.jena"        %   "apache-jena-libs"       % "2.11.2" exclude("org.slf4j", "slf4j-log4j12"),
     "com.google.guava"       %   "guava"                  % "16.0.1",
     "org.scalaz"             %%  "scalaz-core"            % "7.1.1",
-    "org.bbop"               %   "oboformat"              % "0.5.5",
-    "ch.qos.logback"         %   "logback-classic"        % "1.1.3"
+    "org.bbop"               %   "oboformat"              % "0.5.5", // exclude("log4j", "log4j"),
+    "ch.qos.logback"         %   "logback-classic"        % "1.1.7"
   )
 }
 
