@@ -56,7 +56,8 @@ libraryDependencies ++= {
     "org.apache.jena"        %   "apache-jena-libs"       % "2.11.2",
     "com.google.guava"       %   "guava"                  % "16.0.1",
     "org.scalaz"             %%  "scalaz-core"            % "7.1.1",
-    "org.bbop"               %   "oboformat"              % "0.5.5"
+    "org.bbop"               %   "oboformat"              % "0.5.5",
+    "ch.qos.logback"         %   "logback-classic"        % "1.1.3"
   )
 }
 

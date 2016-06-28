@@ -36,6 +36,7 @@ import spray.http.CacheDirectives
 import spray.http.StatusCodes
 import scalaz.Success
 import scalaz.Failure
+import akka.event.Logging
 
 object Main extends App with SimpleRoutingApp with CORSDirectives {
 
@@ -47,7 +48,11 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
 
   implicit object IRIValue extends Deserializer[String, IRI] {
 
-    def apply(text: String): Deserialized[IRI] = Right(IRI.create(text))
+    def apply(text: String): Deserialized[IRI] = {
+      log.debug(s"Converting string to IRI: $text")
+      val iri = IRI.create(text)
+      Right(iri)
+    }
 
   }
 
@@ -509,6 +514,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   parameters('iri.as[IRI]) { (iri) =>
                     complete {
                       val prettyPrinter = new scala.xml.PrettyPrinter(9999, 2)
+                      println("Getting study: " + iri)
                       Study.queryMatrix(iri).map(prettyPrinter.format(_))
                     }
                   }
@@ -557,5 +563,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
         }
     }
   }
+
+  val log = Logging(system, this.getClass)
 
 }
