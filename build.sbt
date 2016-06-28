@@ -58,7 +58,8 @@ libraryDependencies ++= {
     "com.google.guava"       %   "guava"                  % "16.0.1",
     "org.scalaz"             %%  "scalaz-core"            % "7.1.1",
     "org.bbop"               %   "oboformat"              % "0.5.5", // exclude("log4j", "log4j"),
-    "ch.qos.logback"         %   "logback-classic"        % "1.1.7"
+    "ch.qos.logback"         %   "logback-classic"        % "1.1.7",
+    "org.codehaus.groovy"    %  "groovy-all"              % "2.4.6"
   )
 }
 
