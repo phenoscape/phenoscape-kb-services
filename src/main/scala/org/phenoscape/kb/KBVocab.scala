@@ -36,6 +36,7 @@ object KBVocab {
   val VTO = IRI.create("http://purl.obolibrary.org/obo/vto.owl")
   val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
   val homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000007")
+  val serially_homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000027")
 
   val KBMainGraph = "http://kb.phenoscape.org/"
   val KBClosureGraph = "http://kb.phenoscape.org/closure"

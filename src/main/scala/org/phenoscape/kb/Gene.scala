@@ -246,7 +246,7 @@ object Gene {
   private def buildGeneForPhenotypeQuery(entityIRI: IRI, quality: Option[IRI], includeParts: Boolean, includeHomologs: Boolean): Query = {
     val hasPhenotypicProfile = ObjectProperty(has_phenotypic_profile)
     val entityClass = Class(entityIRI)
-    val homologousEntityClass = if (includeHomologs) (entityClass or (homologous_to some entityClass)) else entityClass
+    val homologousEntityClass = if (includeHomologs) (entityClass or (homologous_to some entityClass) or (serially_homologous_to some entityClass)) else entityClass
     val entityExpression = if (includeParts) (part_of some homologousEntityClass) else homologousEntityClass
     val phenotypeExpression = quality match {
       case Some(qualityTerm) => (has_part some Class(qualityTerm)) and (phenotype_of some entityExpression)

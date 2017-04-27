@@ -124,7 +124,7 @@ object Taxon {
     val phenotypePattern = if (entityOpt.nonEmpty || qualityOpt.nonEmpty) {
       val entity = entityOpt.getOrElse(owlThing)
       val quality = qualityOpt.getOrElse(owlThing)
-      val actualEntity = if (includeHomologs) (entity or (homologous_to some entity)) else entity
+      val actualEntity = if (includeHomologs) (entity or (homologous_to some entity) or (serially_homologous_to some entity)) else entity
       val entityExpression = if (includeParts) (part_of some actualEntity) else actualEntity
       t('phenotype, rdfsSubClassOf, ((has_part some quality) and (phenotype_of some entityExpression)).asOMN) :: Nil
     } else Nil
@@ -186,7 +186,7 @@ object Taxon {
   //  }
 
   private def buildBasicTaxaWithPhenotypeQuery(entity: OWLClassExpression = owlThing, quality: OWLClassExpression = owlThing, inTaxonOpt: Option[IRI], includeParts: Boolean, includeHomologs: Boolean): Future[Query] = {
-    val actualEntity = if (includeHomologs) (entity or (homologous_to some entity)) else entity
+    val actualEntity = if (includeHomologs) (entity or (homologous_to some entity) or (serially_homologous_to some entity)) else entity
     val entityExpression = if (includeParts) (part_of some actualEntity) else actualEntity
     val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf*, _)).toList
     val query = select_distinct('taxon, 'taxon_label) where (
