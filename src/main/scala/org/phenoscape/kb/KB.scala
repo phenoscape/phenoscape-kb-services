@@ -1,35 +1,28 @@
 package org.phenoscape.kb
 
-import org.phenoscape.kb.Main.system.dispatcher
 import scala.concurrent.Future
-import org.phenoscape.owl.Vocab._
+
+import org.apache.jena.query.QueryFactory
+import org.apache.jena.sparql.core.Var
+import org.apache.jena.sparql.expr.E_Exists
+import org.apache.jena.sparql.expr.E_NotExists
+import org.apache.jena.sparql.expr.ExprVar
+import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
+import org.apache.jena.sparql.syntax.Element
+import org.apache.jena.sparql.syntax.ElementFilter
+import org.apache.jena.sparql.syntax.ElementGroup
 import org.phenoscape.kb.KBVocab._
+import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
-import com.hp.hpl.jena.query.ResultSet
-import com.hp.hpl.jena.sparql.core.Var
-import com.hp.hpl.jena.sparql.expr.ExprVar
-import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
-import com.hp.hpl.jena.sparql.syntax.ElementNotExists
-import com.hp.hpl.jena.vocabulary.OWL2
-import org.phenoscape.scowl._
-import com.hp.hpl.jena.datatypes.xsd.XSDDatatype
-import com.hp.hpl.jena.query.Query
-import com.hp.hpl.jena.sparql.syntax.ElementFilter
-import com.hp.hpl.jena.sparql.expr.E_NotExists
-import com.hp.hpl.jena.query.QueryFactory
-import com.hp.hpl.jena.sparql.syntax.ElementTriplesBlock
-import com.hp.hpl.jena.sparql.core.BasicPattern
-import com.hp.hpl.jena.sparql.core.TriplePath
-import com.hp.hpl.jena.sparql.syntax.ElementGroup
-import com.hp.hpl.jena.sparql.syntax.Element
-import com.hp.hpl.jena.sparql.expr.E_Exists
-import spray.json.DefaultJsonProtocol._
-import spray.json._
-import spray.httpx.SprayJsonSupport._
-import spray.httpx.marshalling._
+
 import spray.http._
 import spray.httpx._
-import org.phenoscape.kb.KBVocab._
+import spray.httpx.SprayJsonSupport._
+import spray.httpx.marshalling._
+import spray.json._
+import spray.json.DefaultJsonProtocol._
+import org.apache.jena.datatypes.xsd.XSDDatatype
 
 object KB {
 
@@ -135,7 +128,6 @@ GROUP BY ?matrix_label ?char_number ?char_label ?symbol ?state_label ?entity ?en
   }
 
   def taxonCount: Future[Int] = {
-    import org.phenoscape.owl.Vocab.Taxon
     val query = select() from "http://kb.phenoscape.org/" where (
       bgp(
         t('taxon, rdfsIsDefinedBy, VTO)),
@@ -151,7 +143,6 @@ GROUP BY ?matrix_label ?char_number ?char_label ?symbol ?state_label ?entity ?en
   }
 
   def annotatedTaxonCount: Future[Int] = {
-    import org.phenoscape.owl.Vocab.Taxon
     val query = select() from "http://kb.phenoscape.org/" where (
       bgp(
         t('taxon, exhibits_state / describes_phenotype, 'phenotype)))

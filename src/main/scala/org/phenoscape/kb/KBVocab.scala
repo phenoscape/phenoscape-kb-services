@@ -1,12 +1,12 @@
 package org.phenoscape.kb
 
+import org.apache.jena.vocabulary.OWL2
+import org.apache.jena.vocabulary.RDFS
 import org.phenoscape.scowl._
+import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary.RDFS_LABEL
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary.RDFS_SUBCLASS_OF
-import com.hp.hpl.jena.vocabulary.OWL2
-import com.hp.hpl.jena.vocabulary.RDFS
-import org.semanticweb.owlapi.apibinding.OWLManager
 
 object KBVocab {
 

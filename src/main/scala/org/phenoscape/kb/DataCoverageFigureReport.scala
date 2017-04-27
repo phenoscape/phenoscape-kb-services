@@ -3,6 +3,10 @@ package org.phenoscape.kb
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+import org.apache.jena.query.Query
+import org.apache.jena.sparql.core.Var
+import org.apache.jena.sparql.expr.ExprVar
+import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.phenoscape.kb.App.withOwlery
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
@@ -10,11 +14,6 @@ import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClassExpression
-
-import com.hp.hpl.jena.query.Query
-import com.hp.hpl.jena.sparql.core.Var
-import com.hp.hpl.jena.sparql.expr.ExprVar
-import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
 
 object DataCoverageFigureReport {
 

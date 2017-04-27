@@ -3,12 +3,10 @@ package org.phenoscape.kb
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.parsing.json.JSONArray
-import scala.util.parsing.json.JSONObject
-import spray.json.DefaultJsonProtocol._
-import spray.json._
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
+import org.apache.jena.query.Query
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owl.Vocab
 import org.phenoscape.owlet.SPARQLComposer._
@@ -17,9 +15,10 @@ import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
 
 import com.google.common.collect.HashMultiset
-import com.hp.hpl.jena.query.Query
+
 import akka.util.Timeout
-import scala.concurrent.duration._
+import spray.json._
+import spray.json.DefaultJsonProtocol._
 
 object EQForGene {
 

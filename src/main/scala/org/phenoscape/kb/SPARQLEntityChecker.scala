@@ -3,8 +3,17 @@ package org.phenoscape.kb
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
+import org.apache.jena.datatypes.xsd.XSDDatatype
+import org.apache.jena.graph.NodeFactory
+import org.apache.jena.query.Query
+import org.apache.jena.query.QuerySolution
+import org.apache.jena.sparql.expr.E_NotExists
+import org.apache.jena.sparql.syntax.Element
+import org.apache.jena.sparql.syntax.ElementFilter
+import org.apache.jena.sparql.syntax.ElementGroup
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
+import org.phenoscape.scowl._
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.expression.OWLEntityChecker
 import org.semanticweb.owlapi.model.IRI
@@ -15,16 +24,6 @@ import org.semanticweb.owlapi.model.OWLDatatype
 import org.semanticweb.owlapi.model.OWLNamedIndividual
 import org.semanticweb.owlapi.model.OWLObjectProperty
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary
-
-import com.hp.hpl.jena.datatypes.xsd.XSDDatatype
-import com.hp.hpl.jena.graph.NodeFactory
-import com.hp.hpl.jena.query.Query
-import com.hp.hpl.jena.query.QuerySolution
-import com.hp.hpl.jena.sparql.expr.E_NotExists
-import com.hp.hpl.jena.sparql.syntax.Element
-import com.hp.hpl.jena.sparql.syntax.ElementFilter
-import com.hp.hpl.jena.sparql.syntax.ElementGroup
-import org.phenoscape.scowl._
 
 object SPARQLEntityChecker extends OWLEntityChecker {
 

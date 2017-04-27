@@ -1,39 +1,39 @@
 package org.phenoscape.kb
 
-import scala.concurrent.Future
 import scala.collection.JavaConversions._
+import scala.concurrent.Future
 import scala.language.postfixOps
+
+import org.apache.jena.graph.NodeFactory
+import org.apache.jena.query.Query
+import org.apache.jena.query.QuerySolution
+import org.apache.jena.query.SortCondition
+import org.apache.jena.sparql.core.Var
+import org.apache.jena.sparql.expr.E_NotOneOf
+import org.apache.jena.sparql.expr.E_StrLowerCase
+import org.apache.jena.sparql.expr.ExprList
+import org.apache.jena.sparql.expr.ExprVar
+import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
+import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
+import org.apache.jena.sparql.syntax.ElementFilter
+import org.apache.jena.sparql.syntax.ElementSubQuery
+import org.phenoscape.kb.KBVocab._
+import org.phenoscape.kb.KBVocab.rdfsLabel
+import org.phenoscape.kb.KBVocab.rdfsSubClassOf
+import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import org.phenoscape.owl.Vocab._
+import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
+import org.phenoscape.owlet.SPARQLComposer._
+import org.phenoscape.scowl._
+import org.semanticweb.owlapi.model.IRI
+import org.semanticweb.owlapi.model.OWLClassExpression
+
 import spray.http._
 import spray.httpx._
 import spray.httpx.marshalling._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
-import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-import org.phenoscape.owl.Vocab
-import org.phenoscape.owl.Vocab._
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
-import org.phenoscape.scowl._
-import org.phenoscape.kb.KBVocab.rdfsLabel
-import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
-import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
-import org.semanticweb.owlapi.model.OWLClassExpression
-import com.hp.hpl.jena.query.Query
-import org.semanticweb.owlapi.model.IRI
-import com.hp.hpl.jena.sparql.expr.aggregate.AggCountDistinct
-import com.hp.hpl.jena.sparql.core.Var
-import com.hp.hpl.jena.query.QuerySolution
-import com.hp.hpl.jena.sparql.expr.ExprVar
-import com.hp.hpl.jena.sparql.expr.ExprList
-import com.hp.hpl.jena.sparql.expr.E_NotOneOf
-import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
-import com.hp.hpl.jena.sparql.syntax.ElementFilter
-import com.hp.hpl.jena.sparql.function.library.FN_StrLowerCase
-import com.hp.hpl.jena.graph.NodeFactory
-import com.hp.hpl.jena.sparql.expr.E_StrLowerCase
-import com.hp.hpl.jena.query.SortCondition
 
 case class GenePhenotypeAnnotation(gene: MinimalTerm, phenotype: MinimalTerm, source: Option[IRI]) extends JSONResultItem {
 

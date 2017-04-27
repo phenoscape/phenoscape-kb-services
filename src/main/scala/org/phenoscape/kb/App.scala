@@ -4,18 +4,12 @@ import scala.concurrent.Future
 import scala.concurrent.blocking
 import org.phenoscape.owlet.SPARQLComposer._
 import org.semanticweb.owlapi.model.IRI
-import com.hp.hpl.jena.datatypes.xsd.XSDDatatype
-import com.hp.hpl.jena.query.Query
-import com.hp.hpl.jena.query.ResultSet
-import com.hp.hpl.jena.query.ResultSetFactory
-import com.hp.hpl.jena.sparql.engine.http.QueryEngineHTTP
 import com.typesafe.config.ConfigFactory
-import com.hp.hpl.jena.query.QuerySolution
+
 import scala.collection.JavaConversions._
-import com.hp.hpl.jena.sparql.core.TriplePath
-import com.hp.hpl.jena.sparql.syntax.ElementService
+
 import spray.http._
-import com.hp.hpl.jena.query.ResultSetFormatter
+
 import java.io.ByteArrayOutputStream
 import spray.json.JsValue
 import spray.json.JsObject
@@ -24,18 +18,25 @@ import spray.httpx.unmarshalling._
 import spray.httpx.marshalling._
 import Main.system
 import system.dispatcher
-import com.hp.hpl.jena.query.QueryFactory
+
 import spray.can.Http
-import com.hp.hpl.jena.rdf.model.Model
+
 import org.apache.jena.riot.RDFDataMgr
-import com.hp.hpl.jena.rdf.model.ModelFactory
+
 import java.io.ByteArrayInputStream
 import akka.util.Timeout
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import com.hp.hpl.jena.graph.NodeFactory
-import com.hp.hpl.jena.datatypes.RDFDatatype
-import com.hp.hpl.jena.vocabulary.XSD
+import org.apache.jena.query.ResultSetFactory
+import org.apache.jena.rdf.model.ModelFactory
+import org.apache.jena.query.QueryFactory
+import org.apache.jena.query.QuerySolution
+import org.apache.jena.datatypes.xsd.XSDDatatype
+import org.apache.jena.query.ResultSetFormatter
+import org.apache.jena.sparql.syntax.ElementService
+import org.apache.jena.query.ResultSet
+import org.apache.jena.query.Query
+import org.apache.jena.rdf.model.Model
 
 object App {
 

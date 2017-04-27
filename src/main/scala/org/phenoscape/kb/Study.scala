@@ -1,37 +1,32 @@
 package org.phenoscape.kb
 
-import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.scowl._
-import org.phenoscape.owl.Vocab._
-import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
-import org.semanticweb.owlapi.model.OWLClassExpression
-import com.hp.hpl.jena.query.Query
-import com.hp.hpl.jena.query.QuerySolution
-import org.semanticweb.owlapi.model.IRI
-import scala.concurrent.Future
 import java.util.UUID
-import scala.xml.NodeSeq
-import com.hp.hpl.jena.rdf.model.Model
-import scala.xml.Elem
-import com.hp.hpl.jena.rdf.model.Property
-import org.semanticweb.owlapi.model.OWLProperty
-import org.semanticweb.owlapi.model.OWLObjectProperty
-import com.hp.hpl.jena.graph.NodeFactory
-import com.hp.hpl.jena.rdf.model.ResourceFactory
-import scala.language.implicitConversions
-import org.semanticweb.owlapi.model.OWLEntity
+
 import scala.collection.JavaConversions._
-import spray.json._
-import spray.http._
-import spray.httpx._
-import spray.httpx.SprayJsonSupport._
-import spray.httpx.marshalling._
-import spray.json.DefaultJsonProtocol._
-import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
-import com.hp.hpl.jena.sparql.expr.aggregate.AggCountDistinct
-import com.hp.hpl.jena.sparql.core.Var
+import scala.concurrent.Future
+import scala.language.implicitConversions
+import scala.xml.Elem
+
+import org.apache.jena.query.Query
+import org.apache.jena.query.QuerySolution
+import org.apache.jena.rdf.model.Model
+import org.apache.jena.rdf.model.Property
+import org.apache.jena.rdf.model.ResourceFactory
+import org.apache.jena.sparql.core.Var
+import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
+import org.apache.jena.sparql.syntax.ElementSubQuery
+import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.owl.Vocab._
+import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
+import org.phenoscape.owlet.SPARQLComposer._
+import org.phenoscape.scowl._
 import org.semanticweb.owlapi.apibinding.OWLManager
+import org.semanticweb.owlapi.model.IRI
+import org.semanticweb.owlapi.model.OWLClassExpression
+import org.semanticweb.owlapi.model.OWLEntity
+
+import spray.json._
+import spray.json.DefaultJsonProtocol._
 
 object Study {
 

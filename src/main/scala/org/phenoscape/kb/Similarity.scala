@@ -3,38 +3,38 @@ package org.phenoscape.kb
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import scala.language.postfixOps
-import org.phenoscape.kb.Main.system.dispatcher
+
+import org.apache.jena.graph.NodeFactory
+import org.apache.jena.graph.Node_Variable
+import org.apache.jena.query.Query
+import org.apache.jena.query.QuerySolution
+import org.apache.jena.sparql.core.Var
+import org.apache.jena.sparql.expr.E_NotOneOf
+import org.apache.jena.sparql.expr.ExprList
+import org.apache.jena.sparql.expr.ExprVar
+import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
+import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
+import org.apache.jena.sparql.syntax.Element
+import org.apache.jena.sparql.syntax.ElementFilter
+import org.apache.jena.sparql.syntax.ElementGroup
+import org.apache.jena.sparql.syntax.ElementNamedGraph
+import org.apache.jena.sparql.syntax.ElementSubQuery
 import org.phenoscape.kb.KBVocab._
+import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-import org.phenoscape.owl.Vocab._
 import org.phenoscape.owl.Vocab
+import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClass
 import org.semanticweb.owlapi.model.OWLNamedIndividual
-import com.hp.hpl.jena.graph.Node_Variable
-import com.hp.hpl.jena.query.Query
-import com.hp.hpl.jena.query.QuerySolution
-import com.hp.hpl.jena.sparql.core.Var
-import com.hp.hpl.jena.sparql.expr.E_Exists
-import com.hp.hpl.jena.sparql.expr.E_NotOneOf
-import com.hp.hpl.jena.sparql.expr.ExprList
-import com.hp.hpl.jena.sparql.expr.ExprVar
-import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
-import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
-import com.hp.hpl.jena.sparql.syntax.Element
-import com.hp.hpl.jena.sparql.syntax.ElementFilter
-import com.hp.hpl.jena.sparql.syntax.ElementGroup
-import com.hp.hpl.jena.sparql.syntax.ElementNamedGraph
-import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
+
 import spray.http._
 import spray.httpx._
-import spray.httpx.SprayJsonSupport._
 import spray.httpx.marshalling._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
-import com.hp.hpl.jena.graph.NodeFactory
 
 object Similarity {
 

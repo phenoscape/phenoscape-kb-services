@@ -1,30 +1,15 @@
 package org.phenoscape.kb
 
-import scala.collection.JavaConversions._
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
-import Main.system
-import system.dispatcher
+import org.apache.jena.query.Query
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.phenoscape.owl.NamedRestrictionGenerator
-import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.scowl._
 import org.semanticweb.owlapi.model.IRI
-
-import com.hp.hpl.jena.query.Query
-
-import spray.client.pipelining._
-import spray.http._
-import spray.httpx._
-import spray.httpx.SprayJsonSupport._
-import spray.httpx.marshalling._
-import spray.json._
-import spray.json.DefaultJsonProtocol._
 
 object Graph {
 

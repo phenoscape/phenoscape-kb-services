@@ -3,15 +3,29 @@ package org.phenoscape.kb
 import java.net.URI
 import java.text.SimpleDateFormat
 import java.util.Calendar
+
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.implicitConversions
 import scala.language.postfixOps
+
+import org.apache.jena.query.Query
+import org.apache.jena.query.QuerySolution
+import org.apache.jena.rdf.model.Property
+import org.apache.jena.rdf.model.ResourceFactory
+import org.apache.jena.sparql.core.Var
+import org.apache.jena.sparql.expr.E_OneOf
+import org.apache.jena.sparql.expr.ExprList
+import org.apache.jena.sparql.expr.ExprVar
+import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
+import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
+import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
+import org.apache.jena.sparql.syntax.ElementFilter
+import org.apache.jena.sparql.syntax.ElementSubQuery
 import org.apache.log4j.Logger
 import org.obo.datamodel.impl.OBOClassImpl
 import org.phenoscape.io.NeXMLUtil
-import org.phenoscape.kb.App.withOwlery
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.kb.KBVocab.rdfsSubClassOf
@@ -30,20 +44,6 @@ import org.phenoscape.scowl._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClassExpression
 import org.semanticweb.owlapi.model.OWLEntity
-import com.hp.hpl.jena.query.Query
-import com.hp.hpl.jena.query.QuerySolution
-import com.hp.hpl.jena.rdf.model.Property
-import com.hp.hpl.jena.rdf.model.ResourceFactory
-import com.hp.hpl.jena.rdf.model.Statement
-import com.hp.hpl.jena.sparql.core.Var
-import com.hp.hpl.jena.sparql.expr.E_OneOf
-import com.hp.hpl.jena.sparql.expr.ExprList
-import com.hp.hpl.jena.sparql.expr.ExprVar
-import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
-import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
-import com.hp.hpl.jena.sparql.syntax.ElementFilter
-import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
-import com.hp.hpl.jena.sparql.expr.aggregate.AggCountDistinct
 
 object PresenceAbsenceOfStructure {
 

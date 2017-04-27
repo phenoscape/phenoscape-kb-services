@@ -1,12 +1,13 @@
 package org.phenoscape.kb
 
-import com.hp.hpl.jena.query.ResultSet
-import spray.json.DefaultJsonProtocol._
-import spray.json._
-import spray.httpx.SprayJsonSupport._
-import spray.httpx.marshalling._
+import org.apache.jena.query.ResultSet
+
 import spray.http._
 import spray.httpx._
+import spray.httpx.SprayJsonSupport._
+import spray.httpx.marshalling._
+import spray.json._
+import spray.json.DefaultJsonProtocol._
 
 object ResultCount {
 

@@ -1,30 +1,30 @@
 package org.phenoscape.kb
 
 import scala.concurrent.Future
-import scala.collection.JavaConversions._
 import scala.language.postfixOps
+
+import org.apache.jena.query.Query
+import org.apache.jena.query.QuerySolution
+import org.apache.jena.sparql.core.Var
+import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
+import org.apache.jena.sparql.syntax.ElementSubQuery
+import org.phenoscape.kb.KBVocab._
+import org.phenoscape.kb.KBVocab.rdfsLabel
+import org.phenoscape.kb.KBVocab.rdfsSubClassOf
+import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import org.phenoscape.owl.Vocab._
+import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
+import org.phenoscape.owlet.SPARQLComposer._
+import org.phenoscape.scowl._
+import org.semanticweb.owlapi.model.IRI
+import org.semanticweb.owlapi.model.OWLClassExpression
+
 import spray.http._
 import spray.httpx._
 import spray.httpx.marshalling._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
-import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-import org.phenoscape.owl.Vocab
-import org.phenoscape.owl.Vocab._
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
-import org.phenoscape.scowl._
-import org.phenoscape.kb.KBVocab.rdfsLabel
-import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
-import com.hp.hpl.jena.sparql.syntax.ElementSubQuery
-import org.semanticweb.owlapi.model.OWLClassExpression
-import com.hp.hpl.jena.query.Query
-import org.semanticweb.owlapi.model.IRI
-import com.hp.hpl.jena.sparql.expr.aggregate.AggCountDistinct
-import com.hp.hpl.jena.sparql.core.Var
-import com.hp.hpl.jena.query.QuerySolution
 
 case class TaxonPhenotypeAnnotation(taxon: MinimalTerm, phenotype: MinimalTerm, study: MinimalTerm) extends JSONResultItem {
 

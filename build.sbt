@@ -13,7 +13,7 @@ packageDescription in Debian := "Phenoscape KB services"
 
 maintainer in Debian := "James Balhoff"
 
-maintainer in Linux := "James Balhoff <balhoff@nescent.org>"
+maintainer in Linux := "James Balhoff <balhoff@renci.org>"
 
 packageSummary in Linux := "Phenoscape KB services"
 
@@ -29,10 +29,6 @@ scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf
 
 resolvers += "Phenoscape Maven repository" at "http://phenoscape.svn.sourceforge.net/svnroot/phenoscape/trunk/maven/repository"
 
-resolvers += "Bigdata repository" at "http://www.systap.com/maven/releases"
-
-resolvers += "NXParser repository" at "http://nxparser.googlecode.com/svn/repository"
-
 resolvers += "BBOP repository" at "http://code.berkeleybop.org/maven/repository"
 
 libraryDependencies ++= {
@@ -47,19 +43,19 @@ libraryDependencies ++= {
     "com.typesafe.akka"      %%  "akka-actor"             % akkaV,
     "com.typesafe.akka"      %%  "akka-slf4j"             % akkaV,
     "com.typesafe.akka"      %%  "akka-testkit"           % akkaV   % "test",
-    "net.sourceforge.owlapi" %   "owlapi-distribution"    % "3.5.0",
-    "org.phenoscape"         %   "owlet"                  % "1.3" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
-    "org.phenoscape"         %%  "scowl"                  % "1.0.1",
-    "org.phenoscape"         %%   "kb-owl-tools"          % "1.4.4" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
-    "org.phenoscape"         %%   "phenoscape-kb-ingest"  % "1.4.5",
+    "net.sourceforge.owlapi" %   "owlapi-distribution"    % "4.2.8",
+    "org.phenoscape"         %%  "owlet"                  % "1.5" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
+    "org.phenoscape"         %%  "scowl"                  % "1.3",
+    "org.phenoscape"         %%   "kb-owl-tools"          % "1.5" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
+    "org.phenoscape"         %%   "phenoscape-kb-ingest"  % "1.5",
     "org.phenoscape"         %   "phenex"                 % "1.17.2" exclude("org.slf4j", "slf4j-log4j12"),
     "commons-io"             %   "commons-io"             % "2.4", // exclude("log4j", "log4j"),
-    "org.apache.jena"        %   "apache-jena-libs"       % "2.11.2" exclude("org.slf4j", "slf4j-log4j12"),
+    "org.apache.jena"        %   "apache-jena-libs"       % "3.2.0" exclude("org.slf4j", "slf4j-log4j12"),
     "com.google.guava"       %   "guava"                  % "16.0.1",
-    "org.scalaz"             %%  "scalaz-core"            % "7.1.1",
+    "org.scalaz"             %%  "scalaz-core"            % "7.2.1",
     "org.bbop"               %   "oboformat"              % "0.5.5", // exclude("log4j", "log4j"),
     "ch.qos.logback"         %   "logback-classic"        % "1.1.7",
-    "org.codehaus.groovy"    %  "groovy-all"              % "2.4.6"
+    "org.codehaus.groovy"    %   "groovy-all"             % "2.4.6"
   )
 }
 

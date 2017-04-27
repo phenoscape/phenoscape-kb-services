@@ -1,43 +1,36 @@
 package org.phenoscape.kb
 
-import scala.concurrent.Future
-import org.phenoscape.owl.Vocab._
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
-import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.scowl._
-import org.semanticweb.owlapi.model.IRI
-import org.semanticweb.owlapi.vocab.OWLRDFVocabulary.RDFS_LABEL
-import com.hp.hpl.jena.graph.NodeFactory
-import com.hp.hpl.jena.query.Query
-import com.hp.hpl.jena.query.QuerySolution
-import com.hp.hpl.jena.sparql.expr.E_IsIRI
-import com.hp.hpl.jena.sparql.expr.ExprVar
-import com.hp.hpl.jena.sparql.syntax.ElementFilter
-import com.hp.hpl.jena.vocabulary.RDFS
-import com.hp.hpl.jena.vocabulary.OWL2
-import spray.http._
-import spray.httpx._
-import spray.httpx.SprayJsonSupport._
-import spray.httpx.marshalling._
-import spray.json.DefaultJsonProtocol._
-import spray.json._
-import com.hp.hpl.jena.sparql.expr.ExprList
-import com.hp.hpl.jena.sparql.expr.E_OneOf
 import scala.collection.JavaConversions._
-import com.hp.hpl.jena.sparql.expr.nodevalue.NodeValueNode
+import scala.concurrent.Future
+
+import org.apache.jena.graph.NodeFactory
+import org.apache.jena.query.Query
+import org.apache.jena.query.QuerySolution
+import org.apache.jena.sparql.core.Var
+import org.apache.jena.sparql.expr.E_OneOf
+import org.apache.jena.sparql.expr.ExprList
+import org.apache.jena.sparql.expr.ExprVar
+import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
+import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
+import org.apache.jena.sparql.syntax.ElementFilter
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
+import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.phenoscape.kb.Main.system.dispatcher
-import org.semanticweb.owlapi.model.OWLClassExpression
-import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
-import com.hp.hpl.jena.graph.Node
-import org.semanticweb.owlapi.apibinding.OWLManager
-import com.hp.hpl.jena.sparql.expr.aggregate.AggCountVarDistinct
-import com.hp.hpl.jena.sparql.core.Var
-import TaxonEQAnnotation.ps_entity_term
-import TaxonEQAnnotation.ps_quality_term
-import TaxonEQAnnotation.ps_related_entity_term
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import org.phenoscape.owl.Vocab._
+import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
+import org.phenoscape.owlet.SPARQLComposer._
+import org.semanticweb.owlapi.model.IRI
+import org.semanticweb.owlapi.model.OWLClassExpression
+
+import TaxonEQAnnotation.ps_entity_term
+import TaxonEQAnnotation.ps_related_entity_term
+import spray.http._
+import spray.httpx._
+import spray.httpx.marshalling._
+import spray.json._
+import spray.json.DefaultJsonProtocol._
 
 object CharacterDescription {
 
