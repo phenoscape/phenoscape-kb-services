@@ -37,6 +37,7 @@ import org.apache.jena.sparql.syntax.ElementService
 import org.apache.jena.query.ResultSet
 import org.apache.jena.query.Query
 import org.apache.jena.rdf.model.Model
+import java.nio.charset.StandardCharsets
 
 object App {
 
@@ -82,10 +83,13 @@ object App {
   private implicit val SPARQLQueryMarshaller = Marshaller.delegate[Query, String](`application/sparql-query`, MediaTypes.`text/plain`)(_.toString)
   private implicit val SPARQLQueryBodyUnmarshaller = Unmarshaller.delegate[String, Query](`application/sparql-query`)(QueryFactory.create)
 
-  private implicit val SPARQLResultsXMLUnmarshaller = Unmarshaller.delegate[String, ResultSet](`application/sparql-results+xml`)(ResultSetFactory.fromXML)
-  private implicit val RDFXMLUnmarshaller = Unmarshaller.delegate[String, Model](`application/rdf+xml`) { text =>
+  private implicit val SPARQLResultsXMLUnmarshaller = Unmarshaller.delegate[Array[Byte], ResultSet](`application/sparql-results+xml`) { data =>
+    // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
+    ResultSetFactory.fromXML(new String(data, StandardCharsets.UTF_8))
+  }
+  private implicit val RDFXMLUnmarshaller = Unmarshaller.delegate[Array[Byte], Model](`application/rdf+xml`) { data =>
     val model = ModelFactory.createDefaultModel
-    model.read(new ByteArrayInputStream(text.getBytes), null)
+    model.read(new ByteArrayInputStream(data), null)
     model
   }
 
