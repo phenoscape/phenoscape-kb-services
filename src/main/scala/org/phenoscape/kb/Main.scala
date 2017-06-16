@@ -286,11 +286,11 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             } ~
             pathPrefix("taxon") {
               path("phenotypes") {
-                parameters('taxon.as[IRI], 'entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'parts.as[Boolean].?(false), 'homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                  (taxon, entityOpt, qualityOpt, includeParts, includeHomologs, limit, offset, total) =>
+                parameters('taxon.as[IRI], 'entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                  (taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                     complete {
-                      if (total) Taxon.directPhenotypesTotalFor(taxon, entityOpt, qualityOpt, includeParts, includeHomologs).map(ResultCount(_))
-                      else Taxon.directPhenotypesFor(taxon, entityOpt, qualityOpt, includeParts, includeHomologs, limit, offset)
+                      if (total) Taxon.directPhenotypesTotalFor(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                      else Taxon.directPhenotypesFor(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                     }
                 }
               } ~
@@ -303,11 +303,11 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   }
                 } ~
                 path("with_phenotype") {
-                  parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'quality.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                    (entity, quality, taxonOpt, includeParts, includeHomologs, limit, offset, total) =>
+                  parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'quality.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                    (entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                       complete {
-                        if (total) Taxon.withPhenotypeTotal(entity, quality, taxonOpt, includeParts, includeHomologs).map(ResultCount(_))
-                        else Taxon.withPhenotype(entity, quality, taxonOpt, includeParts, includeHomologs, limit, offset)
+                        if (total) Taxon.withPhenotypeTotal(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                        else Taxon.withPhenotype(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                       }
                   }
                 } ~
@@ -458,11 +458,11 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                   }
                 } ~
                 path("affecting_entity_phenotype") {
-                  parameters('iri.as[IRI], 'quality.as[IRI].?, 'parts.as[Boolean].?(false), 'homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                    (iri, quality, includeParts, includeHomologs, limit, offset, total) =>
+                  parameters('iri.as[IRI], 'quality.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                    (iri, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                       complete {
-                        if (total) Gene.affectingPhenotypeOfEntityTotal(iri, quality, includeParts, includeHomologs).map(ResultCount(_))
-                        else Gene.affectingPhenotypeOfEntity(iri, quality, includeParts, includeHomologs, limit, offset)
+                        if (total) Gene.affectingPhenotypeOfEntityTotal(iri, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                        else Gene.affectingPhenotypeOfEntity(iri, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                       }
                   }
                 } ~

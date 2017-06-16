@@ -132,8 +132,8 @@ object Gene {
     result.getLiteral("gene_label").getLexicalForm,
     taxonForGeneIRI(iri))
 
-  def affectingPhenotypeOfEntity(entity: IRI, quality: Option[IRI], includeParts: Boolean, includeHomologs: Boolean, limit: Int, offset: Int): Future[Seq[Gene]] = {
-    val query = buildGeneForPhenotypeQuery(entity, quality, includeParts, includeHomologs)
+  def affectingPhenotypeOfEntity(entity: IRI, quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int, offset: Int): Future[Seq[Gene]] = {
+    val query = buildGeneForPhenotypeQuery(entity, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     query.addResultVar('gene)
     query.addResultVar('gene_label)
     if (limit > 1) {
@@ -148,8 +148,8 @@ object Gene {
     } yield genes
   }
 
-  def affectingPhenotypeOfEntityTotal(entity: IRI, quality: Option[IRI], includeParts: Boolean, includeHomologs: Boolean): Future[Int] = {
-    val query = buildGeneForPhenotypeQuery(entity, quality, includeParts, includeHomologs)
+  def affectingPhenotypeOfEntityTotal(entity: IRI, quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = {
+    val query = buildGeneForPhenotypeQuery(entity, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("gene"))))
     for {
       expandedQuery <- App.expandWithOwlet(query)
@@ -243,10 +243,15 @@ object Gene {
     s"$gene\t$geneLabel\t$taxon\t$source"
   }
 
-  private def buildGeneForPhenotypeQuery(entityIRI: IRI, quality: Option[IRI], includeParts: Boolean, includeHomologs: Boolean): Query = {
+  private def buildGeneForPhenotypeQuery(entityIRI: IRI, quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Query = {
     val hasPhenotypicProfile = ObjectProperty(has_phenotypic_profile)
-    val entityClass = Class(entityIRI)
-    val homologousEntityClass = if (includeHomologs) (entityClass or (homologous_to some entityClass) or (serially_homologous_to some entityClass)) else entityClass
+    val entity = Class(entityIRI)
+    val homologousEntityClass = (includeHistoricalHomologs, includeSerialHomologs) match {
+      case (false, false) => entity
+      case (true, false)  => entity or (homologous_to some entity)
+      case (false, true)  => entity or (serially_homologous_to some entity)
+      case (true, true)   => entity or (homologous_to some entity) or (serially_homologous_to some entity)
+    }
     val entityExpression = if (includeParts) (part_of some homologousEntityClass) else homologousEntityClass
     val phenotypeExpression = quality match {
       case Some(qualityTerm) => (has_part some Class(qualityTerm)) and (phenotype_of some entityExpression)
