@@ -2,43 +2,46 @@ package org.phenoscape.kb
 
 import scala.collection.immutable.Map
 import scala.util.Right
-import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-import org.phenoscape.kb.Term.JSONResultItemMarshaller
-import org.phenoscape.kb.Term.IRIMarshaller
-import org.phenoscape.kb.Term.IRIsMarshaller
-import org.phenoscape.kb.PhenexDataSet.DataSetMarshaller
-import org.semanticweb.owlapi.apibinding.OWLManager
-import org.semanticweb.owlapi.model.IRI
-import org.semanticweb.owlapi.vocab.OWLRDFVocabulary
+
+import org.apache.jena.system.JenaSystem
+import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.OWLFormats.ManchesterSyntaxClassExpression
 import org.phenoscape.kb.OWLFormats.OWLClassExpressionMarshaller
+import org.phenoscape.kb.PhenexDataSet.DataSetMarshaller
+import org.phenoscape.kb.Term.IRIsMarshaller
+import org.phenoscape.kb.Term.JSONResultItemMarshaller
+import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import org.semanticweb.owlapi.apibinding.OWLManager
+import org.semanticweb.owlapi.model.IRI
+import org.semanticweb.owlapi.model.OWLClass
+import org.semanticweb.owlapi.model.OWLClassExpression
+import org.semanticweb.owlapi.model.OWLNamedIndividual
+import org.semanticweb.owlapi.vocab.OWLRDFVocabulary
+
 import com.typesafe.config.ConfigFactory
+
 import akka.actor.ActorSystem
-import spray.http.HttpHeaders.RawHeader
-import spray.http.HttpHeaders.`Cache-Control`
-import spray.http.CacheDirectives.`must-revalidate`
+import akka.event.Logging
+import scalaz._
 import spray.http.CacheDirectives.`max-age`
+import spray.http.CacheDirectives.`must-revalidate`
 import spray.http.CacheDirectives.`s-maxage`
+import spray.http.HttpHeaders
+import spray.http.HttpHeaders.`Cache-Control`
+import spray.http.HttpHeaders.RawHeader
+import spray.http.StatusCodes
+import spray.httpx.SprayJsonSupport._
 import spray.httpx.marshalling._
 import spray.httpx.unmarshalling._
-import spray.httpx.SprayJsonSupport._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import spray.routing._
 import spray.routing.SimpleRoutingApp
 import spray.routing.directives._
-import org.semanticweb.owlapi.model.OWLClassExpression
-import org.phenoscape.kb.KBVocab._
-import spray.http.HttpHeaders
-import org.semanticweb.owlapi.model.OWLClass
-import org.semanticweb.owlapi.model.OWLNamedIndividual
-import spray.http.CacheDirectives
-import spray.http.StatusCodes
-import scalaz.Success
-import scalaz.Failure
-import akka.event.Logging
 
 object Main extends App with SimpleRoutingApp with CORSDirectives {
+
+  JenaSystem.init()
 
   implicit val system = ActorSystem("phenoscape-kb-system")
   import system.dispatcher
@@ -400,6 +403,13 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                         }
                       }
                     }
+                } ~
+                path("homology") {
+                  parameters('entity.as[IRI]) { (entity) =>
+                    complete {
+                      AnatomicalEntity.homologyAnnotations(entity)
+                    }
+                  }
                 }
             } ~
             pathPrefix("gene") {

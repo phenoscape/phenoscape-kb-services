@@ -7,6 +7,7 @@ import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary.RDFS_LABEL
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary.RDFS_SUBCLASS_OF
+import org.apache.jena.vocabulary.RDF
 
 object KBVocab {
 
@@ -16,6 +17,10 @@ object KBVocab {
   val BDRank = IRI.create(s"${BDSearchPrefix}rank")
   val rdfsLabel = ObjectProperty(RDFS_LABEL.getIRI)
   val rdfsSubClassOf = ObjectProperty(RDFS_SUBCLASS_OF.getIRI)
+  //val rdfType = ObjectProperty(RDF.`type`.getURI)
+  val owlIntersectionOf = ObjectProperty(OWL2.intersectionOf.getURI)
+  val rdfFirst = ObjectProperty(RDF.first.getURI)
+  val rdfRest = ObjectProperty(RDF.rest.getURI)
   val hasExactSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym")
   val hasRelatedSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym")
   val definition = ObjectProperty("http://purl.obolibrary.org/obo/IAO_0000115")
@@ -37,6 +42,12 @@ object KBVocab {
   val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
   val homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000007")
   val serially_homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000027")
+
+  val oban = "http://purl.org/oban/"
+  val associationHasSubject = ObjectProperty(s"${oban}association_has_subject")
+  val associationHasPredicate = ObjectProperty(s"${oban}association_has_predicate")
+  val associationHasObject = ObjectProperty(s"${oban}association_has_object")
+  val associationIsNegated = IRI.create("http://purl.org/phenoscape/oban/is_negated")
 
   val KBMainGraph = "http://kb.phenoscape.org/"
   val KBClosureGraph = "http://kb.phenoscape.org/closure"
