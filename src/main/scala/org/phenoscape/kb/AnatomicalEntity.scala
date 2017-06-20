@@ -73,7 +73,7 @@ final case class HomologyAnnotation(subject: IRI, subjectTaxon: IRI, `object`: I
   def toJSON: JsObject = Map(
     "subject" -> subject.toString.toJson,
     "subjectTaxon" -> subjectTaxon.toString.toJson,
-    "object" -> subject.toString.toJson,
+    "object" -> `object`.toString.toJson,
     "objectTaxon" -> objectTaxon.toString.toJson,
     "source" -> source.toJson,
     "negated" -> negated.toJson,
