@@ -879,9 +879,9 @@ paths:
       - "Taxa"
       summary: "Taxa with rank"
       description: "Retrieve all taxa with a given taxonomic rank, within the given\
-        \ super-taxon. Ranks are terms from the taxonomic rank ontology such as [order](http://purl.obolibrary.org/obo/TAXRANK_0000003),\
-        \ [family](http://purl.obolibrary.org/obo/TAXRANK_0000004), [genus](http://purl.obolibrary.org/obo/TAXRANK_0000005),\
-        \ [species](http://purl.obolibrary.org/obo/TAXRANK_0000006)."
+        \ super-taxon. Ranks are term IRIs from the taxonomic rank ontology such as\
+        \ [order](http://purl.obolibrary.org/obo/TAXRANK_0000003), [family](http://purl.obolibrary.org/obo/TAXRANK_0000004),\
+        \ [genus](http://purl.obolibrary.org/obo/TAXRANK_0000005), [species](http://purl.obolibrary.org/obo/TAXRANK_0000006)."
       produces:
       - "application/json"
       parameters:
