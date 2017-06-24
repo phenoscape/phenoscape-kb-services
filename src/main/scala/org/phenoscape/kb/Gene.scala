@@ -223,7 +223,7 @@ object Gene {
           t('entity_instance, rdfType, 'entity)),
           optional(bgp(t('expression, dcSource, 'source))),
           new ElementFilter(new E_NotOneOf(new ExprVar('entity), new ExprList(List(
-            new NodeValueNode(owlNamedIndividual))))))
+            new NodeValueNode(owlNamedIndividual), new NodeValueNode(owlClass))))))
     for {
       annotationsData <- App.executeSPARQLConstructQuery(query)
       entitiesWithSources = processProfileResultToAnnotationsAndSources(annotationsData)

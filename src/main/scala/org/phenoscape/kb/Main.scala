@@ -361,7 +361,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
             } ~
             pathPrefix("entity") {
               path("search") {
-                parameters('text, 'limit.as[Int]) { (text, limit) =>
+                parameters('text, 'limit.as[Int].?(20)) { (text, limit) =>
                   complete {
                     Term.searchOntologyTerms(text, Uberon, limit)
                   }
