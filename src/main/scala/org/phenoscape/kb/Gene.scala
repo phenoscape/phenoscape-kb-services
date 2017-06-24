@@ -219,8 +219,7 @@ object Gene {
         bgp(
           t('expression, rdfType, GeneExpression),
           t('expression, associated_with_gene, iri),
-          t('expression, occurs_in, 'entity_instance),
-          t('entity_instance, rdfType, 'entity)),
+          t('expression, occurs_in, 'entity)),
           optional(bgp(t('expression, dcSource, 'source))),
           new ElementFilter(new E_NotOneOf(new ExprVar('entity), new ExprList(List(
             new NodeValueNode(owlNamedIndividual), new NodeValueNode(owlClass))))))
