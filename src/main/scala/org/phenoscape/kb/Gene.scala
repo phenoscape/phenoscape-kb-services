@@ -274,7 +274,7 @@ object Gene {
         t('gene, rdfsLabel, 'gene_label),
         t('expression, associated_with_gene, 'gene),
         t('expression, rdfType, GeneExpression),
-        t('expression, occurs_in / ObjectProperty(rdfType) / rdfsSubClassOf / partOfSome, entityIRI)))
+        t('expression, occurs_in / rdfsSubClassOf / partOfSome, entityIRI)))
   }
 
   def taxonForGeneIRI(iri: IRI): Taxon = geneIDPrefixToTaxon.collectFirst {
