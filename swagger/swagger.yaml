@@ -1149,11 +1149,43 @@ paths:
       responses:
         200:
           description: "phenotypes annotated to taxa"
-          examples:
-            application/json:
-              results:
-              - '@id': "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000025%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0006606%3E%29#b37d4b42-92e8-41d9-930c-40592efe6d27"
-              - '@id': "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000025%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0006860%3E%29#911a4756-23dc-47af-ac2e-ddb70d844458"
+  /taxon/variation_profile:
+    get:
+      tags:
+      - "Taxa"
+      summary: "Taxon variation profile"
+      description: "Retrieve phenotype annotations inferred to vary at the level of\
+        \ this taxon."
+      produces:
+      - "application/json"
+      parameters:
+      - name: "taxon"
+        in: "query"
+        description: "IRI for taxon"
+        required: true
+        type: "string"
+        format: "IRI"
+      - name: "limit"
+        in: "query"
+        description: "maximum results to return"
+        required: false
+        type: "integer"
+        default: 20
+      - name: "offset"
+        in: "query"
+        description: "index of results to begin returning"
+        required: false
+        type: "integer"
+        default: 0
+      - name: "total"
+        in: "query"
+        description: "whether to return the total result count rather than the results"
+        required: false
+        type: "boolean"
+        default: false
+      responses:
+        200:
+          description: "phenotypes varying within taxon"
   /gene:
     get:
       tags:
