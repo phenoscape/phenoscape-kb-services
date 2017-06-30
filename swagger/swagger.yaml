@@ -338,6 +338,27 @@ paths:
           description: "object terms related to this subject"
           schema:
             $ref: "#/definitions/LabelledTermListResult"
+  /term/resolve_label_expression:
+    get:
+      tags:
+      - "Terms"
+      summary: "Parse label-based class expression"
+      description: "Convert a label-based class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)\
+        \ into an expression composed of IRIs"
+      produces:
+      - "text/plain"
+      parameters:
+      - name: "expression"
+        in: "query"
+        description: "class expression in Manchester syntax, e.g. \"'part of' some\
+          \ head\""
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "IRI-based class expression"
+          examples:
+            text/plain: "<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/UBERON_0000033>"
   /ontotrace:
     get:
       tags:
