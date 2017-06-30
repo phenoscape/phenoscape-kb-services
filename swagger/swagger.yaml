@@ -1513,7 +1513,8 @@ paths:
       - "Genes"
       summary: "Expression locations directly annotated for gene"
       description: "Anatomical structures directly annotated for expression of a gene\
-        \ along with links to sources at MOD sites (if available)."
+        \ along with links to sources at MOD sites (if available). There may be more\
+        \ than one non-redundant entity or quality in each grouping."
       produces:
       - "application/json"
       parameters:
@@ -1538,6 +1539,47 @@ paths:
                   label: "epithelium (zebrafish)"
                   sources:
                   - '@id': "http://zfin.org/ZDB-PUB-080515-4"
+  /gene/eq:
+    get:
+      tags:
+      - "Genes"
+      summary: "Get EQ associations for gene"
+      description: "Return most specific entity and quality pairs (inferred via ontology)\
+        \ based on gene phenotype annotations"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "id"
+        in: "query"
+        description: "Gene IRI"
+        required: false
+        type: "string"
+        format: "IRI"
+      responses:
+        200:
+          description: "EQs"
+          examples:
+            application/json:
+            - entity:
+              - "http://purl.obolibrary.org/obo/UBERON_0002050"
+              - "http://purl.obolibrary.org/obo/UBERON_0012075"
+              - "http://purl.obolibrary.org/obo/UBERON_0010313"
+              - "http://purl.obolibrary.org/obo/UBERON_0011618"
+              - "http://purl.obolibrary.org/obo/UBERON_0013765"
+              - "http://purl.obolibrary.org/obo/UBERON_0003103"
+              - "http://purl.obolibrary.org/obo/UBERON_0003457"
+              quality:
+              - "http://purl.obolibrary.org/obo/PATO_0001483"
+            - entity:
+              - "http://purl.obolibrary.org/obo/UBERON_0002050"
+              - "http://purl.obolibrary.org/obo/UBERON_0012075"
+              - "http://purl.obolibrary.org/obo/UBERON_0010313"
+              - "http://purl.obolibrary.org/obo/UBERON_0013765"
+              - "http://purl.obolibrary.org/obo/UBERON_0003103"
+              - "http://purl.obolibrary.org/obo/UBERON_0011611"
+              - "http://purl.obolibrary.org/obo/UBERON_0003457"
+              quality:
+              - "http://purl.obolibrary.org/obo/PATO_0000051"
   /study/query:
     get:
       tags:
