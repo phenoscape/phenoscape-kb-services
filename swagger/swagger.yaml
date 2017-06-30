@@ -915,6 +915,43 @@ paths:
                 phenotype:
                   '@id': "http://purl.org/phenoscape/uuid/8d785d05-bb9c-4467-a355-c3c4e539a00a#phenotype"
                   label: "Independent endoskeletal basihyal: absent"
+  /entity/homology:
+    get:
+      tags:
+      - "Anatomical entities"
+      summary: "Homology annotations for an anatomical entity"
+      description: "Get homology annotations with taxon scope and source information."
+      produces:
+      - "application/json"
+      parameters:
+      - name: "entity"
+        in: "query"
+        description: "the entity IRI"
+        required: true
+        type: "string"
+        format: "IRI"
+      responses:
+        200:
+          description: "homology annotations"
+          examples:
+            application/json:
+              results:
+              - source: "many authors..."
+                subject: "http://purl.obolibrary.org/obo/UBERON_0000151"
+                relation: "http://purl.obolibrary.org/obo/RO_HOM0000027"
+                objectTaxon: "http://purl.obolibrary.org/obo/VTO_0000007"
+                object: "http://purl.obolibrary.org/obo/UBERON_0000152"
+                subjectTaxon: "http://purl.obolibrary.org/obo/VTO_0000007"
+                evidence: "http://purl.obolibrary.org/obo/ECO_0000034"
+                negated: false
+              - source: "Goodrich, 1930"
+                subject: "http://purl.obolibrary.org/obo/UBERON_0000151"
+                relation: "http://purl.obolibrary.org/obo/RO_HOM0000007"
+                objectTaxon: "http://purl.obolibrary.org/obo/VTO_0001465"
+                object: "http://purl.obolibrary.org/obo/UBERON_0002102"
+                subjectTaxon: "http://purl.obolibrary.org/obo/VTO_0000007"
+                evidence: "http://purl.obolibrary.org/obo/ECO_0000034"
+                negated: false
   /taxon:
     get:
       tags:
@@ -1437,6 +1474,39 @@ paths:
             text/tab-separated-values: "IRI label taxon\nhttp://www.informatics.jax.org/marker/MGI:105378\
               \  Adam12  Mus musculus\nhttp://www.informatics.jax.org/marker/MGI:87934\
               \ Adra2a  Mus musculus\n"
+  /gene/phenotypic_profile:
+    get:
+      tags:
+      - "Genes"
+      summary: "Phenotypes directly annotated for gene"
+      description: "Phenotypes directly annotated for gene along with links to sources\
+        \ at MOD sites (if available)."
+      produces:
+      - "application/json"
+      parameters:
+      - name: "iri"
+        in: "query"
+        description: "Gene IRI"
+        required: false
+        type: "string"
+        format: "IRI"
+      responses:
+        200:
+          description: "phenotypes"
+          examples:
+            applications/json:
+              results:
+              - '@id': "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%0A++++%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000052%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FZFA_0001205%3E%29%29"
+                label: "Meckel's cartilage shape"
+                sources:
+                - '@id': "http://zfin.org/ZDB-FIG-080929-13"
+                - '@id': "http://zfin.org/ZDB-FIG-080604-23"
+              - '@id': "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%0A++++%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0001483%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FZFA_0000316%3E%29%29"
+                label: "basihyal bone aplastic"
+                sources:
+                - '@id': "http://zfin.org/ZDB-FIG-080604-35"
+                - '@id': "http://zfin.org/ZDB-FIG-080604-30"
+                - '@id': "http://zfin.org/ZDB-FIG-080929-13"
   /study/query:
     get:
       tags:
