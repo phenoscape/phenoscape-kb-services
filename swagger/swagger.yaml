@@ -408,6 +408,13 @@ paths:
         required: true
         type: "string"
         format: "IRI"
+      - name: "corpus_graph"
+        in: "query"
+        description: "IRI identifying corpus. Current options are `http://kb.phenoscape.org/sim/taxa`\
+          \ or `http://kb.phenoscape.org/sim/genes`"
+        required: true
+        type: "string"
+        format: "IRI"
       - name: "limit"
         in: "query"
         description: "maximum results to return"
@@ -463,6 +470,20 @@ paths:
         required: true
         type: "string"
         format: "IRI"
+      - name: "corpus_graph"
+        in: "query"
+        description: "IRI identifying corpus. Current options are `http://kb.phenoscape.org/sim/taxa`\
+          \ or `http://kb.phenoscape.org/sim/genes`"
+        required: true
+        type: "string"
+        format: "IRI"
+      - name: "query_graph"
+        in: "query"
+        description: "IRI identifying graph of query items. Current options are `http://kb.phenoscape.org/sim/taxa`\
+          \ or `http://kb.phenoscape.org/sim/genes`"
+        required: true
+        type: "string"
+        format: "IRI"
       responses:
         200:
           description: "best profile matches"
@@ -501,6 +522,13 @@ paths:
       - name: "corpus_iri"
         in: "query"
         description: "IRI for matched profile in corpus"
+        required: true
+        type: "string"
+        format: "IRI"
+      - name: "corpus_graph"
+        in: "query"
+        description: "IRI identifying corpus. Current options are `http://kb.phenoscape.org/sim/taxa`\
+          \ or `http://kb.phenoscape.org/sim/genes`"
         required: true
         type: "string"
         format: "IRI"
