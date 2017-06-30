@@ -1084,6 +1084,47 @@ paths:
           examples:
             application/json:
               total: 1299
+  /taxon/newick:
+    get:
+      tags:
+      - "Taxa"
+      summary: "Get Newick tree rooted at taxon"
+      description: "Get Newick tree rooted at taxon, based on the VTO classification.\
+        \ Nodes are taxon labels."
+      produces:
+      - "text/plain"
+      parameters:
+      - name: "iri"
+        in: "query"
+        description: "taxon IRI"
+        required: true
+        type: "string"
+        format: "IRI"
+      responses:
+        200:
+          description: "newick tree"
+          examples:
+            text/plain: "(('Noturus albater', 'Noturus phaeus', 'Noturus baileyi',\
+              \ 'Noturus flavus', 'Noturus nocturnus', 'Noturus stigmosus', 'Noturus\
+              \ trautmani', 'Noturus leptacanthus', 'Noturus miurus', 'Noturus insignis',\
+              \ 'Noturus stanauli', 'Noturus gyrinus', 'Noturus flavater', 'Noturus\
+              \ crypticus', 'Noturus maydeni', 'Noturus taylori', 'Noturus placidus',\
+              \ 'Noturus eleutherus', 'Noturus gladiator', 'Noturus lachneri', 'Noturus\
+              \ fasciatus', 'Noturus elegans', 'Noturus funebris', 'Noturus hildebrandi',\
+              \ 'Noturus exilis', 'Noturus munitus', 'Noturus gilberti', 'Noturus\
+              \ furiosus', 'Noturus flavipinnis')'Noturus', ('Prietella phreatophila',\
+              \ 'Prietella lundbergi')'Prietella', ('Satan eurystomus')'Satan', ('Pylodictis\
+              \ olivaris')'Pylodictis', ('Ictalurus lupus', 'Ictalurus sp. (Fink and\
+              \ Fink 1981)', 'Ictalurus balsanus', 'Ictalurus ochoterenai', 'Ictalurus\
+              \ sp. (Mo 1991)', 'Ictalurus australis', 'Ictalurus mexicanus', 'Ictalurus\
+              \ dugesii', 'Ictalurus sp. (Vigliotta 2008)', 'Ictalurus meridionalis',\
+              \ 'Ictalurus pricei', 'Ictalurus punctatus', 'Ictalurus furcatus')'Ictalurus',\
+              \ ('Trogloglanis pattersoni')'Trogloglanis', ('Astephus sp. (Lundberg\
+              \ 1992)', 'Astephus antiquus', 'Astephus calvus', 'Astephus resimus')'Astephus',\
+              \ ('Ameiurus catus', 'Ameiurus platycephalus', 'Ameiurus brunneus',\
+              \ 'Ameiurus natalis', 'Ameiurus melas', 'Ameiurus sp. (de Pinna 1993)',\
+              \ 'Ameiurus sp. (Vigliotta 2008)', 'Ameiurus serracanthus', 'Ameiurus\
+              \ nebulosus')'Ameiurus')'Ictaluridae';"
   /taxon/phenotypes:
     get:
       tags:
