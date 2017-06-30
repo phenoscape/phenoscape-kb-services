@@ -152,7 +152,6 @@ paths:
         description: "maximum terms to return"
         required: false
         type: "integer"
-        default: 10
       responses:
         200:
           description: "Term search results; values returned for 'matchType' may be\
