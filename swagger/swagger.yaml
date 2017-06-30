@@ -609,10 +609,17 @@ paths:
       - "Semantic similarity"
       summary: "Corpus size"
       description: "Retrieve number of instances in the similarity search corpus (currently,\
-        \ taxon nodes)."
+        \ either gene or taxon nodes)."
       produces:
       - "application/json"
-      parameters: []
+      parameters:
+      - name: "corpus_graph"
+        in: "query"
+        description: "IRI identifying corpus. Current options are `http://kb.phenoscape.org/sim/taxa`\
+          \ or `http://kb.phenoscape.org/sim/genes`"
+        required: true
+        type: "string"
+        format: "IRI"
       responses:
         200:
           description: "corpus size"
@@ -626,14 +633,28 @@ paths:
       - "Semantic similarity"
       summary: "IC disparity"
       description: "Query information content disparity for a phenotype class between\
-        \ taxon and gene corpora. The disparity for a class is the taxon-based IC\
-        \ minus the gene-based IC."
+        \ taxon and gene corpora. The disparity for a class is the IC of the term\
+        \ in the search corpus IC minus the IC of the term in the query corpus."
       produces:
       - "application/json"
       parameters:
       - name: "iri"
         in: "query"
         description: "IRI for phenotype class"
+        required: true
+        type: "string"
+        format: "IRI"
+      - name: "corpus_graph"
+        in: "query"
+        description: "IRI identifying corpus. Current options are `http://kb.phenoscape.org/sim/taxa`\
+          \ or `http://kb.phenoscape.org/sim/genes`"
+        required: true
+        type: "string"
+        format: "IRI"
+      - name: "query_graph"
+        in: "query"
+        description: "IRI identifying graph of query items. Current options are `http://kb.phenoscape.org/sim/taxa`\
+          \ or `http://kb.phenoscape.org/sim/genes`"
         required: true
         type: "string"
         format: "IRI"
