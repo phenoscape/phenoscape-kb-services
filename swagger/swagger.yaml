@@ -1507,6 +1507,37 @@ paths:
                 - '@id': "http://zfin.org/ZDB-FIG-080604-35"
                 - '@id': "http://zfin.org/ZDB-FIG-080604-30"
                 - '@id': "http://zfin.org/ZDB-FIG-080929-13"
+  /gene/expression_profile:
+    get:
+      tags:
+      - "Genes"
+      summary: "Expression locations directly annotated for gene"
+      description: "Anatomical structures directly annotated for expression of a gene\
+        \ along with links to sources at MOD sites (if available)."
+      produces:
+      - "application/json"
+      parameters:
+      - name: "iri"
+        in: "query"
+        description: "Gene IRI"
+        required: false
+        type: "string"
+        format: "IRI"
+      responses:
+        200:
+          description: "phenotypes"
+          examples:
+            applications/json:
+              results:
+                results:
+                - '@id': "http://purl.obolibrary.org/obo/ZFA_0000100"
+                  label: "cerebellum (zebrafish)"
+                  sources:
+                  - '@id': "http://zfin.org/ZDB-PUB-080515-4"
+                - '@id': "http://purl.obolibrary.org/obo/ZFA_0001486"
+                  label: "epithelium (zebrafish)"
+                  sources:
+                  - '@id': "http://zfin.org/ZDB-PUB-080515-4"
   /study/query:
     get:
       tags:
