@@ -1125,6 +1125,29 @@ paths:
               \ 'Ameiurus natalis', 'Ameiurus melas', 'Ameiurus sp. (de Pinna 1993)',\
               \ 'Ameiurus sp. (Vigliotta 2008)', 'Ameiurus serracanthus', 'Ameiurus\
               \ nebulosus')'Ameiurus')'Ictaluridae';"
+  /taxon/group:
+    get:
+      tags:
+      - "Taxa"
+      summary: "Get user friendly group label"
+      description: "Get a user friendly label for the major group to which the taxon\
+        \ belongs, and a link to a phylopic."
+      produces:
+      - "application/json"
+      parameters:
+      - name: "iri"
+        in: "query"
+        description: "taxon IRI"
+        required: true
+        type: "string"
+        format: "IRI"
+      responses:
+        200:
+          description: "group and phylopic"
+          examples:
+            application/json:
+              label: "ray-finned fishes"
+              phylopic: "http://phylopic.org/image/ad7e6eb0-82fe-4c1a-9b3b-e07fe42d3890/"
   /taxon/phenotypes:
     get:
       tags:
