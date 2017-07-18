@@ -219,7 +219,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                     Similarity.querySimilarProfiles(query, corpusGraph, limit, offset)
                   }
                 }
-              } ~
+              } ~ // why 2 graphs??
                 path("best_matches") {
                   parameters('query_iri.as[IRI], 'corpus_iri.as[IRI], 'query_graph.as[IRI], 'corpus_graph.as[IRI]) { (queryItem, corpusItem, queryGraph, corpusGraph) =>
                     complete {
@@ -264,14 +264,14 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
             } ~
             pathPrefix("characterstate") {
-              path("search") { //undocumented
+              path("search") { //undocumented and currently unused
                 parameters('text, 'limit.as[Int]) { (text, limit) =>
                   complete {
                     CharacterDescription.search(text, limit)
                   }
                 }
               } ~
-                path("query") { //undocumented
+                path("query") { //undocumented and currently unused
                   parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
                     complete {
                       if (total) CharacterDescription.queryTotal(entity, taxon, Nil)
@@ -279,7 +279,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                     }
                   }
                 } ~
-                path("with_annotation") {
+                path("with_annotation") { //undocumented and currently unused
                   parameter('iri.as[IRI]) { iri =>
                     complete {
                       CharacterDescription.annotatedCharacterDescriptionWithAnnotation(iri)
@@ -314,7 +314,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                       }
                   }
                 } ~
-                path("annotations") {
+                path("annotations") { //undocumented and currently unused
                   parameters('entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'in_taxon.as[IRI].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
                     (entity, quality, taxonOpt, limit, offset, total) =>
                       complete {
@@ -427,7 +427,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                     }
                   }
                 } ~
-                path("phenotype_annotations") {
+                path("phenotype_annotations") { // undocumented and not currently used
                   parameters('entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'in_taxon.as[IRI].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
                     (entity, quality, taxonOpt, limit, offset, total) =>
                       complete {
@@ -436,7 +436,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                       }
                   }
                 } ~
-                path("expression_annotations") {
+                path("expression_annotations") { // undocumented and not currently used
                   parameters('entity.as[OWLClassExpression].?, 'in_taxon.as[IRI].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
                     (entity, taxonOpt, limit, offset, total) =>
                       complete {
@@ -445,7 +445,7 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                       }
                   }
                 } ~
-                path("query") {
+                path("query") { // undocumented and not currently used
                   parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (entity, taxon, limit, offset, total) =>
                     complete {
                       if (total) Gene.queryTotal(entity, taxon)
@@ -533,14 +533,14 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
             } ~
             pathPrefix("phenotype") {
-              path("direct_annotations") {
+              path("direct_annotations") { // undocumented and not currently used
                 parameters('iri.as[IRI]) { (iri) =>
                   complete {
                     CharacterDescription.eqAnnotationsForPhenotype(iri)
                   }
                 }
               } ~
-                path("nearest_eq") {
+                path("nearest_eq") { // undocumented and not currently used
                   parameters('iri.as[IRI]) { (iri) =>
                     complete {
                       Phenotype.eqForPhenotype(iri)
@@ -549,17 +549,17 @@ object Main extends App with SimpleRoutingApp with CORSDirectives {
                 }
             } ~
             pathPrefix("report") {
-              path("data_coverage_figure") {
+              path("data_coverage_figure") { // undocumented and not currently used
                 complete {
                   DataCoverageFigureReport.query()
                 }
               } ~
-                path("data_coverage_figure_catfish") {
+                path("data_coverage_figure_catfish") { // undocumented and not currently used
                   complete {
                     DataCoverageFigureReportCatfish.query()
                   }
                 } ~
-                path("data_coverage_figure_any_taxon") {
+                path("data_coverage_figure_any_taxon") { // undocumented and not currently used
                   complete {
                     DataCoverageFigureReportAnyTaxon.query()
                   }
