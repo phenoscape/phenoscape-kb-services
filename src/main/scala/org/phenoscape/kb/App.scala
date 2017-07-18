@@ -1,47 +1,52 @@
 package org.phenoscape.kb
 
-import scala.concurrent.Future
-import scala.concurrent.blocking
-import org.phenoscape.owlet.SPARQLComposer._
-import org.semanticweb.owlapi.model.IRI
-import com.typesafe.config.ConfigFactory
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.nio.charset.StandardCharsets
 
 import scala.collection.JavaConversions._
-
-import spray.http._
-
-import java.io.ByteArrayOutputStream
-import spray.json.JsValue
-import spray.json.JsObject
-import spray.client.pipelining._
-import spray.httpx.unmarshalling._
-import spray.httpx.marshalling._
-import Main.system
-import system.dispatcher
-
-import spray.can.Http
-
-import org.apache.jena.riot.RDFDataMgr
-
-import java.io.ByteArrayInputStream
-import akka.util.Timeout
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import org.apache.jena.query.ResultSetFactory
-import org.apache.jena.rdf.model.ModelFactory
+
+import org.apache.jena.datatypes.xsd.XSDDatatype
+import org.apache.jena.query.Query
 import org.apache.jena.query.QueryFactory
 import org.apache.jena.query.QuerySolution
-import org.apache.jena.datatypes.xsd.XSDDatatype
-import org.apache.jena.query.ResultSetFormatter
-import org.apache.jena.sparql.syntax.ElementService
 import org.apache.jena.query.ResultSet
-import org.apache.jena.query.Query
+import org.apache.jena.query.ResultSetFactory
+import org.apache.jena.query.ResultSetFormatter
 import org.apache.jena.rdf.model.Model
-import java.nio.charset.StandardCharsets
+import org.apache.jena.rdf.model.ModelFactory
+import org.apache.jena.sparql.syntax.ElementService
+import org.phenoscape.owlet.SPARQLComposer._
+import org.semanticweb.owlapi.model.IRI
+
+import com.typesafe.config.ConfigFactory
+
+import Main.system
+import system.dispatcher
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.marshalling.Marshal
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.http.scaladsl.model.HttpCharsets
+import akka.http.scaladsl.model.HttpMethods
+import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.model.MediaType
+import akka.http.scaladsl.model.RequestEntity
+import akka.http.scaladsl.model.Uri
+import akka.http.scaladsl.model.headers
+import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
+import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.http.scaladsl.unmarshalling.Unmarshaller
+import akka.stream.ActorMaterializer
+import akka.util.Timeout
 
 object App {
 
   implicit val timeout = Timeout(10 minutes)
+  implicit val materializer = ActorMaterializer()
   private val Prior = IRI.create("http://www.bigdata.com/queryHints#Prior")
   private val RunFirst = IRI.create("http://www.bigdata.com/queryHints#runFirst")
   private val HintQuery = IRI.create("http://www.bigdata.com/queryHints#Query")
@@ -50,27 +55,24 @@ object App {
   val BigdataRunPriorFirst = bgp(t(Prior, RunFirst, "true" ^^ XSDDatatype.XSDboolean))
   val BigdataAnalyticQuery = t(HintQuery, HintAnalytic, "true" ^^ XSDDatatype.XSDboolean)
   val BigdataNoOptimizer = t(HintQuery, HintOptimizer, "None" ^^ XSDDatatype.XSDstring)
-  val `application/sparql-query` = MediaTypes.register(MediaType.custom("application/sparql-query"))
-  val `application/sparql-results+xml` = MediaTypes.register(MediaType.custom("application/sparql-results+xml"))
-  val `application/rdf+xml` = MediaTypes.register(MediaType.custom("application/rdf+xml"))
+  val `application/sparql-results+xml` = MediaType.applicationWithFixedCharset("sparql-results+xml", HttpCharsets.`UTF-8`, "xml")
+  val `application/sparql-query` = MediaType.applicationWithFixedCharset("sparql-query", HttpCharsets.`UTF-8`, "rq", "sparql")
+  val `application/rdf+xml` = MediaType.applicationWithFixedCharset("rdf+xml", HttpCharsets.`UTF-8`, "rdf")
+  val `application/ld+json` = MediaType.applicationWithFixedCharset("ld+json", HttpCharsets.`UTF-8`, "jsonld")
 
   val conf = ConfigFactory.load()
   val KBEndpoint: Uri = Uri(conf.getString("kb-services.kb.endpoint"))
   val Owlery: Uri = Uri(conf.getString("kb-services.owlery.endpoint"))
 
-  val `application/ld+json` = MediaTypes.register(MediaType.custom("application/ld+json"))
-
   def withOwlery(triple: TripleOrPath): ElementService = service(App.Owlery.toString + "/sparql", bgp(triple))
 
-  def executeSPARQLQuery(query: Query): Future[ResultSet] = sparqlSelectQuery(Post(KBEndpoint, query))
+  def executeSPARQLQuery(query: Query): Future[ResultSet] = sparqlSelectQuery(query)
 
   def executeSPARQLQuery[T](query: Query, resultMapper: QuerySolution => T): Future[Seq[T]] = for {
-    resultSet <- sparqlSelectQuery(Post(KBEndpoint, query))
-  } yield {
-    resultSet.map(resultMapper).toSeq
-  }
+    resultSet <- sparqlSelectQuery(query)
+  } yield resultSet.map(resultMapper).toSeq
 
-  def executeSPARQLConstructQuery(query: Query): Future[Model] = sparqlConstructQuery(Post(KBEndpoint, query))
+  def executeSPARQLConstructQuery(query: Query): Future[Model] = sparqlConstructQuery(query)
 
   def resultSetToTSV(result: ResultSet): String = {
     val outStream = new ByteArrayOutputStream()
@@ -80,25 +82,48 @@ object App {
     tsv
   }
 
-  private implicit val SPARQLQueryMarshaller = Marshaller.delegate[Query, String](`application/sparql-query`, MediaTypes.`text/plain`)(_.toString)
-  private implicit val SPARQLQueryBodyUnmarshaller = Unmarshaller.delegate[String, Query](`application/sparql-query`)(QueryFactory.create)
+  private implicit val SPARQLQueryMarshaller: ToEntityMarshaller[Query] = Marshaller.stringMarshaller(`application/sparql-query`).compose(_.toString)
 
-  private implicit val SPARQLResultsXMLUnmarshaller = Unmarshaller.delegate[Array[Byte], ResultSet](`application/sparql-results+xml`) { data =>
+  private implicit val SPARQLQueryBodyUnmarshaller: FromEntityUnmarshaller[Query] = Unmarshaller.stringUnmarshaller.forContentTypes(`application/sparql-query`).map(QueryFactory.create)
+
+  private implicit val SPARQLResultsXMLUnmarshaller = Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/sparql-results+xml`).map { data =>
     // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
     ResultSetFactory.fromXML(new String(data, StandardCharsets.UTF_8))
   }
-  private implicit val RDFXMLUnmarshaller = Unmarshaller.delegate[Array[Byte], Model](`application/rdf+xml`) { data =>
+
+  private implicit val RDFXMLUnmarshaller = Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/rdf+xml`).map { data =>
     val model = ModelFactory.createDefaultModel
     model.read(new ByteArrayInputStream(data), null)
     model
   }
 
-  def expandWithOwlet(query: Query): Future[Query] = {
-    val pipeline = sendReceive ~> unmarshal[Query]
-    pipeline(Post(Owlery.copy(path = Owlery.path / "expand"), query))
-  }
+  def expandWithOwlet(query: Query): Future[Query] = for {
+    requestEntity <- Marshal(query).to[RequestEntity]
+    response <- Http().singleRequest(HttpRequest(
+      method = HttpMethods.POST,
+      uri = Owlery.copy(path = Owlery.path / "expand"),
+      entity = requestEntity))
+    newQuery <- Unmarshal(response.entity).to[Query]
+  } yield newQuery
 
-  val sparqlSelectQuery: HttpRequest => Future[ResultSet] = addHeader(HttpHeaders.Accept(`application/sparql-results+xml`)) ~> sendReceive ~> unmarshal[ResultSet]
-  val sparqlConstructQuery: HttpRequest => Future[Model] = addHeader(HttpHeaders.Accept(`application/rdf+xml`)) ~> sendReceive ~> unmarshal[Model]
+  def sparqlSelectQuery(query: Query): Future[ResultSet] = for {
+    requestEntity <- Marshal(query).to[RequestEntity]
+    response <- Http().singleRequest(HttpRequest(
+      method = HttpMethods.POST,
+      headers = List(headers.Accept(`application/sparql-results+xml`)),
+      uri = KBEndpoint,
+      entity = requestEntity))
+    result <- Unmarshal(response.entity).to[ResultSet]
+  } yield result
+
+  def sparqlConstructQuery(query: Query): Future[Model] = for {
+    requestEntity <- Marshal(query).to[RequestEntity]
+    response <- Http().singleRequest(HttpRequest(
+      method = HttpMethods.POST,
+      headers = List(headers.Accept(`application/rdf+xml`)),
+      uri = KBEndpoint,
+      entity = requestEntity))
+    model <- Unmarshal(response.entity).to[Model]
+  } yield model
 
 }

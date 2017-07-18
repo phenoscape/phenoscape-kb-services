@@ -34,9 +34,9 @@ import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClassExpression
 import org.semanticweb.owlapi.model.OWLObjectProperty
 
-import spray.http._
-import spray.httpx._
-import spray.httpx.marshalling._
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.http.scaladsl.model.MediaTypes
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -288,13 +288,13 @@ object Gene {
       result.getLiteral("gene_label").getLexicalForm,
       taxonForGeneIRI(IRI.create(geneURI)))
   }
-
-  val GenesTextMarshaller = Marshaller.delegate[Seq[Gene], String](MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`) { genes =>
+  
+  implicit val GenesTextMarshaller: ToEntityMarshaller[Seq[Gene]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { genes =>
     val header = "IRI\tlabel\ttaxon"
     s"$header\n${genes.map(_.toString).mkString("\n")}"
   }
 
-  implicit val ComboGenesMarshaller = ToResponseMarshaller.oneOf(MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`, MediaTypes.`application/json`)(GenesTextMarshaller, JSONResultItemsMarshaller)
+  implicit val ComboGenesMarshaller = Marshaller.oneOf(GenesTextMarshaller, JSONResultItemsMarshaller)
 
 }
 

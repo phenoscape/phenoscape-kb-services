@@ -7,6 +7,7 @@ import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.postfixOps
 
+import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.NodeFactory
 import org.apache.jena.query.Query
 import org.apache.jena.query.QuerySolution
@@ -42,15 +43,13 @@ import org.semanticweb.owlapi.model.OWLObject
 import org.semanticweb.owlapi.util.ShortFormProvider
 
 import Main.system.dispatcher
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import scalaz._
-import spray.http._
-import spray.httpx._
-import spray.httpx.SprayJsonSupport._
-import spray.httpx.marshalling._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import uk.ac.manchester.cs.owl.owlapi.mansyntaxrenderer.ManchesterOWLSyntaxOWLObjectRendererImpl
-import org.apache.jena.datatypes.xsd.XSDDatatype
 
 object Term {
 
@@ -344,21 +343,17 @@ object Term {
     query
   }
 
-  implicit val JSONResultItemsMarshaller = Marshaller.delegate[Seq[JSONResultItem], JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { results =>
-    new JsObject(Map("results" -> results.map(_.toJSON).toJson))
-  }
+  implicit val JSONResultItemsMarshaller: ToEntityMarshaller[Seq[JSONResultItem]] = Marshaller.combined(results =>
+    new JsObject(Map("results" -> results.map(_.toJSON).toJson)))
 
-  implicit val JSONResultItemMarshaller = Marshaller.delegate[JSONResultItem, JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { result =>
-    result.toJSON
-  }
+  implicit val JSONResultItemMarshaller: ToEntityMarshaller[JSONResultItem] = Marshaller.combined(result =>
+    result.toJSON)
 
-  implicit val IRIMarshaller = Marshaller.delegate[IRI, JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { iri =>
-    new JsObject(Map("@id" -> iri.toString.toJson))
-  }
+  implicit val IRIMarshaller: ToEntityMarshaller[IRI] = Marshaller.combined(iri =>
+    new JsObject(Map("@id" -> iri.toString.toJson)))
 
-  implicit val IRIsMarshaller = Marshaller.delegate[Seq[IRI], JsObject](App.`application/ld+json`, MediaTypes.`application/json`) { results =>
-    new JsObject(Map("results" -> results.map(iri => Map("@id" -> iri.toString.toJson)).toJson))
-  }
+  implicit val IRIsMarshaller: ToEntityMarshaller[Seq[IRI]] = Marshaller.combined(results =>
+    new JsObject(Map("results" -> results.map(iri => Map("@id" -> iri.toString.toJson)).toJson)))
 
   def fromMinimalQuerySolution(result: QuerySolution): MinimalTerm = MinimalTerm(
     IRI.create(result.getResource("term").getURI),

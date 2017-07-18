@@ -34,9 +34,9 @@ import org.phenoscape.scowl._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClassExpression
 
-import spray.http._
-import spray.httpx._
-import spray.httpx.marshalling._
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.http.scaladsl.model.MediaTypes
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -360,12 +360,12 @@ object Taxon {
     s"$subtree$escapedLabel"
   }
 
-  val TaxaTextMarshaller = Marshaller.delegate[Seq[Taxon], String](MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`) { taxa =>
+  val TaxaTextMarshaller: ToEntityMarshaller[Seq[Taxon]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { taxa =>
     val header = "IRI\tlabel"
     s"$header\n${taxa.map(_.toString).mkString("\n")}"
   }
 
-  implicit val ComboTaxaMarshaller = ToResponseMarshaller.oneOf(MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`, MediaTypes.`application/json`)(TaxaTextMarshaller, JSONResultItemsMarshaller)
+  implicit val ComboTaxaMarshaller = Marshaller.oneOf(TaxaTextMarshaller, JSONResultItemsMarshaller)
 
 }
 

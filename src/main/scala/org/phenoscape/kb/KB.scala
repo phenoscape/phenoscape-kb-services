@@ -2,6 +2,7 @@ package org.phenoscape.kb
 
 import scala.concurrent.Future
 
+import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.query.QueryFactory
 import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.expr.E_Exists
@@ -16,13 +17,11 @@ import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 
-import spray.http._
-import spray.httpx._
-import spray.httpx.SprayJsonSupport._
-import spray.httpx.marshalling._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import spray.json._
 import spray.json.DefaultJsonProtocol._
-import org.apache.jena.datatypes.xsd.XSDDatatype
 
 object KB {
 
@@ -182,8 +181,7 @@ case class KBAnnotationSummary(annotatedMatrices: Int, annotatedTaxa: Int, annot
 
 object KBAnnotationSummary {
 
-  implicit val KBAnnotationSummaryMarshaller = Marshaller.delegate[KBAnnotationSummary, JsObject](MediaTypes.`application/json`) { result =>
-    result.toJSON
-  }
+  implicit val KBAnnotationSummaryMarshaller: ToEntityMarshaller[KBAnnotationSummary] = Marshaller.combined(result =>
+    result.toJSON)
 
 }
