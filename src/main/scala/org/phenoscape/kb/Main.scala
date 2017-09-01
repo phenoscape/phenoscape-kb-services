@@ -36,6 +36,7 @@ import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
+import akka.http.scaladsl.model.Uri
 
 object Main extends HttpApp with App {
 
@@ -541,6 +542,9 @@ object Main extends HttpApp with App {
                   DataCoverageFigureReportAnyTaxon.query()
                 }
               }
+          } ~
+          pathEnd {
+            redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
           }
       }
   }
