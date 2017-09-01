@@ -130,7 +130,7 @@ object Taxon {
         case (false, true)  => entity or (serially_homologous_to some entity)
         case (true, true)   => entity or (homologous_to some entity) or (serially_homologous_to some entity)
       }
-      val entityExpression = if (includeParts) (part_of some actualEntity) else actualEntity
+      val entityExpression = if (includeParts) (actualEntity or (part_of some actualEntity)) else actualEntity
       t('phenotype, rdfsSubClassOf, ((has_part some quality) and (phenotype_of some entityExpression)).asOMN) :: Nil
     } else Nil
     val query = select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
@@ -197,7 +197,7 @@ object Taxon {
       case (false, true)  => entity or (serially_homologous_to some entity)
       case (true, true)   => entity or (homologous_to some entity) or (serially_homologous_to some entity)
     }
-    val entityExpression = if (includeParts) (part_of some actualEntity) else actualEntity
+    val entityExpression = if (includeParts) (actualEntity or (part_of some actualEntity)) else actualEntity
     val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf*, _)).toList
     val query = select_distinct('taxon, 'taxon_label) where (
       bgp(

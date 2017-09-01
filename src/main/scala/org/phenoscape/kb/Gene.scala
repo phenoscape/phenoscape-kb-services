@@ -251,7 +251,7 @@ object Gene {
       case (false, true)  => entity or (serially_homologous_to some entity)
       case (true, true)   => entity or (homologous_to some entity) or (serially_homologous_to some entity)
     }
-    val entityExpression = if (includeParts) (part_of some homologousEntityClass) else homologousEntityClass
+    val entityExpression = if (includeParts) (homologousEntityClass or (part_of some homologousEntityClass)) else homologousEntityClass
     val phenotypeExpression = quality match {
       case Some(qualityTerm) => (has_part some Class(qualityTerm)) and (phenotype_of some entityExpression)
       case None              => (phenotype_of some entityExpression) or (has_part some (towards value Individual(entityIRI)))
