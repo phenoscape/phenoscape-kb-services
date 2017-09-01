@@ -32,14 +32,14 @@ resolvers += "Phenoscape Maven repository" at "http://phenoscape.svn.sourceforge
 resolvers += "BBOP repository" at "http://code.berkeleybop.org/maven/repository"
 
 libraryDependencies ++= {
-  val akkaV = "2.3.9"
-  val sprayV = "1.3.3"
   Seq(
-    "com.typesafe.akka"      %% "akka-http"            % "10.0.9",
-    "com.typesafe.akka"      %% "akka-http-spray-json" % "10.0.9",
+    "com.typesafe.akka"      %% "akka-stream"          % "2.5.4",
+    "com.typesafe.akka"      %% "akka-actor"           % "2.5.4",
+    "com.typesafe.akka"      %% "akka-http"            % "10.0.10",
+    "com.typesafe.akka"      %% "akka-http-spray-json" % "10.0.10",
     "ch.megard"              %% "akka-http-cors"       % "0.2.1",
     "io.spray"               %% "spray-json"           % "1.3.3",
-    "com.typesafe.akka"      %% "akka-slf4j"           % "2.5.3",
+    "com.typesafe.akka"      %% "akka-slf4j"           % "2.5.4",
     "net.sourceforge.owlapi" %  "owlapi-distribution"  % "4.2.8",
     "org.phenoscape"         %% "owlet"                % "1.6" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
     "org.phenoscape"         %% "scowl"                % "1.3",
