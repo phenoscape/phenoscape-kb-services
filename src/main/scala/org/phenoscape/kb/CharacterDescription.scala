@@ -26,9 +26,9 @@ import org.semanticweb.owlapi.model.OWLClassExpression
 
 import TaxonEQAnnotation.ps_entity_term
 import TaxonEQAnnotation.ps_related_entity_term
-import spray.http._
-import spray.httpx._
-import spray.httpx.marshalling._
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.http.scaladsl.model.MediaTypes
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -256,13 +256,13 @@ object AnnotatedCharacterDescription { //FIXME
         phenotype)
     }
   }
-
-  val AnnotatedCharacterDescriptionsTextMarshaller = Marshaller.delegate[Seq[AnnotatedCharacterDescription], String](MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`) { annotations =>
+  
+  implicit val AnnotatedCharacterDescriptionsTextMarshaller: ToEntityMarshaller[Seq[AnnotatedCharacterDescription]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { annotations =>
     val header = "phenotype IRI\tphenotype\tcharacter description IRI\tcharacter description\tstudy IRI\tstudy"
     s"$header\n${annotations.map(_.toString).mkString("\n")}"
   }
 
-  implicit val ComboAnnotatedCharacterDescriptionsMarshaller = ToResponseMarshaller.oneOf(MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`, MediaTypes.`application/json`)(AnnotatedCharacterDescriptionsTextMarshaller, JSONResultItemsMarshaller)
+  implicit val ComboAnnotatedCharacterDescriptionsMarshaller = Marshaller.oneOf(AnnotatedCharacterDescriptionsTextMarshaller, JSONResultItemsMarshaller)
 
 }
 

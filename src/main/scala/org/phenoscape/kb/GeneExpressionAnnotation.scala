@@ -27,10 +27,10 @@ import org.phenoscape.scowl._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClassExpression
 
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.http.scaladsl.model.MediaTypes
 import akka.util.Timeout
-import spray.http._
-import spray.httpx._
-import spray.httpx.marshalling._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -114,11 +114,11 @@ object GeneExpressionAnnotation {
     }
   }
 
-  val AnnotationTextMarshaller = Marshaller.delegate[Seq[GeneExpressionAnnotation], String](MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`) { annotations =>
+  implicit val AnnotationTextMarshaller: ToEntityMarshaller[Seq[GeneExpressionAnnotation]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { annotations =>
     val header = "gene IRI\tgene label\tlocation IRI\tlocation label\tsource IRI"
     s"$header\n${annotations.map(_.toString).mkString("\n")}"
   }
 
-  implicit val ComboGeneExpressionAnnotationsMarshaller = ToResponseMarshaller.oneOf(MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`, MediaTypes.`application/json`)(AnnotationTextMarshaller, JSONResultItemsMarshaller)
+  implicit val ComboGeneExpressionAnnotationsMarshaller = Marshaller.oneOf(AnnotationTextMarshaller, JSONResultItemsMarshaller)
 
 }

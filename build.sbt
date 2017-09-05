@@ -5,7 +5,7 @@ organization  := "org.phenoscape"
 
 name          := "phenoscape-kb-services"
 
-version       := "0.3-SNAPSHOT"
+version       := "0.4-SNAPSHOT"
 
 packageArchetype.java_server
 
@@ -23,7 +23,7 @@ daemonUser in Linux := "phenoscape" // user which will execute the application
 
 daemonGroup in Linux := "phenoscape"    // group which will execute the application
 
-scalaVersion  := "2.11.8"
+scalaVersion  := "2.12.2"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
 
@@ -32,30 +32,27 @@ resolvers += "Phenoscape Maven repository" at "http://phenoscape.svn.sourceforge
 resolvers += "BBOP repository" at "http://code.berkeleybop.org/maven/repository"
 
 libraryDependencies ++= {
-  val akkaV = "2.3.9"
-  val sprayV = "1.3.3"
   Seq(
-    "io.spray"               %%  "spray-can"              % sprayV,
-    "io.spray"               %%  "spray-routing"          % sprayV,
-    "io.spray"               %%  "spray-client"           % sprayV,
-    "io.spray"               %%  "spray-json"             % "1.3.1",
-    "io.spray"               %%  "spray-testkit"          % sprayV  % "test",
-    "com.typesafe.akka"      %%  "akka-actor"             % akkaV,
-    "com.typesafe.akka"      %%  "akka-slf4j"             % akkaV,
-    "com.typesafe.akka"      %%  "akka-testkit"           % akkaV   % "test",
-    "net.sourceforge.owlapi" %   "owlapi-distribution"    % "4.2.8",
-    "org.phenoscape"         %%  "owlet"                  % "1.5" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
-    "org.phenoscape"         %%  "scowl"                  % "1.3",
-    "org.phenoscape"         %%   "kb-owl-tools"          % "1.5" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
-    "org.phenoscape"         %%   "phenoscape-kb-ingest"  % "1.5",
-    "org.phenoscape"         %   "phenex"                 % "1.17.2" exclude("org.slf4j", "slf4j-log4j12"),
-    "commons-io"             %   "commons-io"             % "2.4", // exclude("log4j", "log4j"),
-    "org.apache.jena"        %   "apache-jena-libs"       % "3.2.0" exclude("org.slf4j", "slf4j-log4j12"),
-    "com.google.guava"       %   "guava"                  % "16.0.1",
-    "org.scalaz"             %%  "scalaz-core"            % "7.2.1",
-    "org.bbop"               %   "oboformat"              % "0.5.5", // exclude("log4j", "log4j"),
-    "ch.qos.logback"         %   "logback-classic"        % "1.1.7",
-    "org.codehaus.groovy"    %   "groovy-all"             % "2.4.6"
+    "com.typesafe.akka"      %% "akka-stream"          % "2.5.4",
+    "com.typesafe.akka"      %% "akka-actor"           % "2.5.4",
+    "com.typesafe.akka"      %% "akka-http"            % "10.0.10",
+    "com.typesafe.akka"      %% "akka-http-spray-json" % "10.0.10",
+    "ch.megard"              %% "akka-http-cors"       % "0.2.1",
+    "io.spray"               %% "spray-json"           % "1.3.3",
+    "com.typesafe.akka"      %% "akka-slf4j"           % "2.5.4",
+    "net.sourceforge.owlapi" %  "owlapi-distribution"  % "4.2.8",
+    "org.phenoscape"         %% "owlet"                % "1.6" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
+    "org.phenoscape"         %% "scowl"                % "1.3",
+    "org.phenoscape"         %% "kb-owl-tools"         % "1.5.1" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
+    "org.phenoscape"         %% "phenoscape-kb-ingest" % "1.5.1",
+    "org.phenoscape"         %  "phenex"               % "1.17.2" exclude("org.slf4j", "slf4j-log4j12"),
+    "commons-io"             %  "commons-io"           % "2.4", // exclude("log4j", "log4j"),
+    "org.apache.jena"        %  "apache-jena-libs"     % "3.2.0" exclude("org.slf4j", "slf4j-log4j12"),
+    "com.google.guava"       %  "guava"                % "16.0.1",
+    "org.scalaz"             %% "scalaz-core"          % "7.2.1",
+    "org.bbop"               %  "oboformat"            % "0.5.5", // exclude("log4j", "log4j"),
+    "ch.qos.logback"         %  "logback-classic"      % "1.1.7",
+    "org.codehaus.groovy"    %  "groovy-all"           % "2.4.6"
   )
 }
 

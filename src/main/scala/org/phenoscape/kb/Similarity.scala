@@ -30,9 +30,9 @@ import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClass
 import org.semanticweb.owlapi.model.OWLNamedIndividual
 
-import spray.http._
-import spray.httpx._
-import spray.httpx.marshalling._
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.http.scaladsl.model.MediaTypes
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -237,14 +237,14 @@ case class SimilarityMatch(corpusProfile: MinimalTerm, medianScore: Double, expe
 
 object SimilarityMatch {
 
-  implicit val SimilarityMatchMarshaller = Marshaller.delegate[SimilarityMatch, String](MediaTypes.`text/plain`)(_.toString)
+  implicit val SimilarityMatchMarshaller: ToEntityMarshaller[SimilarityMatch] = Marshaller.stringMarshaller(MediaTypes.`text/plain`).compose(_.toString)
 
-  val SimilarityMatchesTextMarshaller = Marshaller.delegate[Seq[SimilarityMatch], String](MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`) { matches =>
+  implicit val SimilarityMatchesTextMarshaller: ToEntityMarshaller[Seq[SimilarityMatch]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { matches =>
     val header = "match IRI\tmatch label\tmedian score\texpect score"
     s"$header\n${matches.map(_.toString).mkString("\n")}"
   }
-
-  implicit val ComboSimilarityMatchesMarshaller = ToResponseMarshaller.oneOf(MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`, MediaTypes.`application/json`)(SimilarityMatchesTextMarshaller, JSONResultItemsMarshaller)
+  
+  implicit val ComboSimilarityMatchesMarshaller = Marshaller.oneOf(SimilarityMatchesTextMarshaller, JSONResultItemsMarshaller)
 
 }
 

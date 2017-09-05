@@ -2,10 +2,11 @@ package org.phenoscape.kb
 
 import org.apache.jena.query.ResultSet
 
-import spray.http._
-import spray.httpx._
-import spray.httpx.SprayJsonSupport._
-import spray.httpx.marshalling._
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
+
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport.sprayJsonMarshaller
+
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -17,9 +18,7 @@ object ResultCount {
     if (resultSet.hasNext) resultSet.next.getLiteral("count").getInt
     else 0
 
-  implicit val ResultCountMarshaller = Marshaller.delegate[ResultCount, JsObject](MediaTypes.`application/json`) { result =>
-    result.toJSON
-  }
+  implicit val ResultCountMarshaller: ToEntityMarshaller[ResultCount] = Marshaller.combined(result => result.toJSON)
 
 }
 

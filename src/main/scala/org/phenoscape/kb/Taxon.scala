@@ -34,9 +34,9 @@ import org.phenoscape.scowl._
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClassExpression
 
-import spray.http._
-import spray.httpx._
-import spray.httpx.marshalling._
+import akka.http.scaladsl.marshalling.Marshaller
+import akka.http.scaladsl.marshalling.ToEntityMarshaller
+import akka.http.scaladsl.model.MediaTypes
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -130,7 +130,7 @@ object Taxon {
         case (false, true)  => entity or (serially_homologous_to some entity)
         case (true, true)   => entity or (homologous_to some entity) or (serially_homologous_to some entity)
       }
-      val entityExpression = if (includeParts) (part_of some actualEntity) else actualEntity
+      val entityExpression = if (includeParts) (actualEntity or (part_of some actualEntity)) else actualEntity
       t('phenotype, rdfsSubClassOf, ((has_part some quality) and (phenotype_of some entityExpression)).asOMN) :: Nil
     } else Nil
     val query = select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
@@ -197,7 +197,7 @@ object Taxon {
       case (false, true)  => entity or (serially_homologous_to some entity)
       case (true, true)   => entity or (homologous_to some entity) or (serially_homologous_to some entity)
     }
-    val entityExpression = if (includeParts) (part_of some actualEntity) else actualEntity
+    val entityExpression = if (includeParts) (actualEntity or (part_of some actualEntity)) else actualEntity
     val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf*, _)).toList
     val query = select_distinct('taxon, 'taxon_label) where (
       bgp(
@@ -360,12 +360,12 @@ object Taxon {
     s"$subtree$escapedLabel"
   }
 
-  val TaxaTextMarshaller = Marshaller.delegate[Seq[Taxon], String](MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`) { taxa =>
+  val TaxaTextMarshaller: ToEntityMarshaller[Seq[Taxon]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { taxa =>
     val header = "IRI\tlabel"
     s"$header\n${taxa.map(_.toString).mkString("\n")}"
   }
 
-  implicit val ComboTaxaMarshaller = ToResponseMarshaller.oneOf(MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`, MediaTypes.`application/json`)(TaxaTextMarshaller, JSONResultItemsMarshaller)
+  implicit val ComboTaxaMarshaller = Marshaller.oneOf(TaxaTextMarshaller, JSONResultItemsMarshaller)
 
 }
 
