@@ -4,7 +4,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -67,10 +67,12 @@ object App {
   def withOwlery(triple: TripleOrPath): ElementService = service(App.Owlery.toString + "/sparql", bgp(triple))
 
   def executeSPARQLQuery(query: Query): Future[ResultSet] = sparqlSelectQuery(query)
+  
+  def executeSPARQLQuery(queryString: String): Future[ResultSet] = sparqlSelectQuery(queryString)
 
   def executeSPARQLQuery[T](query: Query, resultMapper: QuerySolution => T): Future[Seq[T]] = for {
     resultSet <- sparqlSelectQuery(query)
-  } yield resultSet.map(resultMapper).toSeq
+  } yield resultSet.asScala.map(resultMapper).toSeq
 
   def executeSPARQLConstructQuery(query: Query): Future[Model] = sparqlConstructQuery(query)
 
@@ -83,6 +85,8 @@ object App {
   }
 
   private implicit val SPARQLQueryMarshaller: ToEntityMarshaller[Query] = Marshaller.stringMarshaller(`application/sparql-query`).compose(_.toString)
+  
+  private implicit val SPARQLQueryStringMarshaller: ToEntityMarshaller[String] = Marshaller.stringMarshaller(`application/sparql-query`)
 
   private implicit val SPARQLQueryBodyUnmarshaller: FromEntityUnmarshaller[Query] = Unmarshaller.stringUnmarshaller.forContentTypes(`application/sparql-query`).map(QueryFactory.create)
 
@@ -108,6 +112,16 @@ object App {
 
   def sparqlSelectQuery(query: Query): Future[ResultSet] = for {
     requestEntity <- Marshal(query).to[RequestEntity]
+    response <- Http().singleRequest(HttpRequest(
+      method = HttpMethods.POST,
+      headers = List(headers.Accept(`application/sparql-results+xml`)),
+      uri = KBEndpoint,
+      entity = requestEntity))
+    result <- Unmarshal(response.entity).to[ResultSet]
+  } yield result
+  
+  def sparqlSelectQuery(queryString: String): Future[ResultSet] = for {
+    requestEntity <- Marshal(queryString).to[RequestEntity]
     response <- Http().singleRequest(HttpRequest(
       method = HttpMethods.POST,
       headers = List(headers.Accept(`application/sparql-results+xml`)),

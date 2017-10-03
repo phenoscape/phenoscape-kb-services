@@ -41,7 +41,7 @@ object KB {
   }
 
   def annotationReport: Future[String] = {
-    val queryFromText = QueryFactory.create("""
+    val queryString = """
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ps: <http://purl.org/phenoscape/vocab.owl#>
@@ -50,8 +50,15 @@ PREFIX has_state: <http://purl.obolibrary.org/obo/CDAO_0000184>
 PREFIX oboInOwl: <http://www.geneontology.org/formats/oboInOwl#>
 PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
 
-SELECT (STR(?matrix_label) AS ?matrix_file) (STR(?char_number) AS ?character_number) (STR(?char_label) AS ?character_text) (STR(?symbol) AS ?state_symbol) (STR(?state_label) AS ?state_text) (STR(?entity) AS ?entity_id) ?entity_name (STR(?quality) AS ?quality_id) ?quality_name (STR(?related_entity) AS ?related_entity_id) ?related_entity_name (GROUP_CONCAT(DISTINCT ?attribute_label; separator=", ") AS ?attributes)
+SELECT (STR(?matrix_label) AS ?matrix_file) (STR(?char_number) AS ?character_number) (STR(?char_label) AS ?character_text) (STR(?symbol) AS ?state_symbol) (STR(?state_label) AS ?state_text) (STR(?entity) AS ?entity_id) ?entity_name (STR(?quality) AS ?quality_id) ?quality_name (STR(?related_entity) AS ?related_entity_id) ?related_entity_name ?attributes
 FROM <http://kb.phenoscape.org/>
+WITH {
+  SELECT ?quality (GROUP_CONCAT(DISTINCT ?attribute_label; separator=", ") AS ?attributes) WHERE {
+    ?attribute oboInOwl:inSubset <http://purl.obolibrary.org/obo/TEMP#character_slim> .
+    ?quality rdfs:subClassOf* ?attribute .
+    ?attribute rdfs:label ?attribute_label .
+ } GROUP BY ?quality 
+} AS %attributes
 WHERE
 { 
 ?state rdfs:label ?state_label .
@@ -78,17 +85,14 @@ OPTIONAL {
   }
 }
 OPTIONAL {
-  ?attribute oboInOwl:inSubset <http://purl.obolibrary.org/obo/TEMP#character_slim> .
-  ?quality rdfs:subClassOf* ?attribute .
-  ?attribute rdfs:label ?attribute_label .
+  INCLUDE %attributes
 }
   BIND(COALESCE(STR(?entity_label), "") AS ?entity_name)
   BIND(COALESCE(STR(?quality_label), "") AS ?quality_name)
   BIND(COALESCE(STR(?related_entity_label), "") AS ?related_entity_name)
 }
-GROUP BY ?matrix_label ?char_number ?char_label ?symbol ?state_label ?entity ?entity_name ?quality ?quality_name ?related_entity ?related_entity_name      
-      """)
-    App.executeSPARQLQuery(queryFromText).map(App.resultSetToTSV)
+      """
+    App.executeSPARQLQuery(queryString).map(App.resultSetToTSV)
   }
 
   def characterCount: Future[Int] = {
