@@ -32,7 +32,7 @@ tags:
 schemes:
 - "http"
 paths:
-  /annotation_summary:
+  /kb/annotation_summary:
     get:
       tags:
       - "Knowledgebase status"
@@ -47,7 +47,7 @@ paths:
           description: "KB summary counts"
           schema:
             $ref: "#/definitions/inline_response_200"
-  /annotation_report:
+  /kb/annotation_report:
     get:
       tags:
       - "Knowledgebase status"
@@ -436,13 +436,13 @@ paths:
               - match_profile:
                   '@id': "http://purl.obolibrary.org/obo/VTO_0037378"
                   label: "Gymnotiformes"
-                median_score: 0.75067569236765241402764559097704477608203887939453125
-                expect_score: 0.001446228812100000017670797802793458686210215091705322265625
+                median_score: 0.7506756923676524
+                expect_score: 0.0014462288121
               - match_profile:
                   '@id': "http://purl.obolibrary.org/obo/VTO_0037490"
                   label: "Eigenmannia"
-                median_score: 0.6217930498438566377927827488747425377368927001953125
-                expect_score: 0.0035213561402199998993933771629372131428681313991546630859375
+                median_score: 0.6217930498438566
+                expect_score: 0.00352135614022
             text/tab-separated-values: "taxon IRI taxon label median score  expect\
               \ score\nhttp://purl.obolibrary.org/obo/VTO_0037378  Gymnotiformes 0.7506756923676524\
               \  0.0014462288121\nhttp://purl.obolibrary.org/obo/VTO_0037490  Eigenmannia\
@@ -501,8 +501,8 @@ paths:
                   term:
                     '@id': "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0002950%3E%29"
                     label: "has part some (phenotype of some regional part of midbrain)"
-                  ic: 0.89262186534486875899574442883022129535675048828125
-                  disparity: 0.478244770070172464659918887264211662113666534423828125
+                  ic: 0.8926218653448688
+                  disparity: 0.47824477007017246
   /similarity/best_subsumers:
     get:
       tags:
@@ -542,12 +542,12 @@ paths:
               - term:
                   '@id': "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0002950%3E%29"
                   label: "has part some (phenotype of some regional part of midbrain)"
-                ic: 0.89262186534486875899574442883022129535675048828125
+                ic: 0.8926218653448688
               - term:
                   '@id': "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000050%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0003528%3E%29%29"
                   label: "has part some (phenotype of some (part of some brain grey\
                     \ matter))"
-                ic: 0.75067569236765241402764559097704477608203887939453125
+                ic: 0.7506756923676524
   /similarity/subsumed_annotations:
     get:
       tags:
@@ -663,7 +663,7 @@ paths:
           description: "disparity value"
           examples:
             application/json:
-              value: -0.195646774837053449846990815785829909145832061767578125
+              value: -0.19564677483705345
   /entity/search:
     get:
       tags:
