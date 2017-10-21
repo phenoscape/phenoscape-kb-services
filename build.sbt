@@ -23,7 +23,7 @@ daemonUser in Linux := "phenoscape" // user which will execute the application
 
 daemonGroup in Linux := "phenoscape"    // group which will execute the application
 
-scalaVersion  := "2.12.2"
+scalaVersion  := "2.12.4"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
 
@@ -52,7 +52,8 @@ libraryDependencies ++= {
     "org.scalaz"             %% "scalaz-core"          % "7.2.1",
     "org.bbop"               %  "oboformat"            % "0.5.5", // exclude("log4j", "log4j"),
     "ch.qos.logback"         %  "logback-classic"      % "1.1.7",
-    "org.codehaus.groovy"    %  "groovy-all"           % "2.4.6"
+    "org.codehaus.groovy"    %  "groovy-all"           % "2.4.6",
+    "org.phenoscape"         %% "sparql-interpolator"  % "1.0"
   )
 }
 
