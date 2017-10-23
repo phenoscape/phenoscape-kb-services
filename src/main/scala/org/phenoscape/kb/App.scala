@@ -67,11 +67,15 @@ object App {
   def withOwlery(triple: TripleOrPath): ElementService = service(App.Owlery.toString + "/sparql", bgp(triple))
 
   def executeSPARQLQuery(query: Query): Future[ResultSet] = sparqlSelectQuery(query)
-  
+
   def executeSPARQLQuery(queryString: String): Future[ResultSet] = sparqlSelectQuery(queryString)
 
   def executeSPARQLQuery[T](query: Query, resultMapper: QuerySolution => T): Future[Seq[T]] = for {
     resultSet <- sparqlSelectQuery(query)
+  } yield resultSet.asScala.map(resultMapper).toSeq
+
+  def executeSPARQLQueryString[T](queryString: String, resultMapper: QuerySolution => T): Future[Seq[T]] = for {
+    resultSet <- sparqlSelectQuery(queryString)
   } yield resultSet.asScala.map(resultMapper).toSeq
 
   def executeSPARQLConstructQuery(query: Query): Future[Model] = sparqlConstructQuery(query)
@@ -85,7 +89,7 @@ object App {
   }
 
   private implicit val SPARQLQueryMarshaller: ToEntityMarshaller[Query] = Marshaller.stringMarshaller(`application/sparql-query`).compose(_.toString)
-  
+
   private implicit val SPARQLQueryStringMarshaller: ToEntityMarshaller[String] = Marshaller.stringMarshaller(`application/sparql-query`)
 
   private implicit val SPARQLQueryBodyUnmarshaller: FromEntityUnmarshaller[Query] = Unmarshaller.stringUnmarshaller.forContentTypes(`application/sparql-query`).map(QueryFactory.create)
@@ -119,7 +123,7 @@ object App {
       entity = requestEntity))
     result <- Unmarshal(response.entity).to[ResultSet]
   } yield result
-  
+
   def sparqlSelectQuery(queryString: String): Future[ResultSet] = for {
     requestEntity <- Marshal(queryString).to[RequestEntity]
     response <- Http().singleRequest(HttpRequest(
