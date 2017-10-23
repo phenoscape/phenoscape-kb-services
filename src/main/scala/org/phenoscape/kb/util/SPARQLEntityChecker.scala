@@ -10,6 +10,7 @@ import org.apache.jena.sparql.syntax.ElementGroup
 import org.apache.jena.vocabulary.RDF
 import org.apache.jena.vocabulary.RDFS
 import org.phenoscape.kb.KBVocab.KBMainGraph
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.expression.OWLEntityChecker
@@ -47,13 +48,11 @@ object SPARQLEntityChecker extends OWLEntityChecker {
 
   private def buildQuery(label: String, entityType: IRI): String = {
     val literalType = NodeFactory.createURI(XSDDatatype.XSDstring.getURI)
-    val eType = NodeFactory.createURI(entityType.toString) //FIXME replace with OWL implicits
-    val graph = NodeFactory.createURI(KBMainGraph) //FIXME will be IRI after merge
     sparql"""
-        SELECT DISTINCT ?iri FROM $graph 
+        SELECT DISTINCT ?iri FROM $KBMainGraph 
         WHERE {
           ?iri ${RDFS.label} $label^^$literalType .
-          ?iri ${RDF.`type`} $eType .
+          ?iri ${RDF.`type`} $entityType .
           FILTER NOT EXISTS { ?iri ${RDFS.isDefinedBy} <http://purl.obolibrary.org/obo/ncbitaxon.owl> }
         } LIMIT 1
       """.text
