@@ -5,15 +5,13 @@ import scala.concurrent.duration._
 
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.NodeFactory
-import org.apache.jena.query.Query
 import org.apache.jena.query.QuerySolution
-import org.apache.jena.sparql.expr.E_NotExists
 import org.apache.jena.sparql.syntax.Element
-import org.apache.jena.sparql.syntax.ElementFilter
 import org.apache.jena.sparql.syntax.ElementGroup
-import org.phenoscape.owl.Vocab._
-import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.scowl._
+import org.apache.jena.vocabulary.RDF
+import org.apache.jena.vocabulary.RDFS
+import org.phenoscape.kb.KBVocab.KBMainGraph
+import org.phenoscape.sparql.SPARQLInterpolation._
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.expression.OWLEntityChecker
 import org.semanticweb.owlapi.model.IRI
@@ -47,13 +45,19 @@ object SPARQLEntityChecker extends OWLEntityChecker {
   def getOWLObjectProperty(label: String): OWLObjectProperty =
     queryResult(label, OWLRDFVocabulary.OWL_OBJECT_PROPERTY.getIRI, factory.getOWLObjectProperty)
 
-  private def buildQuery(label: String, entityType: IRI): Query =
-    select_distinct('iri) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('iri, rdfsLabel, NodeFactory.createLiteral(label, XSDDatatype.XSDstring)),
-        t('iri, rdfType, entityType)),
-        new ElementFilter(new E_NotExists(triplesBlock(bgp(
-          t('iri, factory.getRDFSIsDefinedBy, Individual("http://purl.obolibrary.org/obo/ncbitaxon.owl"))))))) limit 1
+  private def buildQuery(label: String, entityType: IRI): String = {
+    val literalType = NodeFactory.createURI(XSDDatatype.XSDstring.getURI)
+    val eType = NodeFactory.createURI(entityType.toString) //FIXME replace with OWL implicits
+    val graph = NodeFactory.createURI(KBMainGraph) //FIXME will be IRI after merge
+    sparql"""
+        SELECT DISTINCT ?iri FROM $graph 
+        WHERE {
+          ?iri ${RDFS.label} $label^^$literalType .
+          ?iri ${RDF.`type`} $eType .
+          FILTER NOT EXISTS { ?iri ${RDFS.isDefinedBy} <http://purl.obolibrary.org/obo/ncbitaxon.owl> }
+        } LIMIT 1
+      """.text
+  }
 
   private def resultFrom[T](func: IRI => T): QuerySolution => T =
     (qs: QuerySolution) => func(IRI.create(qs.getResource("iri").getURI))
@@ -62,7 +66,7 @@ object SPARQLEntityChecker extends OWLEntityChecker {
     val queryLabel = if (label.startsWith("'") && label.endsWith("'")) label.drop(1).dropRight(1)
     else label
     val query = buildQuery(queryLabel, entityType)
-    Await.result(App.executeSPARQLQuery(query, resultFrom(entityConstructor)), 60.seconds).headOption.orNull
+    Await.result(App.executeSPARQLQueryString(query, resultFrom(entityConstructor)), 60.seconds).headOption.orNull
   }
 
   private def triplesBlock(elements: Element*): ElementGroup = {

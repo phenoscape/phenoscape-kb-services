@@ -25,7 +25,6 @@ import org.apache.jena.sparql.syntax.Element
 import org.apache.jena.sparql.syntax.ElementFilter
 import org.apache.jena.sparql.syntax.ElementGroup
 import org.apache.jena.sparql.syntax.ElementUnion
-import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxClassExpressionParser
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.kb.KBVocab.rdfsSubClassOf
@@ -35,7 +34,9 @@ import org.phenoscape.owl.util.ExpressionsUtil
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.semanticweb.owlapi.apibinding.OWLManager
-import org.semanticweb.owlapi.expression.ParserException
+import org.semanticweb.owlapi.manchestersyntax.parser.ManchesterOWLSyntaxClassExpressionParser
+import org.semanticweb.owlapi.manchestersyntax.renderer.ManchesterOWLSyntaxOWLObjectRendererImpl
+import org.semanticweb.owlapi.manchestersyntax.renderer.ParserException
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClassExpression
 import org.semanticweb.owlapi.model.OWLEntity
@@ -49,7 +50,6 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
-import uk.ac.manchester.cs.owl.owlapi.mansyntaxrenderer.ManchesterOWLSyntaxOWLObjectRendererImpl
 
 object Term {
 
