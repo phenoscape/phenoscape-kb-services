@@ -87,7 +87,7 @@ object TaxonPhenotypeAnnotation {
     for {
       rawQuery <- buildBasicTaxonPhenotypeAnnotationsQuery(entity, quality, inTaxonOpt)
     } yield {
-      val query = rawQuery from KBMainGraph from KBClosureGraph
+      val query = rawQuery from KBMainGraph.toString from KBClosureGraph.toString
       query.setOffset(offset)
       if (limit > 0) query.setLimit(limit)
       query.addOrderBy('taxon_label)
@@ -100,7 +100,7 @@ object TaxonPhenotypeAnnotation {
     for {
       rawQuery <- buildBasicTaxonPhenotypeAnnotationsQuery(entity, quality, inTaxonOpt)
     } yield {
-      val query = select() from KBMainGraph from KBClosureGraph where (new ElementSubQuery(rawQuery))
+      val query = select() from KBMainGraph.toString from KBClosureGraph.toString where (new ElementSubQuery(rawQuery))
       query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
       query
     }

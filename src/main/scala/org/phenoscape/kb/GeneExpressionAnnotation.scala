@@ -93,7 +93,7 @@ object GeneExpressionAnnotation {
     for {
       rawQuery <- buildBasicGeneExpressionAnnotationsQuery(entity, inTaxonOpt)
     } yield {
-      val query = rawQuery from KBMainGraph
+      val query = rawQuery from KBMainGraph.toString
       query.setOffset(offset)
       if (limit > 0) query.setLimit(limit)
       query.addOrderBy('gene_label)
@@ -108,7 +108,7 @@ object GeneExpressionAnnotation {
     for {
       rawQuery <- buildBasicGeneExpressionAnnotationsQuery(entity, inTaxonOpt)
     } yield {
-      val query = select() from KBMainGraph where (new ElementSubQuery(rawQuery))
+      val query = select() from KBMainGraph.toString where (new ElementSubQuery(rawQuery))
       query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
       query
     }

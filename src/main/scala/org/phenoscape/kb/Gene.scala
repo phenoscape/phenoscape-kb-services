@@ -268,7 +268,7 @@ object Gene {
 
   private def buildGeneExpressedInEntityQuery(entityIRI: IRI): Query = {
     val partOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
-    select_distinct() from KBMainGraph from KBClosureGraph where (
+    select_distinct() from KBMainGraph.toString from KBClosureGraph.toString where (
       bgp(
         App.BigdataAnalyticQuery,
         t('gene, rdfsLabel, 'gene_label),

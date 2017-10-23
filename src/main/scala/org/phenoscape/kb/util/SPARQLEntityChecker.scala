@@ -1,8 +1,7 @@
-package org.phenoscape.kb
+package org.phenoscape.kb.util
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
-
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.NodeFactory
 import org.apache.jena.query.Query
@@ -24,6 +23,7 @@ import org.semanticweb.owlapi.model.OWLDatatype
 import org.semanticweb.owlapi.model.OWLNamedIndividual
 import org.semanticweb.owlapi.model.OWLObjectProperty
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary
+import org.phenoscape.kb.App
 
 object SPARQLEntityChecker extends OWLEntityChecker {
 

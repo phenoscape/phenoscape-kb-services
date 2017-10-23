@@ -49,7 +49,7 @@ object KBVocab {
   val associationHasObject = ObjectProperty(s"${oban}association_has_object")
   val associationIsNegated = IRI.create("http://purl.org/phenoscape/oban/is_negated")
 
-  val KBMainGraph = "http://kb.phenoscape.org/"
-  val KBClosureGraph = "http://kb.phenoscape.org/closure"
+  val KBMainGraph = IRI.create("http://kb.phenoscape.org/")
+  val KBClosureGraph = IRI.create("http://kb.phenoscape.org/closure")
 
 }

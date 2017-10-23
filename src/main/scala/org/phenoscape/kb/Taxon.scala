@@ -39,6 +39,7 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.model.MediaTypes
 import spray.json._
 import spray.json.DefaultJsonProtocol._
+import org.phenoscape.kb.queries.TaxaWithPhenotype
 
 object Taxon {
 
@@ -69,6 +70,21 @@ object Taxon {
     query <- buildTaxaWithPhenotypeTotalQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     result <- App.executeSPARQLQuery(query)
   } yield ResultCount.count(result)
+
+  def withPhenotypeTotalNew(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = {
+    val entityIRI = Option(entity.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+    println(s"entity IRI: $entityIRI")
+    val qualityIRI = Option(quality.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+    val query = TaxaWithPhenotype.buildQuery(entityIRI, qualityIRI, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
+    println(query)
+    for {
+
+      result <- App.executeSPARQLQuery(query)
+    } yield ResultCount.count(result)
+
+  }
+
+  //
 
   def variationProfileFor(taxon: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
     val results = App.executeSPARQLQuery(buildVariationProfileQuery(taxon, limit, offset), result => {

@@ -50,6 +50,7 @@ import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import uk.ac.manchester.cs.owl.owlapi.mansyntaxrenderer.ManchesterOWLSyntaxOWLObjectRendererImpl
+import org.phenoscape.kb.util.SPARQLEntityChecker
 
 object Term {
 
