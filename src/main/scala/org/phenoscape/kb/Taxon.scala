@@ -26,6 +26,7 @@ import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import org.phenoscape.kb.queries.TaxaWithPhenotype
 import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
@@ -39,7 +40,6 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.model.MediaTypes
 import spray.json._
 import spray.json.DefaultJsonProtocol._
-import org.phenoscape.kb.queries.TaxaWithPhenotype
 
 object Taxon {
 
@@ -61,30 +61,41 @@ object Taxon {
   //    result <- App.executeSPARQLQuery(query)
   //  } yield ResultCount(result)
 
-  def withPhenotype(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = for {
-    query <- buildTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
-    taxa <- App.executeSPARQLQuery(query, Taxon(_))
-  } yield taxa
-
-  def withPhenotypeTotal(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = for {
-    query <- buildTaxaWithPhenotypeTotalQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    result <- App.executeSPARQLQuery(query)
-  } yield ResultCount.count(result)
-
-  def withPhenotypeTotalNew(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = {
-    val entityIRI = Option(entity.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
-    println(s"entity IRI: $entityIRI")
-    val qualityIRI = Option(quality.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
-    val query = TaxaWithPhenotype.buildQuery(entityIRI, qualityIRI, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
-    println(query)
-    for {
-
-      result <- App.executeSPARQLQuery(query)
-    } yield ResultCount.count(result)
-
+  //TODO remove ClassExpression arguments - require named classes
+  def withPhenotype(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = {
+    if (!entity.isAnonymous() && !quality.isAnonymous()) {
+      val entityIRI = Option(entity.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+      val qualityIRI = Option(quality.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+      for {
+        query <- TaxaWithPhenotype.buildQuery(entityIRI, qualityIRI, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
+        taxa <- App.executeSPARQLQueryString(query, Taxon(_))
+      } yield taxa
+    } else {
+      for {
+        query <- buildTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+        taxa <- App.executeSPARQLQuery(query, Taxon(_))
+      } yield taxa
+    }
   }
 
-  //
+  //TODO remove ClassExpression arguments - require named classes
+  def withPhenotypeTotal(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = {
+    if (!entity.isAnonymous() && !quality.isAnonymous()) {
+      val entityIRI = Option(entity.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+      val qualityIRI = Option(quality.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+      for {
+        query <- TaxaWithPhenotype.buildQuery(entityIRI, qualityIRI, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
+        _ = println(query)
+        result <- App.executeSPARQLQuery(query)
+      } yield ResultCount.count(result)
+    } else {
+      for {
+        query <- buildTaxaWithPhenotypeTotalQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+        result <- App.executeSPARQLQuery(query)
+      } yield ResultCount.count(result)
+    }
+
+  }
 
   def variationProfileFor(taxon: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
     val results = App.executeSPARQLQuery(buildVariationProfileQuery(taxon, limit, offset), result => {
