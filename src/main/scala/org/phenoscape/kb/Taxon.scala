@@ -26,6 +26,7 @@ import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import org.phenoscape.kb.queries.DirectPhenotypesForTaxon
 import org.phenoscape.kb.queries.TaxaWithPhenotype
 import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
@@ -85,7 +86,6 @@ object Taxon {
       val qualityIRI = Option(quality.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
       for {
         query <- TaxaWithPhenotype.buildQuery(entityIRI, qualityIRI, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
-        _ = println(query)
         result <- App.executeSPARQLQuery(query)
       } yield ResultCount.count(result)
     } else {
@@ -121,31 +121,56 @@ object Taxon {
   }
 
   def directPhenotypesFor(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
-    val queryFuture = for {
-      rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    } yield {
-      val query = rawQuery from "http://kb.phenoscape.org/"
-      if (limit > 1) {
-        query.setOffset(offset)
-        query.setLimit(limit)
+    val entityIsNamed = entityOpt.map(!_.isAnonymous).getOrElse(true)
+    val qualityIsNamed = qualityOpt.map(!_.isAnonymous).getOrElse(true)
+    if (entityIsNamed && qualityIsNamed) {
+      val entityIRI = entityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+      val qualityIRI = qualityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+      val results = for {
+        query <- DirectPhenotypesForTaxon.buildQuery(taxon, entityIRI, qualityIRI, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
+        result <- App.executeSPARQLQueryString(query, AnnotatedCharacterDescription.fromQuerySolution)
+      } yield result
+      results.flatMap(Future.sequence(_))
+    } else {
+      val queryFuture = for {
+        rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+      } yield {
+        val query = rawQuery from "http://kb.phenoscape.org/"
+        if (limit > 1) {
+          query.setOffset(offset)
+          query.setLimit(limit)
+        }
+        query.addOrderBy('description)
+        query.addOrderBy('phenotype)
+        query
       }
-      query.addOrderBy('description)
-      query.addOrderBy('phenotype)
-      query
+      val results = for {
+        query <- queryFuture
+        result <- App.executeSPARQLQuery(query, AnnotatedCharacterDescription.fromQuerySolution)
+      } yield result
+      results.flatMap(Future.sequence(_))
     }
-    val results = for {
-      query <- queryFuture
-      result <- App.executeSPARQLQuery(query, AnnotatedCharacterDescription.fromQuerySolution)
-    } yield result
-    results.flatMap(Future.sequence(_))
   }
 
-  def directPhenotypesTotalFor(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = for {
-    rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(rawQuery))
-    _ = query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
-    result <- App.executeSPARQLQuery(query).map(ResultCount.count)
-  } yield result
+  def directPhenotypesTotalFor(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = {
+    val entityIsNamed = entityOpt.map(!_.isAnonymous).getOrElse(true)
+    val qualityIsNamed = qualityOpt.map(!_.isAnonymous).getOrElse(true)
+    if (entityIsNamed && qualityIsNamed) {
+      val entityIRI = entityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+      val qualityIRI = qualityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+      for {
+        query <- DirectPhenotypesForTaxon.buildQuery(taxon, entityIRI, qualityIRI, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
+        result <- App.executeSPARQLQuery(query).map(ResultCount.count)
+      } yield result
+    } else {
+      for {
+        rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+        query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(rawQuery))
+        _ = query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
+        result <- App.executeSPARQLQuery(query).map(ResultCount.count)
+      } yield result
+    }
+  }
 
   private def buildPhenotypesSubQuery(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Query] = {
     val phenotypePattern = if (entityOpt.nonEmpty || qualityOpt.nonEmpty) {
