@@ -126,7 +126,7 @@ object TaxaWithPhenotype {
     }.getOrElse(sparql"")
     val qualityPattern = quality.map(q => sparql"?p $rdfsSubClassOf/$HasPartSome $q . ").getOrElse(sparql"")
     Some(BlazegraphNamedSubquery(sparql"""
-        SELECT ?phenotype WHERE {
+        SELECT DISTINCT ?phenotype WHERE {
           $entityPattern
           $qualityPattern
           GRAPH $KBMainGraph {
