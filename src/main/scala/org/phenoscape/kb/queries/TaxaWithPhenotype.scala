@@ -121,7 +121,7 @@ object TaxaWithPhenotype {
 
   def phenotypeSubQueryFor(entity: Option[IRI], quality: Option[IRI], parts: Boolean): Option[BlazegraphNamedSubquery] = if (entity.nonEmpty || quality.nonEmpty) {
     val entityPattern = entity.map { e =>
-      if (parts) sparql"?p $rdfsSubClassOf/$PhenotypeOfSome/$PartOfSome $e . "
+      if (parts) sparql"?p $rdfsSubClassOf/$PhenotypeOfSome/$rdfsSubClassOf/$PartOfSome $e . "
       else sparql"?p $rdfsSubClassOf/$PhenotypeOfSome $e . "
     }.getOrElse(sparql"")
     val qualityPattern = quality.map(q => sparql"?p $rdfsSubClassOf/$HasPartSome $q . ").getOrElse(sparql"")
