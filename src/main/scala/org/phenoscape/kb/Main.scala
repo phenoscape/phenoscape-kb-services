@@ -386,7 +386,7 @@ object Main extends HttpApp with App {
               path("homology") {
                 parameters('entity.as[IRI]) { (entity) =>
                   complete {
-                    AnatomicalEntity.homologyAnnotations(entity)
+                    AnatomicalEntity.homologyAnnotations(entity, false)
                   }
                 }
               }

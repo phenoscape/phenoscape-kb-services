@@ -16,6 +16,8 @@ import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
 import org.apache.jena.sparql.syntax.ElementFilter
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
+import org.phenoscape.kb.KBVocab._
+import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.phenoscape.scowl._
 import org.semanticweb.owlapi.model.IRI
 
@@ -23,47 +25,55 @@ import KBVocab._
 import KBVocab.rdfsLabel
 import spray.json._
 import spray.json.DefaultJsonProtocol._
+import org.phenoscape.sparql.SPARQLInterpolation._
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 
 object AnatomicalEntity {
 
   private val dcSource = ObjectProperty(IRI.create("http://purl.org/dc/elements/1.1/source"))
   private val ECO = IRI.create("http://purl.obolibrary.org/obo/eco.owl")
 
-  def homologyAnnotations(term: IRI): Future[Seq[HomologyAnnotation]] = App.executeSPARQLQuery(homologyAnnotationQuery(term), HomologyAnnotation(_, term))
+  def homologyAnnotations(term: IRI, includeSubClasses: Boolean): Future[Seq[HomologyAnnotation]] = App.executeSPARQLQueryString(homologyAnnotationQuery(term, includeSubClasses), HomologyAnnotation(_, term))
 
-  private def homologyAnnotationQuery(term: IRI): Query = {
-    val query = select_distinct('subject, 'object, 'subjectTaxon, 'subjectVTO, 'objectTaxon, 'objectVTO, 'negated, 'source, 'evidenceType, 'relation) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('annotation, associationHasPredicate, 'relation),
-        t('annotation, associationHasSubject / rdfType / owlIntersectionOf / rdfRest.* / rdfFirst, 'subject),
-        t('annotation, associationHasSubject / rdfType / owlIntersectionOf / rdfRest.* / rdfFirst, 'subjectTaxonRestriction),
-        t('subjectTaxonRestriction, owlOnProperty, in_taxon),
-        t('subjectTaxonRestriction, owlSomeValuesFrom, 'subjectTaxon),
-        t('annotation, associationHasObject / rdfType / owlIntersectionOf / rdfRest.* / rdfFirst, 'object),
-        t('annotation, associationHasObject / rdfType / owlIntersectionOf / rdfRest.* / rdfFirst, 'objectTaxonRestriction),
-        t('objectTaxonRestriction, owlOnProperty, in_taxon),
-        t('objectTaxonRestriction, owlSomeValuesFrom, 'objectTaxon),
-        t('annotation, associationIsNegated, 'negated),
-        t('annotation, has_evidence, 'evidence),
-        t('evidence, dcSource, 'source),
-        t('evidence, rdfType, 'evidenceType),
-        t('evidenceType, rdfsIsDefinedBy, ECO)),
-        new ElementFilter(new E_IsIRI(new ExprVar("subject"))),
-        new ElementFilter(new E_IsIRI(new ExprVar("object"))),
-        new ElementFilter(new E_LogicalOr(new E_Equals(new ExprVar("subject"), new NodeValueNode(term)), new E_Equals(new ExprVar("object"), new NodeValueNode(term)))),
-        optional(bgp(
-          t('subjectTaxon, owlEquivalentClass, 'subjectVTO),
-          t('subjectVTO, rdfsIsDefinedBy, VTO)),
-          new ElementFilter(new E_IsIRI(new ExprVar("subjectVTO")))),
-          optional(bgp(
-            t('objectTaxon, owlEquivalentClass, 'objectVTO),
-            t('objectVTO, rdfsIsDefinedBy, VTO)),
-            new ElementFilter(new E_IsIRI(new ExprVar("objectVTO")))))
-    val relationVar = Var.alloc("relation")
-    query.setValuesDataBlock(List(relationVar).asJava, List(
-      BindingFactory.binding(relationVar, NodeFactory.createURI(homologous_to.getIRI.toString)),
-      BindingFactory.binding(relationVar, NodeFactory.createURI(serially_homologous_to.getIRI.toString))).asJava)
-    query
+  private def homologyAnnotationQuery(term: IRI, includeSubClasses: Boolean): String = {
+    val termSpec = if (includeSubClasses) sparql"GRAPH $KBClosureGraph { ?term $rdfsSubClassOf $term . } "
+    else sparql"VALUES ?term { $term }"
+    val query = sparql"""
+      SELECT DISTINCT ?subject ?object ?subjectTaxon ?subjectVTO ?objectTaxon ?objectVTO ?negated ?source ?evidenceType ?relation
+      FROM $KBMainGraph
+      WHERE {
+        VALUES ?relation { $homologous_to $serially_homologous_to }
+        $termSpec
+        ?annotation ?associationHasPredicate ?relation .
+        ?annotation $associationHasSubject/$rdfType/$owlIntersectionOf/($rdfRest*)/$rdfFirst ?subject .
+        ?annotation $associationHasSubject/$rdfType/$owlIntersectionOf/($rdfRest*)/$rdfFirst ?subjectTaxonRestriction .
+        ?subjectTaxonRestriction $owlOnProperty $in_taxon .
+        ?subjectTaxonRestriction $owlSomeValuesFrom ?subjectTaxon .
+        ?annotation $associationHasObject/$rdfType/$owlIntersectionOf/($rdfRest*)/$rdfFirst ?object .
+        ?annotation $associationHasObject/$rdfType/$owlIntersectionOf/($rdfRest*)/$rdfFirst ?objectTaxonRestriction .
+        ?objectTaxonRestriction $owlOnProperty $in_taxon .
+        ?objectTaxonRestriction $owlSomeValuesFrom ?objectTaxon .
+        ?annotation $associationIsNegated ?negated .
+        ?annotation $has_evidence ?evidence .
+        ?evidence $dcSource ?source .
+        ?evidence $rdfType ?evidenceType .
+        ?evidenceType $rdfsIsDefinedBy $ECO .
+        FILTER(isIRI(?subject))
+        FILTER(isIRI(?object))
+        FILTER((?subject = ?term) || (?object = ?term))
+        OPTIONAL {
+          ?subjectTaxon $owlEquivalentClass ?subjectVTO .
+          ?subjectVTO $rdfsIsDefinedBy $VTO .
+          FILTER(isIRI(?subjectVTO))
+        }
+        OPTIONAL {
+          ?objectTaxon $owlEquivalentClass ?objectVTO .
+          ?objectVTO $rdfsIsDefinedBy $VTO .
+          FILTER(isIRI(?objectVTO))
+        }
+      }
+      """
+    query.text
   }
 
 }
