@@ -12,7 +12,6 @@ import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
-import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.semanticweb.owlapi.model.IRI
@@ -60,7 +59,6 @@ object DirectPhenotypesForTaxon {
     }
   }
 
-  //FIXME this should query for homology annotations for all subclasses of entity
   //TODO extract common parts with TaxaWithPhenotype
   private def constructWhereClause(taxon: IRI, entity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[(QueryText, Set[BlazegraphNamedSubquery])] = {
     val validHomologyRelation = (if (includeHistoricalHomologs) Set(homologous_to.getIRI) else Set.empty) ++ (if (includeSerialHomologs) Set(serially_homologous_to.getIRI) else Set.empty)
