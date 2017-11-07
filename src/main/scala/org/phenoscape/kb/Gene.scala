@@ -23,6 +23,7 @@ import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import org.phenoscape.kb.queries.GeneAffectingPhenotype
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
@@ -39,7 +40,6 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.model.MediaTypes
 import spray.json._
 import spray.json.DefaultJsonProtocol._
-import org.phenoscape.kb.queries.GeneAffectingPhenotype
 
 object Gene {
 
@@ -232,10 +232,9 @@ object Gene {
     val partOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
     select_distinct() from KBMainGraph.toString from KBClosureGraph.toString where (
       bgp(
-        App.BigdataAnalyticQuery,
         t('gene, rdfsLabel, 'gene_label),
         t('expression, associated_with_gene, 'gene),
-        t('expression, rdfType, GeneExpression),
+        //        t('expression, rdfType, GeneExpression), // faster without, and not necessary for current model
         t('expression, occurs_in / rdfsSubClassOf / partOfSome, entityIRI)))
   }
 
