@@ -1,32 +1,22 @@
 package org.phenoscape.kb.queries
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
-import org.apache.jena.vocabulary.RDFS
+import org.phenoscape.kb.AnatomicalEntity
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-import org.phenoscape.owl.Vocab
+import org.phenoscape.kb.util.BlazegraphNamedSubquery
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.owl.Vocab._
-import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.scowl._
-import org.semanticweb.owlapi.model.IRI
-import org.semanticweb.owlapi.model.OWLClassExpression
-import org.phenoscape.kb.App
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolation.QueryText
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.semanticweb.owlapi.model.IRI
+
 import scalaz._
-import Scalaz._
-import org.phenoscape.kb.util.BlazegraphNamedSubquery
-import org.phenoscape.owl.NamedRestrictionGenerator
-import org.semanticweb.owlapi.model.OWLObjectProperty
-import org.phenoscape.kb.AnatomicalEntity
-import org.phenoscape.kb.HomologyAnnotation
+import scalaz.Scalaz._
 
 object DirectPhenotypesForTaxon {
 

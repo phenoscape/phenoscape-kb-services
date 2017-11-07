@@ -39,6 +39,7 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.model.MediaTypes
 import spray.json._
 import spray.json.DefaultJsonProtocol._
+import org.phenoscape.kb.queries.GeneAffectingPhenotype
 
 object Gene {
 
@@ -132,30 +133,15 @@ object Gene {
     result.getLiteral("gene_label").getLexicalForm,
     taxonForGeneIRI(iri))
 
-  def affectingPhenotypeOfEntity(entity: IRI, quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int, offset: Int): Future[Seq[Gene]] = {
-    val query = buildGeneForPhenotypeQuery(entity, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    query.addResultVar('gene)
-    query.addResultVar('gene_label)
-    if (limit > 1) {
-      query.setOffset(offset)
-      query.setLimit(limit)
-    }
-    query.addOrderBy('gene_label)
-    query.addOrderBy('gene)
-    for {
-      expandedQuery <- App.expandWithOwlet(query)
-      genes <- App.executeSPARQLQuery(expandedQuery, Gene(_))
-    } yield genes
-  }
+  def affectingPhenotypeOfEntity(entity: IRI, quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int, offset: Int): Future[Seq[Gene]] = for {
+    query <- GeneAffectingPhenotype.buildQuery(Option(entity), quality, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
+    genes <- App.executeSPARQLQueryString(query, Gene(_))
+  } yield genes
 
-  def affectingPhenotypeOfEntityTotal(entity: IRI, quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = {
-    val query = buildGeneForPhenotypeQuery(entity, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("gene"))))
-    for {
-      expandedQuery <- App.expandWithOwlet(query)
-      total <- App.executeSPARQLQuery(expandedQuery).map(ResultCount.count)
-    } yield total
-  }
+  def affectingPhenotypeOfEntityTotal(entity: IRI, quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = for {
+    query <- GeneAffectingPhenotype.buildQuery(Option(entity), quality, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
+    total <- App.executeSPARQLQuery(query).map(ResultCount.count)
+  } yield total
 
   def expressedWithinEntity(entity: IRI, limit: Int, offset: Int): Future[Seq[Gene]] = {
     val query = buildGeneExpressedInEntityQuery(entity)
@@ -242,30 +228,6 @@ object Gene {
     s"$gene\t$geneLabel\t$taxon\t$source"
   }
 
-  private def buildGeneForPhenotypeQuery(entityIRI: IRI, quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Query = {
-    val hasPhenotypicProfile = ObjectProperty(has_phenotypic_profile)
-    val entity = Class(entityIRI)
-    val homologousEntityClass = (includeHistoricalHomologs, includeSerialHomologs) match {
-      case (false, false) => entity
-      case (true, false)  => entity or (homologous_to some entity)
-      case (false, true)  => entity or (serially_homologous_to some entity)
-      case (true, true)   => entity or (homologous_to some entity) or (serially_homologous_to some entity)
-    }
-    val entityExpression = if (includeParts) (homologousEntityClass or (part_of some homologousEntityClass)) else homologousEntityClass
-    val phenotypeExpression = quality match {
-      case Some(qualityTerm) => (has_part some Class(qualityTerm)) and (phenotype_of some entityExpression)
-      case None              => (phenotype_of some entityExpression) or (has_part some (towards value Individual(entityIRI)))
-    }
-    select_distinct() from "http://kb.phenoscape.org/" where (
-      bgp(
-        App.BigdataAnalyticQuery,
-        t('gene, rdfsLabel, 'gene_label),
-        t('gene, rdfType, Vocab.Gene),
-        t('gene, hasPhenotypicProfile / rdfType, 'phenotype),
-        t('phenotype, rdfsSubClassOf, phenotypeExpression.asOMN)))
-    //TODO add part_of instance graph so could say (towards some (part_of value Individual(entityIRI)))???
-  }
-
   private def buildGeneExpressedInEntityQuery(entityIRI: IRI): Query = {
     val partOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
     select_distinct() from KBMainGraph.toString from KBClosureGraph.toString where (
@@ -288,7 +250,7 @@ object Gene {
       result.getLiteral("gene_label").getLexicalForm,
       taxonForGeneIRI(IRI.create(geneURI)))
   }
-  
+
   implicit val GenesTextMarshaller: ToEntityMarshaller[Seq[Gene]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { genes =>
     val header = "IRI\tlabel\ttaxon"
     s"$header\n${genes.map(_.toString).mkString("\n")}"
