@@ -52,4 +52,8 @@ object KBVocab {
   val KBMainGraph = IRI.create("http://kb.phenoscape.org/")
   val KBClosureGraph = IRI.create("http://kb.phenoscape.org/closure")
 
+  val entityRoot = IRI.create("http://purl.obolibrary.org/obo/UBERON_0000061")
+  val qualityRoot = IRI.create("http://purl.obolibrary.org/obo/PATO_0000001")
+  val taxonRoot = IRI.create("http://purl.obolibrary.org/obo/VTO_0000001")
+
 }

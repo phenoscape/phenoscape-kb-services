@@ -21,6 +21,7 @@ import org.apache.jena.sparql.syntax.ElementBind
 import org.apache.jena.sparql.syntax.ElementNamedGraph
 import org.apache.jena.sparql.syntax.ElementSubQuery
 import org.apache.jena.vocabulary.RDFS
+import org.phenoscape.kb.Facets.Facet
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.kb.KBVocab.rdfsSubClassOf
@@ -94,8 +95,27 @@ object Taxon {
         result <- App.executeSPARQLQuery(query)
       } yield ResultCount.count(result)
     }
-
   }
+
+  def facetTaxaWithPhenotypeByEntity(focalEntity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => withPhenotypeTotal(Class(iri), quality.map(Class(_)).getOrElse(OWLThing), inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.Uberon)).map(_.toSet)
+    Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine)
+  }
+
+  def facetTaxaWithPhenotypeByQuality(focalQuality: Option[IRI], entity: Option[IRI], inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => withPhenotypeTotal(entity.map(Class(_)).getOrElse(OWLThing), Class(iri), inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
+    Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine)
+  }
+
+  def facetTaxaWithPhenotypeByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => withPhenotypeTotal(entity.map(Class(_)).getOrElse(OWLThing), quality.map(Class(_)).getOrElse(OWLThing), Some(iri), includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
+    Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine)
+  }
+
+  private def facetResultToMap(facets: List[(MinimalTerm, Int)]) = Map("facets" -> facets.map { case (term, count) => Map("term" -> term, "count" -> count) })
 
   def variationProfileFor(taxon: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
     val results = App.executeSPARQLQuery(buildVariationProfileQuery(taxon, limit, offset), result => {
@@ -206,7 +226,8 @@ object Taxon {
       bgp(
         t('term, has_rank, rank),
         t('term, rdfsLabel, 'term_label)),
-        new ElementNamedGraph(NodeFactory.createURI("http://kb.phenoscape.org/closure"),
+        new ElementNamedGraph(
+          NodeFactory.createURI("http://kb.phenoscape.org/closure"),
           bgp(
             t('term, rdfsSubClassOf, inTaxon))))
     App.executeSPARQLQuery(query, Term.fromMinimalQuerySolution)
@@ -216,7 +237,8 @@ object Taxon {
     val query = select() from "http://kb.phenoscape.org/" where (
       bgp(
         t('taxon, exhibits_state / describes_phenotype, 'phenotype)),
-        new ElementNamedGraph(NodeFactory.createURI("http://kb.phenoscape.org/closure"),
+        new ElementNamedGraph(
+          NodeFactory.createURI("http://kb.phenoscape.org/closure"),
           bgp(
             t('taxon, rdfsSubClassOf, inTaxon))))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
@@ -433,7 +455,8 @@ case class CommonGroup(label: String, phylopic: Option[IRI]) extends JSONResultI
 object CommonGroup {
 
   def apply(result: QuerySolution): CommonGroup = {
-    CommonGroup(result.getLiteral("label").getLexicalForm,
+    CommonGroup(
+      result.getLiteral("label").getLexicalForm,
       {
         val picOpt = result.get("picOpt")
         if (picOpt.isURIResource) Some(IRI.create(picOpt.asResource.getURI)) else None
@@ -457,7 +480,8 @@ case class Taxon(iri: IRI, label: String) extends JSONResultItem {
 case class TaxonInfo(iri: IRI, label: String, rank: Option[MinimalTerm], commonName: Option[String], extinct: Boolean) extends JSONResultItem {
 
   def toJSON: JsObject = {
-    (Map("@id" -> iri.toString.toJson,
+    (Map(
+      "@id" -> iri.toString.toJson,
       "label" -> label.toJson,
       "extinct" -> extinct.toJson) ++
       rank.map("rank" -> _.toJSON) ++

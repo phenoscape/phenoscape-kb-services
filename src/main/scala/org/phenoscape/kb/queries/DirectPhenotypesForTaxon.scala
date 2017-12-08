@@ -104,11 +104,11 @@ object DirectPhenotypesForTaxon {
     }
   }
 
-  private def coreTaxonToPhenotype(taxon: IRI, inTaxa: Set[IRI], phenotypeQuery: Option[BlazegraphNamedSubquery]): QueryText = {
+  private def coreTaxonToPhenotype(taxon: IRI, inTaxa: Set[IRI], phenotypeQueries: Set[BlazegraphNamedSubquery]): QueryText = {
     // triple pattern without variables must go inside filter
     val taxonConstraints = (for { inTaxon <- inTaxa }
       yield sparql"FILTER EXISTS { $taxon $rdfsSubClassOf $inTaxon . }").fold(sparql"")(_ |+| _)
-    val subQueryRef = phenotypeQuery.map(q => sparql"$q").getOrElse(sparql"")
+    val subQueryRefs = QueryText(phenotypeQueries.map(q => sparql"$q").map(_.text).mkString("\n"))
     sparql"""
       {
       $taxon $exhibits_state ?state .
@@ -117,7 +117,7 @@ object DirectPhenotypesForTaxon {
       ?matrix $has_character/$may_have_state_value ?state .
       ?matrix $rdfsLabel ?matrix_label
       $taxonConstraints
-      $subQueryRef
+      $subQueryRefs
       }
     """
   }

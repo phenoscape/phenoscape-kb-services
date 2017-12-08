@@ -108,34 +108,47 @@ object TaxaWithPhenotype {
     }
   }
 
-  def phenotypeSubQueryFor(entity: Option[IRI], quality: Option[IRI], parts: Boolean): Option[BlazegraphNamedSubquery] = if (entity.nonEmpty || quality.nonEmpty) {
+  def phenotypeSubQueryFor(entity: Option[IRI], quality: Option[IRI], parts: Boolean): Set[BlazegraphNamedSubquery] = {
     val entityPattern = entity.map { e =>
-      if (parts) sparql"?p $rdfsSubClassOf/$PhenotypeOfSome/$rdfsSubClassOf/$PartOfSome $e . "
-      else sparql"?p $rdfsSubClassOf/$PhenotypeOfSome $e . "
-    }.getOrElse(sparql"")
-    val qualityPattern = quality.map(q => sparql"?p $rdfsSubClassOf/$HasPartSome $q . ").getOrElse(sparql"")
-    Some(BlazegraphNamedSubquery(sparql"""
+      if (parts) BlazegraphNamedSubquery(sparql"""
         SELECT DISTINCT ?phenotype WHERE {
-          $entityPattern
-          $qualityPattern
+          ?p $rdfsSubClassOf/$PhenotypeOfSome/$rdfsSubClassOf/$PartOfSome $e .
+          GRAPH $KBMainGraph {
+            ?phenotype $rdfsSubClassOf ?p .
+          }
+        } 
+        """)
+      else BlazegraphNamedSubquery(sparql"""
+        SELECT DISTINCT ?phenotype WHERE {
+          ?p $rdfsSubClassOf/$PhenotypeOfSome $e . 
+          GRAPH $KBMainGraph {
+            ?phenotype $rdfsSubClassOf ?p .
+          }
+        } 
+        """)
+    }
+    val qualityPattern = quality.map(q => BlazegraphNamedSubquery(sparql"""
+        SELECT DISTINCT ?phenotype WHERE {
+          ?p $rdfsSubClassOf/$HasPartSome $q . 
           GRAPH $KBMainGraph {
             ?phenotype $rdfsSubClassOf ?p .
           }
         }
       """))
-  } else None
+    entityPattern.toSet ++ qualityPattern.toSet
+  }
 
-  private def coreTaxonToPhenotype(inTaxa: Set[IRI], phenotypeQuery: Option[BlazegraphNamedSubquery]): QueryText = {
+  private def coreTaxonToPhenotype(inTaxa: Set[IRI], phenotypeQueries: Set[BlazegraphNamedSubquery]): QueryText = {
     val taxonConstraints = (for { taxon <- inTaxa }
       yield sparql"?taxon $rdfsSubClassOf $taxon . ").fold(sparql"")(_ |+| _)
-    val subQueryRef = phenotypeQuery.map(q => sparql"$q").getOrElse(sparql"")
+    val subQueryRefs = QueryText(phenotypeQueries.map(q => sparql"$q").map(_.text).mkString("\n"))
     sparql"""
       {
       ?taxon $RDFSLabel ?taxon_label .
       ?taxon $exhibits_state ?state .
       ?state $describes_phenotype ?phenotype .
       $taxonConstraints
-      $subQueryRef
+      $subQueryRefs
       }
     """
   }

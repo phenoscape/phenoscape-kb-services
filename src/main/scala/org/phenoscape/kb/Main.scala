@@ -37,6 +37,7 @@ import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import akka.http.scaladsl.model.Uri
+import akka.http.javadsl.server.Rejections
 
 object Main extends HttpApp with App {
 
@@ -78,7 +79,9 @@ object Main extends HttpApp with App {
     respondWithHeaders(
       RawHeader("Vary", "negotiate, Accept"),
       `Cache-Control`(`must-revalidate`, `max-age`(0), `s-maxage`(2592001))) {
-        pathPrefix("kb") {
+        pathSingleSlash {
+          redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
+        } ~ pathPrefix("kb") {
           path("annotation_summary") {
             complete {
               KB.annotationSummary
@@ -290,6 +293,18 @@ object Main extends HttpApp with App {
                       if (total) {
                         Taxon.withPhenotypeTotal(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
                       } else Taxon.withPhenotype(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                    }
+                }
+              } ~
+              path("facet" / "phenotype" / Segment) { facetBy =>
+                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
+                  (entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
+                    complete {
+                      facetBy match {
+                        case "entity"  => Taxon.facetTaxaWithPhenotypeByEntity(entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "quality" => Taxon.facetTaxaWithPhenotypeByQuality(qualityOpt, entityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon"   => Taxon.facetTaxaWithPhenotypeByTaxon(taxonOpt, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                      }
                     }
                 }
               } ~
@@ -543,10 +558,13 @@ object Main extends HttpApp with App {
                   DataCoverageFigureReportAnyTaxon.query()
                 }
               }
-          } ~
-          pathEnd {
-            redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
           }
+        //          ~
+        //          path("test") {
+        //            complete {
+        //              Facets.facetTaxaWithPhenotype(IRI.create("http://purl.obolibrary.org/obo/UBERON_0010740")).map(_.toString)
+        //            }
+        //          }
       }
   }
 
