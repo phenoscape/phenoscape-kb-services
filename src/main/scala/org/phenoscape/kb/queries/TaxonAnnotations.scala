@@ -11,6 +11,7 @@ import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.util.BlazegraphNamedSubquery
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.owl.Vocab._
+import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolation.QueryText
 import org.semanticweb.owlapi.model.IRI
@@ -18,11 +19,11 @@ import org.semanticweb.owlapi.model.IRI
 import scalaz._
 import scalaz.Scalaz._
 
-object DirectPhenotypesForTaxon {
+object TaxonAnnotations {
 
-  def buildQuery(taxon: IRI, entity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, countOnly: Boolean, limit: Int, offset: Int): Future[String] = {
+  def buildQuery(entity: Option[IRI], quality: Option[IRI], inTaxon: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, countOnly: Boolean, limit: Int, offset: Int): Future[String] = {
     for {
-      (whereClause, subqueries) <- constructWhereClause(taxon, entity, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+      (whereClause, subqueries) <- constructWhereClause(entity, quality, inTaxon, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     } yield {
       val unifiedQueries = BlazegraphNamedSubquery.unifyQueries(subqueries)
       val namedQueriesBlock = if (unifiedQueries.nonEmpty) unifiedQueries.map(_.namedQuery).reduce(_ |+| _) else sparql""
@@ -32,17 +33,17 @@ object DirectPhenotypesForTaxon {
       FROM $KBClosureGraph
       $namedQueriesBlock
       WHERE {
-        SELECT DISTINCT ?state ?description ?matrix ?matrix_label ?phenotype
+        SELECT DISTINCT ?taxon ?taxon_label ?phenotype ?phenotype_label ?state ?description ?matrix ?matrix_label 
         $whereClause
       }
       """
       else sparql"""
-      SELECT DISTINCT ?state ?description ?matrix ?matrix_label ?phenotype
+      SELECT DISTINCT ?taxon ?taxon_label ?phenotype ?phenotype_label ?state ?description ?matrix ?matrix_label 
       FROM $KBMainGraph
       FROM $KBClosureGraph
       $namedQueriesBlock
       $whereClause
-      ORDER BY ?description ?phenotype
+      ORDER BY ?taxon_label ?taxon ?phenotype_label ?description ?phenotype
       LIMIT $limit OFFSET $offset
       """
       BlazegraphNamedSubquery.updateReferencesFor(unifiedQueries, query.text)
@@ -50,7 +51,7 @@ object DirectPhenotypesForTaxon {
   }
 
   //TODO extract common parts with TaxaWithPhenotype
-  private def constructWhereClause(taxon: IRI, entity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[(QueryText, Set[BlazegraphNamedSubquery])] = {
+  private def constructWhereClause(entity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[(QueryText, Set[BlazegraphNamedSubquery])] = {
     val validHomologyRelation = (if (includeHistoricalHomologs) Set(homologous_to.getIRI) else Set.empty) ++ (if (includeSerialHomologs) Set(serially_homologous_to.getIRI) else Set.empty)
     val homologyQueryPartsFut: ListT[Future, (List[QueryText], Set[BlazegraphNamedSubquery])] = for {
       entityTerm <- entity.toList |> Future.successful |> ListT.apply
@@ -63,12 +64,12 @@ object DirectPhenotypesForTaxon {
       var homComponents = List.empty[QueryText]
       var homSubqueries = Set.empty[BlazegraphNamedSubquery]
       val homSubquery = TaxaWithPhenotype.phenotypeSubQueryFor(Option(otherEntity), quality, false)
-      val basicHom = coreTaxonToPhenotype(taxon, Set(otherTaxon), homSubquery)
+      val basicHom = coreTaxonToPhenotype(inTaxonOpt.toSet + otherTaxon, homSubquery)
       homComponents = basicHom :: homComponents
       homSubquery.foreach(q => homSubqueries += q)
       if (includeParts) {
         val homPartsSubquery = TaxaWithPhenotype.phenotypeSubQueryFor(Option(otherEntity), quality, true)
-        val homParts = coreTaxonToPhenotype(taxon, Set(otherTaxon), homPartsSubquery)
+        val homParts = coreTaxonToPhenotype(inTaxonOpt.toSet + otherTaxon, homPartsSubquery)
         homComponents = homParts :: homComponents
         homPartsSubquery.foreach(q => homSubqueries += q)
       }
@@ -82,12 +83,12 @@ object DirectPhenotypesForTaxon {
       var components = homologyWhereBlocks.flatten
       var subqueries = homologySubqueries.toSet.flatten
       val basicSubquery = TaxaWithPhenotype.phenotypeSubQueryFor(entity, quality, false)
-      val basic = coreTaxonToPhenotype(taxon, Set.empty, basicSubquery)
+      val basic = coreTaxonToPhenotype(inTaxonOpt.toSet, basicSubquery)
       components = basic :: components
       basicSubquery.foreach(q => subqueries += q)
       if (includeParts) {
         val partsSubquery = TaxaWithPhenotype.phenotypeSubQueryFor(entity, quality, true)
-        val parts = coreTaxonToPhenotype(taxon, Set.empty, partsSubquery)
+        val parts = coreTaxonToPhenotype(inTaxonOpt.toSet, partsSubquery)
         components = parts :: components
         partsSubquery.foreach(q => subqueries += q)
       }
@@ -104,15 +105,16 @@ object DirectPhenotypesForTaxon {
     }
   }
 
-  private def coreTaxonToPhenotype(taxon: IRI, inTaxa: Set[IRI], phenotypeQueries: Set[BlazegraphNamedSubquery]): QueryText = {
-    // triple pattern without variables must go inside filter
-    val taxonConstraints = (for { inTaxon <- inTaxa }
-      yield sparql"FILTER EXISTS { $taxon $rdfsSubClassOf $inTaxon . }").fold(sparql"")(_ |+| _)
+  private def coreTaxonToPhenotype(inTaxa: Set[IRI], phenotypeQueries: Set[BlazegraphNamedSubquery]): QueryText = {
+    val taxonConstraints = (for { taxon <- inTaxa }
+      yield sparql"?taxon $rdfsSubClassOf $taxon . ").fold(sparql"")(_ |+| _)
     val subQueryRefs = QueryText(phenotypeQueries.map(q => sparql"$q").map(_.text).mkString("\n"))
     sparql"""
       {
-      $taxon $exhibits_state ?state .
+      ?taxon $RDFSLabel ?taxon_label .
+      ?taxon $exhibits_state ?state .
       ?state $describes_phenotype ?phenotype .
+      ?phenotype $RDFSLabel ?phenotype_label .
       ?state $dcDescription ?description .
       ?matrix $has_character/$may_have_state_value ?state .
       ?matrix $rdfsLabel ?matrix_label .

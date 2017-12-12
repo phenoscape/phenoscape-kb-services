@@ -308,12 +308,12 @@ object Main extends HttpApp with App {
                     }
                 }
               } ~
-              path("annotations") { //undocumented and currently unused
-                parameters('entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'in_taxon.as[IRI].?, 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                  (entity, quality, taxonOpt, limit, offset, total) =>
+              path("annotations") { //FIXME needs documentation
+                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                  (entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                     complete {
-                      if (total) TaxonPhenotypeAnnotation.queryAnnotationsTotal(entity, quality, taxonOpt).map(ResultCount(_))
-                      else TaxonPhenotypeAnnotation.queryAnnotations(entity, quality, taxonOpt, limit, offset)
+                      if (total) TaxonPhenotypeAnnotation.queryAnnotationsTotal(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                      else TaxonPhenotypeAnnotation.queryAnnotations(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                     }
                 }
               } ~
