@@ -45,9 +45,9 @@ RUN apt-get update -y && \
 # Download and unpack application from the requested tag or branch on Github
 ADD get-tarball-url.sh /tmp/get-tarball-url.sh
 RUN echo \
-    "Building $APPNAME from "$(sh /tmp/get-tarball-url.sh $TARGET $REPO) && \
+    "Building $APPNAME from "$(sh /tmp/get-tarball-url.sh $REPO $TARGET) && \
     curl -L -o /tmp/$APPNAME.tar.gz \
-         $(sh /tmp/get-tarball-url.sh $TARGET $REPO) && \
+         $(sh /tmp/get-tarball-url.sh $REPO $TARGET) && \
     mkdir /tmp/$APPNAME && \
     tar -z -x -v --strip-components 1 -C /tmp/$APPNAME -f /tmp/$APPNAME.tar.gz
 
