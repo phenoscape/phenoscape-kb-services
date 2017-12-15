@@ -1,6 +1,6 @@
 # Docker container for phenoscape-kb-services
 
-[![Docker Hub Repository](https://img.shields.io/docker/automated/phenoscape/phenoscape-kb-services.svg)](https://hub.docker.com/r/phenoscape-kb-services/) [![Docker Hub Pulls](https://img.shields.io/docker/pulls/phenoscape-kb-services.svg)](https://hub.docker.com/r/phenoscape-kb-services/)
+[![Docker Hub Repository](https://img.shields.io/docker/automated/phenoscape/phenoscape-kb-services.svg)](https://hub.docker.com/r/phenoscape/phenoscape-kb-services/) [![Docker Hub Pulls](https://img.shields.io/docker/pulls/phenoscape/phenoscape-kb-services.svg)](https://hub.docker.com/r/phenoscape/phenoscape-kb-services/)
 
 This Docker container will automatically run the phenoscape-kb-services application, exposed on port 8082. (You will need to map this to a port suitable for you on the host.)
 
