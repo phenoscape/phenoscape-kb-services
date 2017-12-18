@@ -13,7 +13,7 @@ import akka.http.scaladsl.model.MediaTypes
 object PhenexDataSet {
 
   implicit val DataSetMarshaller: ToEntityMarshaller[DataSet] = Marshaller.stringMarshaller(MediaTypes.`application/xml`).compose { dataset =>
-    val writer = new NeXMLWriter(UUID.randomUUID.toString)
+    val writer = new NeXMLWriter("c" + UUID.randomUUID.toString)
     writer.setDataSet(dataset)
     val output = new StringWriter()
     writer.write(output)
