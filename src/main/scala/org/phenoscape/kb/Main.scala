@@ -74,6 +74,7 @@ object Main extends HttpApp with App {
 
   val conf = ConfigFactory.load()
   val serverPort = conf.getInt("kb-services.port")
+  val serverHost = conf.getString("kb-services.host")
 
   def routes: Route = cors() {
     respondWithHeaders(
@@ -570,6 +571,6 @@ object Main extends HttpApp with App {
 
   val log = Logging(system, this.getClass)
 
-  startServer(host = "localhost", port = serverPort, settings = ServerSettings(conf), system = system)
+  startServer(host = serverHost, port = serverPort, settings = ServerSettings(conf), system = system)
 
 }
