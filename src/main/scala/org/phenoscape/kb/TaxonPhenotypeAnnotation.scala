@@ -4,6 +4,7 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 
 import org.apache.jena.query.QuerySolution
+import org.phenoscape.kb.Facets.Facet
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 import org.phenoscape.kb.queries.TaxonAnnotations
@@ -34,7 +35,6 @@ object TaxonPhenotypeAnnotation {
 
   def queryAnnotations(entity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[TaxonPhenotypeAnnotation]] = for {
     query <- TaxonAnnotations.buildQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
-    _ = println(query)
     annotations <- App.executeSPARQLQueryString(query, fromQueryResult)
   } yield annotations
 
@@ -53,6 +53,26 @@ object TaxonPhenotypeAnnotation {
     MinimalTerm(
       IRI.create(result.getResource("matrix").getURI),
       result.getLiteral("matrix_label").getLexicalForm))
+
+  def facetTaxonAnnotationsByEntity(focalEntity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => queryAnnotationsTotal(Some(iri), quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.Uberon)).map(_.toSet)
+    Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine)
+  }
+
+  def facetTaxonAnnotationsByQuality(focalQuality: Option[IRI], entity: Option[IRI], inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => queryAnnotationsTotal(entity, Some(iri), inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
+    Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine)
+  }
+
+  def facetTaxonAnnotationsByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => queryAnnotationsTotal(entity, quality, Some(iri), includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
+    Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine)
+  }
+
+  private def facetResultToMap(facets: List[(MinimalTerm, Int)]) = Map("facets" -> facets.map { case (term, count) => Map("term" -> term, "count" -> count) })
 
   //  private def buildBasicTaxonPhenotypeAnnotationsQuery(entity: Option[OWLClassExpression], quality: Option[OWLClassExpression], inTaxonOpt: Option[IRI]): Future[Query] = {
   //    val phenotypeExpression = (entity, quality) match {

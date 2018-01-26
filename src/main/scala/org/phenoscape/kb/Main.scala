@@ -21,6 +21,7 @@ import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.headers
 import akka.http.scaladsl.model.headers.`Cache-Control`
 import akka.http.scaladsl.model.headers.CacheDirectives.`max-age`
@@ -36,8 +37,6 @@ import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
-import akka.http.scaladsl.model.Uri
-import akka.http.javadsl.server.Rejections
 
 object Main extends HttpApp with App {
 
@@ -309,6 +308,18 @@ object Main extends HttpApp with App {
                     }
                 }
               } ~
+              path("facet" / "annotations" / Segment) { facetBy =>
+                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
+                  (entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
+                    complete {
+                      facetBy match {
+                        case "entity"  => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByEntity(entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "quality" => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByQuality(qualityOpt, entityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon"   => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByTaxon(taxonOpt, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                      }
+                    }
+                }
+              } ~
               path("annotations") { //FIXME needs documentation
                 parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
                   (entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
@@ -528,13 +539,34 @@ object Main extends HttpApp with App {
               }
           } ~
           pathPrefix("phenotype") {
-            path("direct_annotations") { // undocumented and not currently used
-              parameters('iri.as[IRI]) { (iri) =>
-                complete {
-                  CharacterDescription.eqAnnotationsForPhenotype(iri)
-                }
+            path("query") {
+              parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                (entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+                  complete {
+                    if (total) Phenotype.queryTaxonPhenotypesTotal(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                    else Phenotype.queryTaxonPhenotypes(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                  }
               }
             } ~
+              path("facet" / Segment) { facetBy =>
+                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
+                  (entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
+                    complete {
+                      facetBy match {
+                        case "entity"  => Phenotype.facetPhenotypeByEntity(entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "quality" => Phenotype.facetPhenotypeByQuality(qualityOpt, entityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon"   => Phenotype.facetPhenotypeByTaxon(taxonOpt, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                      }
+                    }
+                }
+              } ~
+              path("direct_annotations") { // undocumented and not currently used
+                parameters('iri.as[IRI]) { (iri) =>
+                  complete {
+                    CharacterDescription.eqAnnotationsForPhenotype(iri)
+                  }
+                }
+              } ~
               path("nearest_eq") { // undocumented and not currently used
                 parameters('iri.as[IRI]) { (iri) =>
                   complete {
