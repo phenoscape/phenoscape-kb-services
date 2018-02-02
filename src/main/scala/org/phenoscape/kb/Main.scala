@@ -499,13 +499,27 @@ object Main extends HttpApp with App {
               }
           } ~
           pathPrefix("study") {
-            path("query") {
-              parameters('entity.as[OWLClassExpression].?, 'taxon.as[OWLClassExpression].?) { (entity, taxon) =>
-                complete {
-                  Study.queryStudies(entity, taxon)
-                }
+            path("query") { //FIXME doc out of date
+              parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                (entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+                  complete {
+                    if (total) Study.queryStudiesTotal(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                    else Study.queryStudies(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                  }
               }
             } ~
+              path("facet" / Segment) { facetBy =>
+                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
+                  (entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
+                    complete {
+                      facetBy match {
+                        case "entity"  => Study.facetStudiesByEntity(entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "quality" => Study.facetStudiesByQuality(qualityOpt, entityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon"   => Study.facetStudiesByTaxon(taxonOpt, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                      }
+                    }
+                }
+              } ~
               path("taxa") {
                 parameters('iri.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) { (studyIRI, limit, offset, total) =>
                   complete {

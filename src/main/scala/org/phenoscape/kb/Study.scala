@@ -15,7 +15,9 @@ import org.apache.jena.rdf.model.ResourceFactory
 import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
 import org.apache.jena.sparql.syntax.ElementSubQuery
+import org.phenoscape.kb.Facets.Facet
 import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.queries.StudiesRelevantToPhenotype
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
@@ -49,29 +51,32 @@ object Study {
     result.getLiteral("label").getLexicalForm,
     result.getLiteral("citation").getLexicalForm)
 
-  def queryStudies(entityOpt: Option[OWLClassExpression], taxonOpt: Option[OWLClassExpression]): Future[Seq[MinimalTerm]] = for {
-    query <- App.expandWithOwlet(buildQuery(entityOpt, taxonOpt))
-    studies <- App.executeSPARQLQuery(query, queryToTerm)
-  } yield {
-    studies
+  def queryStudies(entity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[MinimalTerm]] = for {
+    query <- StudiesRelevantToPhenotype.buildQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
+    studies <- App.executeSPARQLQueryString(query, queryToTerm)
+  } yield studies
+
+  def queryStudiesTotal(entity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = for {
+    query <- StudiesRelevantToPhenotype.buildQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
+    result <- App.executeSPARQLQuery(query)
+  } yield ResultCount.count(result)
+
+  def facetStudiesByEntity(focalEntity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => queryStudiesTotal(Some(iri), quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.Uberon)).map(_.toSet)
+    Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine)
   }
 
-  def buildQuery(entityOpt: Option[OWLClassExpression], taxonOpt: Option[OWLClassExpression]): Query = {
-    val entityPatterns = entityOpt.toList.flatMap(entity =>
-      t('study, has_character / may_have_state_value / describes_phenotype, 'phenotype) ::
-        t('phenotype, rdfsSubClassOf, (has_part some (phenotype_of some entity)).asOMN) :: Nil) //FIXME fix up has_part after redefining phenotype_of
-    val taxonPatterns = taxonOpt.toList.flatMap(taxon =>
-      t('study, has_TU / has_external_reference, 'taxon) ::
-        t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil)
-    val query = select_distinct('study, 'study_label) where (
-      bgp(
-        (t('study, rdfType, CharacterStateDataMatrix) ::
-          t('study, rdfsLabel, 'study_label) ::
-          entityPatterns ++ taxonPatterns): _*))
+  def facetStudiesByQuality(focalQuality: Option[IRI], entity: Option[IRI], inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => queryStudiesTotal(entity, Some(iri), inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
+    Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine)
+  }
 
-    query.addOrderBy('study_label)
-    query.addOrderBy('study)
-    query
+  def facetStudiesByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => queryStudiesTotal(entity, quality, Some(iri), includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
+    Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine)
   }
 
   def annotatedTaxa(study: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] =
@@ -288,15 +293,17 @@ object Study {
   private implicit def owlEntityToJenaProperty(prop: OWLEntity): Property = ResourceFactory.createProperty(prop.getIRI.toString)
 
   private def queryToTerm(result: QuerySolution): MinimalTerm =
-    MinimalTerm(IRI.create(result.getResource("study").getURI),
-      result.getLiteral("study_label").getLexicalForm)
+    MinimalTerm(
+      IRI.create(result.getResource("matrix").getURI),
+      result.getLiteral("matrix_label").getLexicalForm)
 
 }
 
 case class Study(iri: IRI, label: String, citation: String) extends JSONResultItem {
 
   def toJSON: JsObject = {
-    (Map("@id" -> iri.toString.toJson,
+    (Map(
+      "@id" -> iri.toString.toJson,
       "label" -> label.toJson,
       "citation" -> citation.toJson)).toJson.asJsObject
   }
