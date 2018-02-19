@@ -27,7 +27,7 @@ scalaVersion  := "2.12.4"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
 
-resolvers += "Phenoscape Maven repository" at "http://phenoscape.svn.sourceforge.net/svnroot/phenoscape/trunk/maven/repository"
+resolvers += "Phenoscape Maven repository" at "https://svn.code.sf.net/p/phenoscape/code/trunk/maven/repository"
 
 resolvers += "BBOP repository" at "http://code.berkeleybop.org/maven/repository"
 
