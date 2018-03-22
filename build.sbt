@@ -23,7 +23,7 @@ daemonUser in Linux := "phenoscape" // user which will execute the application
 
 daemonGroup in Linux := "phenoscape"    // group which will execute the application
 
-scalaVersion  := "2.12.4"
+scalaVersion  := "2.12.5"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
 
