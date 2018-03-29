@@ -309,23 +309,23 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("facet" / "annotations" / Segment) { facetBy =>
-                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
-                  (entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
+                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
+                  (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
                       facetBy match {
-                        case "entity"  => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByEntity(entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "quality" => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByQuality(qualityOpt, entityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "taxon"   => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByTaxon(taxonOpt, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "entity"  => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "quality" => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByQuality(qualityOpt, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon"   => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
                 }
               } ~
               path("annotations") { //FIXME needs documentation
-                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                  (entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                  (entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                     complete {
-                      if (total) TaxonPhenotypeAnnotation.queryAnnotationsTotal(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                      else TaxonPhenotypeAnnotation.queryAnnotations(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                      if (total) TaxonPhenotypeAnnotation.queryAnnotationsTotal(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                      else TaxonPhenotypeAnnotation.queryAnnotations(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                     }
                 }
               } ~
