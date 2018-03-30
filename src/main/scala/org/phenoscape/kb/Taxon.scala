@@ -53,23 +53,13 @@ object Taxon {
   def withIRI(iri: IRI): Future[Option[TaxonInfo]] =
     App.executeSPARQLQuery(buildTaxonQuery(iri), Taxon.fromIRIQuery(iri)).map(_.headOption)
 
-  //  def query(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = for {
-  //    query <- App.expandWithOwlet(buildQuery(entity, taxon, publications, limit, offset))
-  //    descriptions <- App.executeSPARQLQuery(query, Taxon(_))
-  //  } yield descriptions
-  //
-  //  def queryTotal(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Future[ResultCount] = for {
-  //    query <- App.expandWithOwlet(buildTotalQuery(entity, taxon, publications))
-  //    result <- App.executeSPARQLQuery(query)
-  //  } yield ResultCount(result)
-
   //TODO remove ClassExpression arguments - require named classes
-  def withPhenotype(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = {
+  def withPhenotype(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = {
     if (!entity.isAnonymous() && !quality.isAnonymous()) {
       val entityIRI = Option(entity.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
       val qualityIRI = Option(quality.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
       for {
-        query <- TaxaWithPhenotype.buildQuery(entityIRI, qualityIRI, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
+        query <- TaxaWithPhenotype.buildQuery(entityIRI, qualityIRI, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
         taxa <- App.executeSPARQLQueryString(query, Taxon(_))
       } yield taxa
     } else {
@@ -81,12 +71,12 @@ object Taxon {
   }
 
   //TODO remove ClassExpression arguments - require named classes
-  def withPhenotypeTotal(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = {
+  def withPhenotypeTotal(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = {
     if (!entity.isAnonymous() && !quality.isAnonymous()) {
       val entityIRI = Option(entity.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
       val qualityIRI = Option(quality.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
       for {
-        query <- TaxaWithPhenotype.buildQuery(entityIRI, qualityIRI, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
+        query <- TaxaWithPhenotype.buildQuery(entityIRI, qualityIRI, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
         result <- App.executeSPARQLQuery(query)
       } yield ResultCount.count(result)
     } else {
@@ -97,20 +87,20 @@ object Taxon {
     }
   }
 
-  def facetTaxaWithPhenotypeByEntity(focalEntity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => withPhenotypeTotal(Class(iri), quality.map(Class(_)).getOrElse(OWLThing), inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+  def facetTaxaWithPhenotypeByEntity(focalEntity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => withPhenotypeTotal(Class(iri), quality.map(Class(_)).getOrElse(OWLThing), inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.Uberon)).map(_.toSet)
     Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine)
   }
 
-  def facetTaxaWithPhenotypeByQuality(focalQuality: Option[IRI], entity: Option[IRI], inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => withPhenotypeTotal(entity.map(Class(_)).getOrElse(OWLThing), Class(iri), inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+  def facetTaxaWithPhenotypeByQuality(focalQuality: Option[IRI], entity: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => withPhenotypeTotal(entity.map(Class(_)).getOrElse(OWLThing), Class(iri), inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
     Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine)
   }
 
-  def facetTaxaWithPhenotypeByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => withPhenotypeTotal(entity.map(Class(_)).getOrElse(OWLThing), quality.map(Class(_)).getOrElse(OWLThing), Some(iri), includeParts, includeHistoricalHomologs, includeSerialHomologs)
+  def facetTaxaWithPhenotypeByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => withPhenotypeTotal(entity.map(Class(_)).getOrElse(OWLThing), quality.map(Class(_)).getOrElse(OWLThing), Some(iri), publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
     Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine)
   }

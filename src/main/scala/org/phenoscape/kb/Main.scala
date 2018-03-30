@@ -287,23 +287,23 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("with_phenotype") {
-                parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'quality.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                  (entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+                parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'quality.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                  (entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                     complete {
                       if (total) {
-                        Taxon.withPhenotypeTotal(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                      } else Taxon.withPhenotype(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                        Taxon.withPhenotypeTotal(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                      } else Taxon.withPhenotype(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                     }
                 }
               } ~
               path("facet" / "phenotype" / Segment) { facetBy =>
-                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
-                  (entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
+                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
+                  (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
                       facetBy match {
-                        case "entity"  => Taxon.facetTaxaWithPhenotypeByEntity(entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "quality" => Taxon.facetTaxaWithPhenotypeByQuality(qualityOpt, entityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "taxon"   => Taxon.facetTaxaWithPhenotypeByTaxon(taxonOpt, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "entity"  => Taxon.facetTaxaWithPhenotypeByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "quality" => Taxon.facetTaxaWithPhenotypeByQuality(qualityOpt, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon"   => Taxon.facetTaxaWithPhenotypeByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
                 }
@@ -500,22 +500,22 @@ object Main extends HttpApp with App {
           } ~
           pathPrefix("study") {
             path("query") { //FIXME doc out of date
-              parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                (entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+              parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                (entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                   complete {
-                    if (total) Study.queryStudiesTotal(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                    else Study.queryStudies(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                    if (total) Study.queryStudiesTotal(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                    else Study.queryStudies(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                   }
               }
             } ~
               path("facet" / Segment) { facetBy =>
-                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
-                  (entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
+                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
+                  (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
                       facetBy match {
-                        case "entity"  => Study.facetStudiesByEntity(entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "quality" => Study.facetStudiesByQuality(qualityOpt, entityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "taxon"   => Study.facetStudiesByTaxon(taxonOpt, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "entity"  => Study.facetStudiesByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "quality" => Study.facetStudiesByQuality(qualityOpt, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon"   => Study.facetStudiesByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
                 }
@@ -554,22 +554,22 @@ object Main extends HttpApp with App {
           } ~
           pathPrefix("phenotype") {
             path("query") {
-              parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                (entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+              parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                (entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                   complete {
-                    if (total) Phenotype.queryTaxonPhenotypesTotal(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                    else Phenotype.queryTaxonPhenotypes(entity, quality, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                    if (total) Phenotype.queryTaxonPhenotypesTotal(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                    else Phenotype.queryTaxonPhenotypes(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                   }
               }
             } ~
               path("facet" / Segment) { facetBy =>
-                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
-                  (entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
+                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
+                  (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
                       facetBy match {
-                        case "entity"  => Phenotype.facetPhenotypeByEntity(entityOpt, qualityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "quality" => Phenotype.facetPhenotypeByQuality(qualityOpt, entityOpt, taxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "taxon"   => Phenotype.facetPhenotypeByTaxon(taxonOpt, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "entity"  => Phenotype.facetPhenotypeByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "quality" => Phenotype.facetPhenotypeByQuality(qualityOpt, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon"   => Phenotype.facetPhenotypeByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
                 }

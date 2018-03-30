@@ -34,12 +34,12 @@ case class TaxonPhenotypeAnnotation(taxon: MinimalTerm, phenotype: MinimalTerm, 
 object TaxonPhenotypeAnnotation {
 
   def queryAnnotations(entity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[TaxonPhenotypeAnnotation]] = for {
-    query <- TaxonAnnotations.buildQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
+    query <- TaxonAnnotations.buildQuery(entity, quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
     annotations <- App.executeSPARQLQueryString(query, fromQueryResult)
   } yield annotations
 
   def queryAnnotationsTotal(entity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = for {
-    query <- TaxonAnnotations.buildQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
+    query <- TaxonAnnotations.buildQuery(entity, quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
     result <- App.executeSPARQLQuery(query)
   } yield ResultCount.count(result)
 
