@@ -47,7 +47,7 @@ object GeneAffectingPhenotype {
       FROM $KBClosureGraph
       $namedQueriesBlock
       $whereClause
-      ORDER BY ?gene_label ?gene
+      ORDER BY LCASE(?gene_label) ?gene
       LIMIT $limit OFFSET $offset
       """
       BlazegraphNamedSubquery.updateReferencesFor(unifiedQueries, query.text)

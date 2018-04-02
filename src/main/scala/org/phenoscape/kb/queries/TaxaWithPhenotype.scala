@@ -47,7 +47,7 @@ object TaxaWithPhenotype {
       FROM $KBClosureGraph
       $namedQueriesBlock
       $whereClause
-      ORDER BY ?taxon_label ?taxon
+      ORDER BY LCASE(?taxon_label) ?taxon
       LIMIT $limit OFFSET $offset
       """
       BlazegraphNamedSubquery.updateReferencesFor(unifiedQueries, query.text)

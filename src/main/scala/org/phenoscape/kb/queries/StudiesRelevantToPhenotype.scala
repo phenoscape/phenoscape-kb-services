@@ -42,7 +42,7 @@ object StudiesRelevantToPhenotype {
       FROM $KBClosureGraph
       $namedQueriesBlock
       $whereClause
-      ORDER BY ?matrix_label ?matrix
+      ORDER BY LCASE(?matrix_label) ?matrix
       LIMIT $limit OFFSET $offset
       """
       BlazegraphNamedSubquery.updateReferencesFor(unifiedQueries, query.text)
