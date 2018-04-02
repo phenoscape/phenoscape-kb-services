@@ -290,9 +290,10 @@ object Term {
   }
 
   def buildSearchQuery(text: String, termType: IRI, property: IRI): Query = {
+    val searchText = if (text.endsWith("*")) text else s"$text*"
     val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
       bgp(
-        t('term_label, BDSearch, NodeFactory.createLiteral(text)),
+        t('term_label, BDSearch, NodeFactory.createLiteral(searchText)),
         t('term_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
         t('term_label, BDRank, 'rank),
         t('term, rdfsLabel, 'term_label),
