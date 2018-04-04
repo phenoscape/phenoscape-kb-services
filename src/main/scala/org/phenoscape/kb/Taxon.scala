@@ -90,19 +90,19 @@ object Taxon {
   def facetTaxaWithPhenotypeByEntity(focalEntity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => withPhenotypeTotal(Class(iri), quality.map(Class(_)).getOrElse(OWLThing), inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.Uberon)).map(_.toSet)
-    Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine)
+    Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine, false)
   }
 
   def facetTaxaWithPhenotypeByQuality(focalQuality: Option[IRI], entity: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => withPhenotypeTotal(entity.map(Class(_)).getOrElse(OWLThing), Class(iri), inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
-    Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine)
+    Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine, false)
   }
 
   def facetTaxaWithPhenotypeByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => withPhenotypeTotal(entity.map(Class(_)).getOrElse(OWLThing), quality.map(Class(_)).getOrElse(OWLThing), Some(iri), publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
-    Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine)
+    Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine, true)
   }
 
   private def facetResultToMap(facets: List[(MinimalTerm, Int)]) = Map("facets" -> facets.map { case (term, count) => Map("term" -> term, "count" -> count) })

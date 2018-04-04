@@ -62,19 +62,19 @@ object Study {
   def facetStudiesByEntity(focalEntity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => queryStudiesTotal(Some(iri), quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.Uberon)).map(_.toSet)
-    Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine)
+    Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine, false)
   }
 
   def facetStudiesByQuality(focalQuality: Option[IRI], entity: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => queryStudiesTotal(entity, Some(iri), inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
-    Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine)
+    Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine, false)
   }
 
   def facetStudiesByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => queryStudiesTotal(entity, quality, Some(iri), publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
-    Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine)
+    Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine, true)
   }
 
   def annotatedTaxa(study: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] =

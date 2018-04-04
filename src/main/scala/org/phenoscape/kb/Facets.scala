@@ -20,14 +20,14 @@ object Facets {
 
   type CountFn = IRI => Future[Int]
 
-  def facet(focus: IRI, query: CountFn, refine: MoreSpecificFn): Future[List[Facet]] =
+  def facet(focus: IRI, query: CountFn, refine: MoreSpecificFn, deepen: Boolean): Future[List[Facet]] =
     for {
       partitions <- partition(focus, query, refine)
       expanded <- expandMax(partitions, query, refine)
-      //deepened <- Future.sequence(expanded.map(maxDepth(_, query, refine)))
+      deepened <- if (deepen) Future.sequence(expanded.map(maxDepth(_, query, refine))) else Future.successful(expanded)
       //_ = println(s"Deepened: $deepened")
-    } //yield deepened.map { case (term, count) => Facet(term, count) }.toList
-    yield expanded.map { case (term, count) => Facet(term, count) }.toList
+    } yield deepened.map { case (term, count) => Facet(term, count) }.toList
+  //yield expanded.map { case (term, count) => Facet(term, count) }.toList
 
   private def partition(focus: IRI, query: CountFn, refine: MoreSpecificFn): Future[Map[MinimalTerm, Int]] = {
     //println(s"Get children of $focus")
