@@ -68,8 +68,7 @@ WHERE
 ?matrix rdfs:label ?matrix_label .
 ?matrix_char ps:may_have_state_value ?state .
 ?state ps:state_symbol ?symbol .
-?state ps:describes_phenotype ?phenotypeGroup .
-?phenotypeGroup rdfs:subClassOf ?phenotype .
+?state ps:describes_phenotype ?phenotype .
 ?phenotype ps:entity_term ?entity . 
 OPTIONAL {   
 ?entity rdfs:label ?entity_label .

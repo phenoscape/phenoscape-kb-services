@@ -574,7 +574,7 @@ object Main extends HttpApp with App {
                     }
                 }
               } ~
-              path("direct_annotations") { // undocumented and not currently used
+              path("direct_annotations") { // undocumented and not currently used //FIXME actually this is used in a popup in web UI
                 parameters('iri.as[IRI]) { (iri) =>
                   complete {
                     CharacterDescription.eqAnnotationsForPhenotype(iri)
