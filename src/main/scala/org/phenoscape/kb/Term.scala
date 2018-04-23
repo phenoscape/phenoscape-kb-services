@@ -317,7 +317,7 @@ object Term {
         t('matched_label, BDSearch, NodeFactory.createLiteral(searchText)),
         t('matched_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
         t('matched_label, BDRank, 'rank),
-        t('term, rdfsLabel | (hasExactSynonym | hasRelatedSynonym), 'matched_label),
+        t('term, rdfsLabel | (hasExactSynonym | (hasRelatedSynonym | hasNarrowSynonym)), 'matched_label),
         t('term, rdfsLabel, 'term_label),
         t('term, rdfsIsDefinedBy, definedBy),
         t('term, rdfType, owlClass)),
