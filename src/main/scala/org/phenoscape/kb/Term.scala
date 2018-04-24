@@ -44,6 +44,10 @@ import org.semanticweb.owlapi.model.OWLEntity
 import org.semanticweb.owlapi.model.OWLObject
 import org.semanticweb.owlapi.util.ShortFormProvider
 
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.sparql.SPARQLInterpolation._
+import org.phenoscape.sparql.SPARQLInterpolation.QueryText
+
 import Main.system.dispatcher
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.marshalling.Marshaller
@@ -123,16 +127,19 @@ object Term {
   }
 
   def withIRI(iri: IRI): Future[Option[Term]] = {
-    def termResult(result: QuerySolution) = (result.getLiteral("label").getLexicalForm,
+    def termResult(result: QuerySolution) = (
+      result.getLiteral("label").getLexicalForm,
       Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""))
     val termFuture = App.executeSPARQLQuery(buildTermQuery(iri), termResult).map(_.headOption)
+    val synonymsFuture = termSynonyms(iri)
     val relsFuture = termRelationships(iri)
     for {
       termOpt <- termFuture
+      synonyms <- synonymsFuture
       relationships <- relsFuture
     } yield {
       termOpt.map {
-        case (label, definition) => Term(iri, label, definition, relationships)
+        case (label, definition) => Term(iri, label, definition, synonyms, relationships)
       }
     }
   }
@@ -271,6 +278,24 @@ object Term {
         IRI.create(result.getResource("filler").getURI),
         result.getLiteral("filler_name").getString)))
 
+  def termSynonyms(iri: IRI): Future[Seq[(IRI, String)]] = {
+    val query = sparql"""
+      SELECT DISTINCT ?relation ?synonym
+      FROM $KBMainGraph
+      WHERE {
+        VALUES ?relation { 
+      		  $hasExactSynonym
+      		  $hasRelatedSynonym
+      		  $hasNarrowSynonym
+      		  $hasBroadSynonym
+          }
+    		  $iri ?relation ?synonym .
+      }
+      """
+    App.executeSPARQLQueryString(query.text, result =>
+      IRI.create(result.getResource("relation").getURI) -> result.getLiteral("synonym").getLexicalForm)
+  }
+
   def buildRelationsQuery(iri: IRI): Query = {
     val query = select('relation, 'filler) from "http://kb.phenoscape.org/" where (
       bgp(
@@ -317,7 +342,7 @@ object Term {
         t('matched_label, BDSearch, NodeFactory.createLiteral(searchText)),
         t('matched_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
         t('matched_label, BDRank, 'rank),
-        t('term, rdfsLabel | (hasExactSynonym | (hasRelatedSynonym | hasNarrowSynonym)), 'matched_label),
+        t('term, rdfsLabel | (hasExactSynonym | (hasRelatedSynonym | (hasNarrowSynonym | hasBroadSynonym))), 'matched_label),
         t('term, rdfsLabel, 'term_label),
         t('term, rdfsIsDefinedBy, definedBy),
         t('term, rdfType, owlClass)),
@@ -363,30 +388,34 @@ object Term {
 
 }
 
-case class Term(iri: IRI, label: String, definition: String, relationships: Seq[TermRelationship]) extends LabeledTerm with JSONResultItem {
+final case class Term(iri: IRI, label: String, definition: String, synonyms: Seq[(IRI, String)], relationships: Seq[TermRelationship]) extends LabeledTerm with JSONResultItem {
 
   def toJSON: JsObject = Map(
     "@id" -> iri.toString.toJson,
     "label" -> label.toJson,
     "definition" -> definition.toJson,
+    "synonyms" -> synonyms.map {
+      case (iri, value) => JsObject(
+        "property" -> iri.toString.toJson,
+        "value" -> value.toJson).toJson
+    }.toJson,
     "relationships" -> relationships.map(_.toJSON).toJson).toJson.asJsObject
-
 }
 
-case class MinimalTerm(iri: IRI, label: String) extends LabeledTerm with JSONResultItem {
+final case class MinimalTerm(iri: IRI, label: String) extends LabeledTerm with JSONResultItem {
 
   def toJSON: JsObject = Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
 
 }
 
-case class SourcedMinimalTerm(term: MinimalTerm, sources: Set[IRI]) extends JSONResultItem {
+final case class SourcedMinimalTerm(term: MinimalTerm, sources: Set[IRI]) extends JSONResultItem {
 
   def toJSON: JsObject = (term.toJSON.fields +
     ("sources" -> sources.map(iri => Map("@id" -> iri.toString)).toJson)).toJson.asJsObject
 
 }
 
-case class MatchedTerm[T <: LabeledTerm](term: T, matchType: MatchType) extends JSONResultItem {
+final case class MatchedTerm[T <: LabeledTerm](term: T, matchType: MatchType) extends JSONResultItem {
 
   def toJSON: JsObject = (term.toJSON.fields +
     ("matchType" -> matchType.toString.toJson)).toJson.asJsObject
@@ -394,6 +423,7 @@ case class MatchedTerm[T <: LabeledTerm](term: T, matchType: MatchType) extends 
 }
 
 sealed trait MatchType
+
 case object ExactMatch extends MatchType {
 
   override val toString = "exact"
@@ -418,17 +448,18 @@ class LabelMapProvider(labels: Map[IRI, String]) extends ShortFormProvider {
 
 }
 
-case class Classification(term: MinimalTerm, superclasses: Set[MinimalTerm], subclasses: Set[MinimalTerm], equivalents: Set[MinimalTerm]) extends JSONResultItem {
+final case class Classification(term: MinimalTerm, superclasses: Set[MinimalTerm], subclasses: Set[MinimalTerm], equivalents: Set[MinimalTerm]) extends JSONResultItem {
 
   def toJSON: JsObject = JsObject(
     term.toJSON.fields ++
-      Map("subClassOf" -> superclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson,
+      Map(
+        "subClassOf" -> superclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson,
         "superClassOf" -> subclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson,
         "equivalentTo" -> equivalents.toSeq.sortBy(_.label).map(_.toJSON).toJson))
 
 }
 
-case class TermRelationship(property: MinimalTerm, value: MinimalTerm) extends JSONResultItem {
+final case class TermRelationship(property: MinimalTerm, value: MinimalTerm) extends JSONResultItem {
 
   def toJSON: JsObject = JsObject(
     "property" -> property.toJSON,
