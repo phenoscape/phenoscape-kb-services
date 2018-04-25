@@ -22,6 +22,13 @@ import akka.http.scaladsl.marshalling.Marshaller
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import spray.json._
 import spray.json.DefaultJsonProtocol._
+import java.util.Date
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.sparql.SPARQLInterpolation._
+import org.phenoscape.sparql.SPARQLInterpolation.QueryText
+import org.openrdf.model.vocabulary.DCTERMS
+import org.apache.jena.vocabulary.DCTerms
+import java.time.Instant
 
 object KB {
 
@@ -32,12 +39,14 @@ object KB {
     val taxa = annotatedTaxonCount
     val characters = annotatedCharacterCount
     val states = annotatedStateCount
+    val built = buildDate
     for {
+      builtTime <- built
       matrixCount <- matrices
       taxonCount <- taxa
       characterCount <- characters
       stateCount <- states
-    } yield KBAnnotationSummary(matrixCount, taxonCount, characterCount, stateCount)
+    } yield KBAnnotationSummary(builtTime, matrixCount, taxonCount, characterCount, stateCount)
   }
 
   def annotationReport: Future[String] = {
@@ -169,16 +178,27 @@ OPTIONAL {
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
+  def buildDate: Future[Instant] = {
+    val query = sparql"""
+      SELECT ?date
+      FROM $KBMainGraph
+      WHERE {
+        $KBMainGraph ${DCTerms.created} ?date . 
+      }
+      """
+    App.executeSPARQLQueryString(query.text, res => Instant.parse(res.getLiteral("date").getLexicalForm)).map(_.head)
+  }
+
 }
 
-case class KBAnnotationSummary(annotatedMatrices: Int, annotatedTaxa: Int, annotatedCharacters: Int, annotatedStates: Int) {
+case class KBAnnotationSummary(built: Instant, annotatedMatrices: Int, annotatedTaxa: Int, annotatedCharacters: Int, annotatedStates: Int) {
 
-  def toJSON: JsObject = {
-    Map("annotated_matrices" -> annotatedMatrices,
-      "annotated_taxa" -> annotatedTaxa,
-      "annotated_characters" -> annotatedCharacters,
-      "annotated_states" -> annotatedStates).toJson.asJsObject
-  }
+  def toJSON: JsObject = Map(
+    "build_time" -> built.toString.toJson,
+    "annotated_matrices" -> annotatedMatrices.toJson,
+    "annotated_taxa" -> annotatedTaxa.toJson,
+    "annotated_characters" -> annotatedCharacters.toJson,
+    "annotated_states" -> annotatedStates.toJson).toJson.asJsObject
 
 }
 
