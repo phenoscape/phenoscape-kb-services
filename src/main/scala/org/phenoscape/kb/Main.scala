@@ -37,6 +37,7 @@ import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 
 object Main extends HttpApp with App {
 
@@ -75,7 +76,9 @@ object Main extends HttpApp with App {
   val serverPort = conf.getInt("kb-services.port")
   val serverHost = conf.getString("kb-services.host")
 
-  def routes: Route = cors() {
+  val corsSettings = CorsSettings.defaultSettings.withAllowCredentials(false)
+
+  def routes: Route = cors(corsSettings) {
     respondWithHeaders(
       RawHeader("Vary", "negotiate, Accept"),
       `Cache-Control`(`must-revalidate`, `max-age`(0), `s-maxage`(2592001))) {
