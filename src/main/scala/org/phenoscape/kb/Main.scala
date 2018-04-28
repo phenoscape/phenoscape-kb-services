@@ -24,6 +24,8 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.headers
 import akka.http.scaladsl.model.headers.`Cache-Control`
+import akka.http.scaladsl.model.headers.`Access-Control-Allow-Origin`
+import akka.http.scaladsl.model.headers.`Access-Control-Allow-Credentials`
 import akka.http.scaladsl.model.headers.CacheDirectives.`max-age`
 import akka.http.scaladsl.model.headers.CacheDirectives.`must-revalidate`
 import akka.http.scaladsl.model.headers.CacheDirectives.`s-maxage`
@@ -81,8 +83,10 @@ object Main extends HttpApp with App {
   def routes: Route =
     respondWithHeaders(
       RawHeader("Vary", "negotiate, Accept"),
+      `Access-Control-Allow-Origin`("*"),
+      `Access-Control-Allow-Credentials`(true),
       `Cache-Control`(`must-revalidate`, `max-age`(0), `s-maxage`(2592001))) {
-        cors(corsSettings) {
+        //cors(corsSettings) {
           pathSingleSlash {
             redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
           } ~ pathPrefix("kb") {
@@ -616,7 +620,7 @@ object Main extends HttpApp with App {
           //              Facets.facetTaxaWithPhenotype(IRI.create("http://purl.obolibrary.org/obo/UBERON_0010740")).map(_.toString)
           //            }
           //          }
-        }
+ //       }
       }
 
   val log = Logging(system, this.getClass)
