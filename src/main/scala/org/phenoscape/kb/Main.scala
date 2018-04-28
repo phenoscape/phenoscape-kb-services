@@ -83,7 +83,7 @@ object Main extends HttpApp with App {
   def routes: Route =
     respondWithHeaders(
       RawHeader("Vary", "negotiate, Accept"),
-      `Access-Control-Allow-Origin`("*"),
+      `Access-Control-Allow-Origin`.*,
       `Access-Control-Allow-Credentials`(true),
       `Cache-Control`(`must-revalidate`, `max-age`(0), `s-maxage`(2592001))) {
         //cors(corsSettings) {
