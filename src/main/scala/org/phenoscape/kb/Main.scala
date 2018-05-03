@@ -20,26 +20,24 @@ import com.typesafe.config.ConfigFactory
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.model.HttpHeader
+import akka.http.scaladsl.model.HttpMethods.GET
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.headers
-import akka.http.scaladsl.model.headers.`Cache-Control`
-import akka.http.scaladsl.model.headers.`Access-Control-Allow-Origin`
-import akka.http.scaladsl.model.headers.`Access-Control-Allow-Credentials`
-import akka.http.scaladsl.model.headers.CacheDirectives.`max-age`
-import akka.http.scaladsl.model.headers.CacheDirectives.`must-revalidate`
-import akka.http.scaladsl.model.headers.CacheDirectives.`s-maxage`
 import akka.http.scaladsl.model.headers.ContentDispositionTypes
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.HttpApp
+import akka.http.scaladsl.server.RequestContext
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.settings.ServerSettings
 import akka.http.scaladsl.unmarshalling.Unmarshaller
+import akka.http.scaladsl.server.directives.CachingDirectives._
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
-import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 
 object Main extends HttpApp with App {
 
@@ -74,19 +72,21 @@ object Main extends HttpApp with App {
     }
   }
 
+  val cacheKeyer: PartialFunction[RequestContext, (Uri, Option[HttpHeader])] = {
+    case r: RequestContext if (r.request.method == GET) => (r.request.uri, r.request.headers.find(_.is("accept")))
+  }
+  val memoryCache = routeCache[(Uri, Option[HttpHeader])]
+
   val conf = ConfigFactory.load()
   val serverPort = conf.getInt("kb-services.port")
   val serverHost = conf.getString("kb-services.host")
 
   val corsSettings = CorsSettings.defaultSettings.withAllowCredentials(false)
 
-  def routes: Route =
-    respondWithHeaders(
-      RawHeader("Vary", "negotiate, Accept"),
-      `Access-Control-Allow-Origin`.*,
-      `Access-Control-Allow-Credentials`(true),
-      `Cache-Control`(`must-revalidate`, `max-age`(0), `s-maxage`(2592001))) {
-        //cors(corsSettings) {
+  def routes: Route = alwaysCache(memoryCache, cacheKeyer) {
+    cors() {
+      respondWithHeaders(
+        RawHeader("Vary", "negotiate, Accept")) {
           pathSingleSlash {
             redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
           } ~ pathPrefix("kb") {
@@ -614,14 +614,9 @@ object Main extends HttpApp with App {
                   }
                 }
             }
-          //          ~
-          //          path("test") {
-          //            complete {
-          //              Facets.facetTaxaWithPhenotype(IRI.create("http://purl.obolibrary.org/obo/UBERON_0010740")).map(_.toString)
-          //            }
-          //          }
- //       }
-      }
+        }
+    }
+  }
 
   val log = Logging(system, this.getClass)
 

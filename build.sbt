@@ -33,13 +33,14 @@ resolvers += "BBOP repository" at "http://code.berkeleybop.org/maven/repository"
 
 libraryDependencies ++= {
   Seq(
-    "com.typesafe.akka"      %% "akka-stream"          % "2.5.4",
-    "com.typesafe.akka"      %% "akka-actor"           % "2.5.4",
-    "com.typesafe.akka"      %% "akka-http"            % "10.0.10",
-    "com.typesafe.akka"      %% "akka-http-spray-json" % "10.0.10",
-    "ch.megard"              %% "akka-http-cors"       % "0.2.1",
+    "com.typesafe.akka"      %% "akka-stream"          % "2.5.12",
+    "com.typesafe.akka"      %% "akka-actor"           % "2.5.12",
+    "com.typesafe.akka"      %% "akka-slf4j"           % "2.5.12",
+    "com.typesafe.akka"      %% "akka-http"            % "10.1.1",
+    "com.typesafe.akka"      %% "akka-http-caching"    % "10.1.1",
+    "com.typesafe.akka"      %% "akka-http-spray-json" % "10.1.1",
+    "ch.megard"              %% "akka-http-cors"       % "0.3.0",
     "io.spray"               %% "spray-json"           % "1.3.3",
-    "com.typesafe.akka"      %% "akka-slf4j"           % "2.5.4",
     "net.sourceforge.owlapi" %  "owlapi-distribution"  % "4.2.8",
     "org.phenoscape"         %% "owlet"                % "1.6" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
     "org.phenoscape"         %% "scowl"                % "1.3",
