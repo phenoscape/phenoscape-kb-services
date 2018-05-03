@@ -83,8 +83,8 @@ object Main extends HttpApp with App {
 
   val corsSettings = CorsSettings.defaultSettings.withAllowCredentials(false)
 
-  def routes: Route = alwaysCache(memoryCache, cacheKeyer) {
-    cors() {
+  def routes: Route = cors() {
+    alwaysCache(memoryCache, cacheKeyer) {
       respondWithHeaders(
         RawHeader("Vary", "negotiate, Accept")) {
           pathSingleSlash {
