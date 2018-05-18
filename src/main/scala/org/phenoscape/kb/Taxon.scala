@@ -89,7 +89,7 @@ object Taxon {
 
   def facetTaxaWithPhenotypeByEntity(focalEntity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => withPhenotypeTotal(Class(iri), quality.map(Class(_)).getOrElse(OWLThing), inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.Uberon)).map(_.toSet)
+    val refine = (iri: IRI) => Term.queryAnatomySubClasses(iri, KBVocab.Uberon, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(_.toSet)
     Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine, false)
   }
 

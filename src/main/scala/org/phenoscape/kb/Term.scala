@@ -55,6 +55,7 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
+import org.phenoscape.owl.NamedRestrictionGenerator
 
 object Term {
 
@@ -197,6 +198,34 @@ object Term {
           t('term, rdfsLabel, 'term_label) ::
           definedByTriple): _*))
     App.executeSPARQLQuery(query, fromMinimalQuerySolution)
+  }
+
+  def queryAnatomySubClasses(iri: IRI, source: IRI, byPartOf: Boolean, byHistoricalHomolog: Boolean, bySerialHomolog: Boolean): Future[Seq[MinimalTerm]] = {
+    val partOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
+    val direct = sparql"""
+      {
+        ?term $rdfsSubClassOf $iri .
+      }
+      """.text
+    val partOf = if (byPartOf) List(sparql"""
+      {
+        ?partOfClass $partOfSome $iri .
+        ?term $rdfsSubClassOf ?partOfClass .
+      }
+     """.text)
+    else Nil
+    val pieces = QueryText((direct :: partOf).mkString(" UNION "))
+    val query = sparql"""
+      SELECT DISTINCT ?term ?term_label
+      FROM $KBMainGraph
+      WHERE {
+        $pieces
+        ?term $rdfsIsDefinedBy $source .
+        ?term $RDFSLabel ?term_label .
+        FILTER(isIRI(?term))
+      }
+      """
+    App.executeSPARQLQueryString(query.text, fromMinimalQuerySolution)
   }
 
   def queryEquivalentClasses(iri: IRI, source: Option[IRI]): Future[Seq[MinimalTerm]] = {
