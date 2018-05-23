@@ -337,6 +337,14 @@ object Main extends HttpApp with App {
                       }
                   }
                 } ~
+                path("annotation" / "sources") { //FIXME needs documentation
+                  parameters('taxon.as[IRI], 'phenotype.as[IRI]) {
+                    (taxon, phenotype) =>
+                      complete {
+                        TaxonPhenotypeAnnotation.annotationSources(taxon, phenotype)
+                      }
+                  }
+                } ~
                 path("with_rank") {
                   parameters('rank.as[IRI], 'in_taxon.as[IRI]) { (rank, inTaxon) =>
                     complete {

@@ -33,12 +33,12 @@ object TaxonAnnotations {
       FROM $KBClosureGraph
       $namedQueriesBlock
       WHERE {
-        SELECT DISTINCT ?taxon ?taxon_label ?phenotype ?phenotype_label ?state ?description ?matrix ?matrix_label 
+        SELECT DISTINCT ?taxon ?taxon_label ?phenotype ?phenotype_label 
         $whereClause
       }
       """
       else sparql"""
-      SELECT DISTINCT ?taxon ?taxon_label ?phenotype ?phenotype_label ?state ?description ?matrix ?matrix_label 
+      SELECT DISTINCT ?taxon ?taxon_label ?phenotype ?phenotype_label 
       FROM $KBMainGraph
       FROM $KBClosureGraph
       $namedQueriesBlock
@@ -109,7 +109,7 @@ object TaxonAnnotations {
     val taxonConstraints = (for { taxon <- inTaxa }
       yield sparql"?taxon $rdfsSubClassOf $taxon . ").fold(sparql"")(_ |+| _)
     val subQueryRefs = QueryText(phenotypeQueries.map(q => sparql"$q").map(_.text).mkString("\n"))
-    val publicationVal = publicationOpt.map(pub => sparql"VALUES ?matrix {  $pub }").getOrElse(sparql"")
+    val publicationVal = publicationOpt.map(pub => sparql"VALUES ?matrix { $pub }").getOrElse(sparql"")
     sparql"""
       {
       $publicationVal
@@ -117,9 +117,7 @@ object TaxonAnnotations {
       ?taxon $exhibits_state ?state .
       ?state $describes_phenotype ?phenotype .
       ?phenotype $RDFSLabel ?phenotype_label .
-      ?state $dcDescription ?description .
       ?matrix $has_character/$may_have_state_value ?state .
-      ?matrix $rdfsLabel ?matrix_label .
       $taxonConstraints
       $subQueryRefs
       }
