@@ -490,7 +490,8 @@ object Main extends HttpApp with App {
                   }
                 } ~
                 path("affecting_entity_phenotype") {
-                  parameters('iri.as[IRI], 'quality.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                  //TODO update documentation that iri is optional
+                  parameters('iri.as[IRI].?, 'quality.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
                     (iri, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                       complete {
                         if (total) Gene.affectingPhenotypeOfEntityTotal(iri, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
@@ -504,6 +505,17 @@ object Main extends HttpApp with App {
                       if (total) Gene.expressedWithinEntityTotal(iri).map(ResultCount(_))
                       else Gene.expressedWithinEntity(iri, limit, offset)
                     }
+                  }
+                } ~
+                path("facet" / "phenotype" / Segment) { facetBy =>
+                  parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
+                    (entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
+                      complete {
+                        facetBy match {
+                          case "entity"  => Gene.facetGenesWithPhenotypeByEntity(entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                          case "quality" => Gene.facetGenesWithPhenotypeByQuality(qualityOpt, entityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        }
+                      }
                   }
                 } ~
                 pathEnd {

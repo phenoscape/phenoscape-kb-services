@@ -34,6 +34,7 @@ import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClassExpression
 import org.semanticweb.owlapi.model.OWLObjectProperty
+import org.phenoscape.kb.Facets.Facet
 
 import akka.http.scaladsl.marshalling.Marshaller
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
@@ -133,15 +134,27 @@ object Gene {
     result.getLiteral("gene_label").getLexicalForm,
     taxonForGeneIRI(iri))
 
-  def affectingPhenotypeOfEntity(entity: IRI, quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int, offset: Int): Future[Seq[Gene]] = for {
-    query <- GeneAffectingPhenotype.buildQuery(Option(entity), quality, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
+  def affectingPhenotypeOfEntity(entity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int, offset: Int): Future[Seq[Gene]] = for {
+    query <- GeneAffectingPhenotype.buildQuery(entity, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
     genes <- App.executeSPARQLQueryString(query, Gene(_))
   } yield genes
 
-  def affectingPhenotypeOfEntityTotal(entity: IRI, quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = for {
-    query <- GeneAffectingPhenotype.buildQuery(Option(entity), quality, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
+  def affectingPhenotypeOfEntityTotal(entity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = for {
+    query <- GeneAffectingPhenotype.buildQuery(entity, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
     total <- App.executeSPARQLQuery(query).map(ResultCount.count)
   } yield total
+
+  def facetGenesWithPhenotypeByEntity(focalEntity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => affectingPhenotypeOfEntityTotal(Some(iri), quality, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val refine = (iri: IRI) => Term.queryAnatomySubClasses(iri, KBVocab.Uberon, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(_.toSet)
+    Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine, false)
+  }
+
+  def facetGenesWithPhenotypeByQuality(focalQuality: Option[IRI], entity: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+    val query = (iri: IRI) => affectingPhenotypeOfEntityTotal(entity, Some(iri), includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
+    Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine, false)
+  }
 
   def expressedWithinEntity(entity: IRI, limit: Int, offset: Int): Future[Seq[Gene]] = {
     val query = buildGeneExpressedInEntityQuery(entity)
