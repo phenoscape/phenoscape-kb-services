@@ -402,9 +402,6 @@ object Term {
   implicit val JSONResultItemsMarshaller: ToEntityMarshaller[Seq[JSONResultItem]] = Marshaller.combined(results =>
     new JsObject(Map("results" -> results.map(_.toJSON).toJson)))
 
-  implicit val JSONResultItemMarshaller: ToEntityMarshaller[JSONResultItem] = Marshaller.combined(result =>
-    result.toJSON)
-
   implicit val IRIMarshaller: ToEntityMarshaller[IRI] = Marshaller.combined(iri =>
     new JsObject(Map("@id" -> iri.toString.toJson)))
 
