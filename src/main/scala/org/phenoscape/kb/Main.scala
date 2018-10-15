@@ -259,6 +259,13 @@ object Main extends HttpApp with App {
                       Similarity.icDisparity(term, queryGraph, corpusGraph).map(value => JsObject("value" -> value.toJson))
                     }
                   }
+                } ~
+                path("states") {
+                  parameters('leftStudy.as[IRI], 'leftCharacter.as[Int], 'leftSymbol, 'rightStudy.as[IRI], 'rightCharacter.as[Int], 'rightSymbol) { (leftStudyIRI, leftCharacterNum, leftSymbol, rightStudyIRI, rightCharacterNum, rightSymbol) =>
+                    complete {
+                      Similarity.stateSimilarity(leftStudyIRI, leftCharacterNum, leftSymbol, rightStudyIRI, rightCharacterNum, rightSymbol).map(_.toJson)
+                    }
+                  }
                 }
             } ~
             pathPrefix("characterstate") {
