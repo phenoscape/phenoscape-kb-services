@@ -1,24 +1,14 @@
 package org.phenoscape.kb
 
-import scala.collection.JavaConversions._
-import scala.concurrent.Future
-import scala.language.postfixOps
-
-import org.apache.jena.graph.NodeFactory
-import org.apache.jena.graph.Node_Variable
-import org.apache.jena.query.Query
-import org.apache.jena.query.QuerySolution
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.MediaTypes
+import org.apache.jena.graph.{NodeFactory, Node_Variable}
+import org.apache.jena.query.{Query, QuerySolution}
 import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.E_NotOneOf
-import org.apache.jena.sparql.expr.ExprList
-import org.apache.jena.sparql.expr.ExprVar
+import org.apache.jena.sparql.expr.{E_NotOneOf, ExprList, ExprVar}
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
-import org.apache.jena.sparql.syntax.Element
-import org.apache.jena.sparql.syntax.ElementFilter
-import org.apache.jena.sparql.syntax.ElementGroup
-import org.apache.jena.sparql.syntax.ElementNamedGraph
-import org.apache.jena.sparql.syntax.ElementSubQuery
+import org.apache.jena.sparql.syntax._
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
@@ -26,15 +16,14 @@ import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
-import org.semanticweb.owlapi.model.IRI
-import org.semanticweb.owlapi.model.OWLClass
-import org.semanticweb.owlapi.model.OWLNamedIndividual
-
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.MediaTypes
-import spray.json._
+import org.phenoscape.sparql.SPARQLInterpolation._
+import org.semanticweb.owlapi.model.{IRI, OWLClass, OWLNamedIndividual}
 import spray.json.DefaultJsonProtocol._
+import spray.json._
+
+import scala.collection.JavaConversions._
+import scala.concurrent.Future
+import scala.language.postfixOps
 
 object Similarity {
 
@@ -129,12 +118,12 @@ object Similarity {
   } yield labelledTerms
 
   def profileSize(profileSubject: IRI): Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where (
+    val query = select() from "http://kb.phenoscape.org/" where(
       bgp(
         t(profileSubject, has_phenotypic_profile / rdfType, 'annotation)),
-        new ElementFilter(new E_NotOneOf(new ExprVar('annotation), new ExprList(List(
-          new NodeValueNode(AnnotatedPhenotype),
-          new NodeValueNode(owlNamedIndividual))))))
+      new ElementFilter(new E_NotOneOf(new ExprVar('annotation), new ExprList(List(
+        new NodeValueNode(AnnotatedPhenotype),
+        new NodeValueNode(owlNamedIndividual))))))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("annotation"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
@@ -185,7 +174,7 @@ object Similarity {
         t('comparison, has_expect_score, 'expect_score),
         t('comparison, for_corpus_profile, 'corpus_profile),
         t('corpus_item, has_phenotypic_profile, 'corpus_profile),
-        t('corpus_item, Vocab.rdfsLabel, 'corpus_item_label))) order_by (asc('expect_score), asc('median_score), asc('corpus_item_label))
+        t('corpus_item, Vocab.rdfsLabel, 'corpus_item_label))) order_by(asc('expect_score), asc('median_score), asc('corpus_item_label))
     if (resultLimit > 1) {
       query.setLimit(resultLimit)
       query.setOffset(resultOffset)
@@ -204,19 +193,51 @@ object Similarity {
         t('subsumer, has_ic, 'ic)))
 
   def subsumedAnnotationsQuery(instance: OWLNamedIndividual, subsumer: OWLClass): Query =
-    select_distinct('annotation) from "http://kb.phenoscape.org/" where (
+    select_distinct('annotation) from "http://kb.phenoscape.org/" where(
       bgp(
         t(instance, has_phenotypic_profile / rdfType, 'annotation)),
-        new ElementSubQuery(select('annotation) where (
-          new ElementNamedGraph(NodeFactory.createURI("http://kb.phenoscape.org/closure"),
-            bgp(
-              t('annotation, rdfsSubClassOf, subsumer))))))
+      new ElementSubQuery(select('annotation) where (
+        new ElementNamedGraph(NodeFactory.createURI("http://kb.phenoscape.org/closure"),
+          bgp(
+            t('annotation, rdfsSubClassOf, subsumer))))))
 
   def constructMatchFor(queryItem: IRI): QuerySolution => SimilarityMatch =
     (result: QuerySolution) => SimilarityMatch(
       MinimalTerm(IRI.create(result.getResource("corpus_item").getURI), result.getLiteral("corpus_item_label").getLexicalForm),
       result.getLiteral("median_score").getDouble,
       result.getLiteral("expect_score").getDouble)
+
+  def stateSimilarity(leftStudyIRI: IRI, leftCharacterNum: Int, leftSymbol: String, rightStudyIRI: IRI, rightCharacterNum: Int, rightSymbol: String): Future[Double] = {
+    val leftSubsumersFut = stateSubsumers(leftStudyIRI, leftCharacterNum, leftSymbol)
+    val rightSubsumersFut = stateSubsumers(rightStudyIRI, rightCharacterNum, rightSymbol)
+    for {
+      leftSubsumers <- leftSubsumersFut
+      rightSubsumers <- rightSubsumersFut
+    } yield {
+      val intersectionCount = leftSubsumers.intersect(rightSubsumers).size
+      val unionCount = (leftSubsumers ++ rightSubsumers).size
+      intersectionCount.toDouble / unionCount.toDouble
+    }
+  }
+
+  private def stateSubsumers(studyIRI: IRI, characterNum: Int, symbol: String): Future[Set[IRI]] = {
+    val query: QueryText =
+      sparql"""
+              PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+              SELECT DISTINCT ?subsumer
+              FROM $KBMainGraph
+              FROM $KBClosureGraph
+              WHERE {
+                $studyIRI $has_character ?character .
+                ?character $list_index $characterNum .
+                ?character $may_have_state_value ?state .
+                ?state $state_symbol $symbol^^xsd:string .
+                ?state $describes_phenotype ?phenotype .
+                ?phenotype $rdfsSubClassOf ?subsumer .
+              }
+            """
+    App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
+  }
 
 }
 
@@ -243,7 +264,7 @@ object SimilarityMatch {
     val header = "match IRI\tmatch label\tmedian score\texpect score"
     s"$header\n${matches.map(_.toString).mkString("\n")}"
   }
-  
+
   implicit val ComboSimilarityMatchesMarshaller = Marshaller.oneOf(SimilarityMatchesTextMarshaller, JSONResultItemsMarshaller)
 
 }
