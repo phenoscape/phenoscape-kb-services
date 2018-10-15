@@ -17,6 +17,7 @@ import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation._
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.semanticweb.owlapi.model.{IRI, OWLClass, OWLNamedIndividual}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
