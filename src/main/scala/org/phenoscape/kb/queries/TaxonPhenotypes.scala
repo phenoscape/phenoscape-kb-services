@@ -27,6 +27,7 @@ object TaxonPhenotypes {
     } yield {
       val unifiedQueries = BlazegraphNamedSubquery.unifyQueries(subqueries)
       val namedQueriesBlock = if (unifiedQueries.nonEmpty) unifiedQueries.map(_.namedQuery).reduce(_ |+| _) else sparql""
+      val paging = if (limit > 0) sparql"LIMIT $limit OFFSET $offset" else sparql""
       val query = if (countOnly) sparql"""
       SELECT (COUNT(*) AS ?count)
       FROM $KBMainGraph
@@ -44,7 +45,7 @@ object TaxonPhenotypes {
       $namedQueriesBlock
       $whereClause
       ORDER BY LCASE(?phenotype_label) ?phenotype
-      LIMIT $limit OFFSET $offset
+      $paging
       """
       BlazegraphNamedSubquery.updateReferencesFor(unifiedQueries, query.text)
     }
