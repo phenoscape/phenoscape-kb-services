@@ -46,7 +46,20 @@ paths:
         200:
           description: "KB summary counts"
           schema:
-            $ref: "#/definitions/inline_response_200"
+            type: "object"
+            properties:
+              annotated_matrices:
+                type: "integer"
+                example: 154
+              annotated_taxa:
+                type: "integer"
+                example: 5071
+              annotated_characters:
+                type: "integer"
+                example: 9602
+              annotated_states:
+                type: "integer"
+                example: 21182
   /kb/annotation_report:
     get:
       tags:
@@ -125,7 +138,12 @@ paths:
           description: "Term search results; values returned for 'matchType' may be\
             \ 'exact', 'partial', or 'broad'."
           schema:
-            $ref: "#/definitions/inline_response_200_1"
+            type: "object"
+            properties:
+              results:
+                type: "array"
+                items:
+                  $ref: "#/definitions/inline_response_200_1_results"
   /term/search_classes:
     get:
       tags:
@@ -157,7 +175,12 @@ paths:
           description: "Term search results; values returned for 'matchType' may be\
             \ 'exact', 'partial', or 'broad'."
           schema:
-            $ref: "#/definitions/inline_response_200_1"
+            type: "object"
+            properties:
+              results:
+                type: "array"
+                items:
+                  $ref: "#/definitions/inline_response_200_1_results"
   /term/label:
     get:
       tags:
@@ -196,7 +219,12 @@ paths:
         200:
           description: "Terms and labels"
           schema:
-            $ref: "#/definitions/inline_response_200_2"
+            type: "object"
+            properties:
+              results:
+                type: "array"
+                items:
+                  $ref: "#/definitions/TermWithLabel"
   /term/classification:
     get:
       tags:
@@ -216,7 +244,27 @@ paths:
         200:
           description: "term classification"
           schema:
-            $ref: "#/definitions/inline_response_200_3"
+            type: "object"
+            properties:
+              '@id':
+                type: "string"
+                format: "IRI"
+                example: "http://purl.obolibrary.org/obo/UBERON_0011618"
+              label:
+                type: "string"
+                example: "basihyal bone"
+              subClassOf:
+                type: "array"
+                items:
+                  $ref: "#/definitions/TermWithLabel"
+              equivalentTo:
+                type: "array"
+                items:
+                  $ref: "#/definitions/TermWithLabel"
+              superClassOf:
+                type: "array"
+                items:
+                  $ref: "#/definitions/TermWithLabel"
   /term/all_ancestors:
     get:
       tags:
@@ -436,13 +484,13 @@ paths:
               - match_profile:
                   '@id': "http://purl.obolibrary.org/obo/VTO_0037378"
                   label: "Gymnotiformes"
-                median_score: 0.7506756923676524
-                expect_score: 0.0014462288121
+                median_score: 0.75067569236765241402764559097704477608203887939453125
+                expect_score: 0.001446228812100000017670797802793458686210215091705322265625
               - match_profile:
                   '@id': "http://purl.obolibrary.org/obo/VTO_0037490"
                   label: "Eigenmannia"
-                median_score: 0.6217930498438566
-                expect_score: 0.00352135614022
+                median_score: 0.6217930498438566377927827488747425377368927001953125
+                expect_score: 0.0035213561402199998993933771629372131428681313991546630859375
             text/tab-separated-values: "taxon IRI taxon label median score  expect\
               \ score\nhttp://purl.obolibrary.org/obo/VTO_0037378  Gymnotiformes 0.7506756923676524\
               \  0.0014462288121\nhttp://purl.obolibrary.org/obo/VTO_0037490  Eigenmannia\
@@ -501,8 +549,8 @@ paths:
                   term:
                     '@id': "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0002950%3E%29"
                     label: "has part some (phenotype of some regional part of midbrain)"
-                  ic: 0.8926218653448688
-                  disparity: 0.47824477007017246
+                  ic: 0.89262186534486875899574442883022129535675048828125
+                  disparity: 0.478244770070172464659918887264211662113666534423828125
   /similarity/best_subsumers:
     get:
       tags:
@@ -542,12 +590,12 @@ paths:
               - term:
                   '@id': "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0002950%3E%29"
                   label: "has part some (phenotype of some regional part of midbrain)"
-                ic: 0.8926218653448688
+                ic: 0.89262186534486875899574442883022129535675048828125
               - term:
                   '@id': "http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000050%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0003528%3E%29%29"
                   label: "has part some (phenotype of some (part of some brain grey\
                     \ matter))"
-                ic: 0.7506756923676524
+                ic: 0.75067569236765241402764559097704477608203887939453125
   /similarity/subsumed_annotations:
     get:
       tags:
@@ -573,13 +621,13 @@ paths:
       responses:
         200:
           description: "subsumed annotations"
-          schema:
-            $ref: "#/definitions/LabelledTermListResult"
           examples:
             application/json:
               results:
               - '@id': "http://purl.obolibrary.org/obo/MP_0009038"
                 label: "decreased inferior colliculus size"
+          schema:
+            $ref: "#/definitions/LabelledTermListResult"
   /similarity/profile_size:
     get:
       tags:
@@ -663,7 +711,7 @@ paths:
           description: "disparity value"
           examples:
             application/json:
-              value: -0.19564677483705345
+              value: -0.195646774837053449846990815785829909145832061767578125
   /entity/search:
     get:
       tags:
@@ -742,8 +790,6 @@ paths:
       responses:
         200:
           description: "taxa with anatomical structure"
-          schema:
-            $ref: "#/definitions/LabelledTermListResult"
           examples:
             application/json:
               results:
@@ -753,6 +799,8 @@ paths:
                 label: "Acanthobrama hulensis"
               - '@id': "http://purl.obolibrary.org/obo/VTO_0041012"
                 label: "Acantopsis choirorhynchos"
+          schema:
+            $ref: "#/definitions/LabelledTermListResult"
   /entity/presence/evidence:
     get:
       tags:
@@ -850,8 +898,6 @@ paths:
       responses:
         200:
           description: "taxa without anatomical structure"
-          schema:
-            $ref: "#/definitions/LabelledTermListResult"
           examples:
             application/json:
               results:
@@ -861,6 +907,8 @@ paths:
                 label: "Acanthodii"
               - '@id': "http://purl.obolibrary.org/obo/VTO_0033649"
                 label: "Amia calva"
+          schema:
+            $ref: "#/definitions/LabelledTermListResult"
   /entity/absence/evidence:
     get:
       tags:
@@ -1006,8 +1054,6 @@ paths:
       responses:
         200:
           description: "taxa of given rank"
-          schema:
-            $ref: "#/definitions/LabelledTermListResult"
           examples:
             application/json:
               results:
@@ -1017,6 +1063,8 @@ paths:
                 label: "Stephanoberyciformes"
               - '@id': "http://purl.obolibrary.org/obo/VTO_0041825"
                 label: "Dactylopteriformes"
+          schema:
+            $ref: "#/definitions/LabelledTermListResult"
   /taxon/with_phenotype:
     get:
       tags:
@@ -1084,8 +1132,6 @@ paths:
       responses:
         200:
           description: "taxa with phenotype"
-          schema:
-            $ref: "#/definitions/LabelledTermListResult"
           examples:
             application/json:
               results:
@@ -1099,6 +1145,8 @@ paths:
               \  Acanthicus hystrix\nhttp://purl.obolibrary.org/obo/VTO_0061854  Acanthocleithron\
               \ chapini\nhttp://purl.obolibrary.org/obo/VTO_0061312  Acrochordonichthys\
               \ ischnosoma\n"
+          schema:
+            $ref: "#/definitions/LabelledTermListResult"
   /taxon/annotated_taxa_count:
     get:
       tags:
@@ -1586,26 +1634,75 @@ paths:
       - "Studies"
       summary: "Query studies by taxa and anatomical entity"
       description: "Return studies containing taxa which are members of the optional\
-        \ input taxon expression and are have annotated phenotypes which are relevant\
-        \ to the optional input entity expression."
+        \ input taxon  andhave annotated phenotypes which are relevant to the optional\
+        \ input anatomical entity or quality."
       produces:
       - "application/json"
       parameters:
-      - name: "taxon"
-        in: "query"
-        description: "Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)"
-        required: true
-        type: "string"
       - name: "entity"
         in: "query"
-        description: "Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)"
-        required: true
+        description: "anatomical entity IRI"
+        required: false
         type: "string"
+        format: "IRI"
+      - name: "quality"
+        in: "query"
+        description: "quality term IRI"
+        required: false
+        type: "string"
+        format: "IRI"
+      - name: "in_taxon"
+        in: "query"
+        description: "A taxon group to limit the results"
+        required: false
+        type: "string"
+        format: "IRI"
+      - name: "publication"
+        in: "query"
+        description: "Limit results to data from a particular publication"
+        required: false
+        type: "string"
+        format: "IRI"
+      - name: "parts"
+        in: "query"
+        description: "whether to include parts of the entity in the query"
+        required: false
+        type: "boolean"
+        default: false
+      - name: "historical_homologs"
+        in: "query"
+        description: "whether to include historical homologs of the entity in the\
+          \ query"
+        required: false
+        type: "boolean"
+        default: false
+      - name: "serial_homologs"
+        in: "query"
+        description: "whether to include serial_homologs of the entity in the query"
+        required: false
+        type: "boolean"
+        default: false
+      - name: "limit"
+        in: "query"
+        description: "maximum results to return"
+        required: false
+        type: "integer"
+        default: 20
+      - name: "offset"
+        in: "query"
+        description: "index of results to begin returning"
+        required: false
+        type: "integer"
+        default: 0
+      - name: "total"
+        in: "query"
+        description: "whether to return the total result count rather than the results"
+        required: false
+        type: "boolean"
+        default: false
       responses:
         200:
           description: "relevant studies"
-          schema:
-            $ref: "#/definitions/LabelledTermListResult"
           examples:
             application/json:
               results:
@@ -1616,6 +1713,8 @@ paths:
                   \ L. (1996)"
               - '@id': "http://search.informit.com.au/documentSummary;dn=057273049071593;res=IELHSS"
                 label: "Kailola, P. J. (2004)"
+          schema:
+            $ref: "#/definitions/LabelledTermListResult"
   /study/taxa:
     get:
       tags:
@@ -1651,8 +1750,6 @@ paths:
       responses:
         200:
           description: "list of taxa"
-          schema:
-            $ref: "#/definitions/LabelledTermListResult"
           examples:
             application/json:
               results:
@@ -1660,6 +1757,8 @@ paths:
                 label: "Acrochordonichthys rugosus"
               - '@id': "http://purl.obolibrary.org/obo/VTO_0061318"
                 label: "Acrochordonichthys sp. (de Pinna 1993)"
+          schema:
+            $ref: "#/definitions/LabelledTermListResult"
   /study/phenotypes:
     get:
       tags:
@@ -1808,6 +1907,8 @@ definitions:
         type: "string"
         format: "IRI"
         example: "http://purl.obolibrary.org/obo/UBERON_0011618"
+    example:
+      '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
   UnlabelledTermListResult:
     type: "object"
     properties:
@@ -1815,6 +1916,10 @@ definitions:
         type: "array"
         items:
           $ref: "#/definitions/Term"
+    example:
+      results:
+      - '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
+      - '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
   TermWithLabel:
     type: "object"
     required:
@@ -1828,6 +1933,9 @@ definitions:
       label:
         type: "string"
         example: "basihyal bone"
+    example:
+      '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
+      label: "basihyal bone"
   LabelledTermListResult:
     type: "object"
     properties:
@@ -1835,6 +1943,12 @@ definitions:
         type: "array"
         items:
           $ref: "#/definitions/TermWithLabel"
+    example:
+      results:
+      - '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
+        label: "basihyal bone"
+      - '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
+        label: "basihyal bone"
   inline_response_200:
     properties:
       annotated_matrices:
@@ -1849,6 +1963,11 @@ definitions:
       annotated_states:
         type: "integer"
         example: 21182
+    example:
+      annotated_taxa: 5071
+      annotated_states: 21182
+      annotated_characters: 9602
+      annotated_matrices: 154
   inline_response_200_1_results:
     properties:
       '@id':
@@ -1861,18 +1980,36 @@ definitions:
       matchType:
         type: "string"
         example: "exact"
+    example:
+      matchType: "exact"
+      '@id': "http://purl.obolibrary.org/obo/UBERON_3000957"
+      label: "basihyal"
   inline_response_200_1:
     properties:
       results:
         type: "array"
         items:
           $ref: "#/definitions/inline_response_200_1_results"
+    example:
+      results:
+      - matchType: "exact"
+        '@id': "http://purl.obolibrary.org/obo/UBERON_3000957"
+        label: "basihyal"
+      - matchType: "exact"
+        '@id': "http://purl.obolibrary.org/obo/UBERON_3000957"
+        label: "basihyal"
   inline_response_200_2:
     properties:
       results:
         type: "array"
         items:
           $ref: "#/definitions/TermWithLabel"
+    example:
+      results:
+      - '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
+        label: "basihyal bone"
+      - '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
+        label: "basihyal bone"
   inline_response_200_3:
     properties:
       '@id':
@@ -1894,3 +2031,21 @@ definitions:
         type: "array"
         items:
           $ref: "#/definitions/TermWithLabel"
+    example:
+      superClassOf:
+      - '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
+        label: "basihyal bone"
+      - '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
+        label: "basihyal bone"
+      equivalentTo:
+      - '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
+        label: "basihyal bone"
+      - '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
+        label: "basihyal bone"
+      '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
+      label: "basihyal bone"
+      subClassOf:
+      - '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
+        label: "basihyal bone"
+      - '@id': "http://purl.obolibrary.org/obo/UBERON_0011618"
+        label: "basihyal bone"
