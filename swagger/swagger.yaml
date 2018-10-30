@@ -1641,14 +1641,16 @@ paths:
       parameters:
       - name: "entity"
         in: "query"
-        description: "Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)"
+        description: "anatomical entity IRI"
         required: false
         type: "string"
+        format: "IRI"
       - name: "quality"
         in: "query"
-        description: "Quality class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)"
+        description: "quality term IRI"
         required: false
         type: "string"
+        format: "IRI"
       - name: "in_taxon"
         in: "query"
         description: "A taxon group to limit the results"
