@@ -221,6 +221,30 @@ object Similarity {
     }
   }
 
+  def pairwiseJaccardSimilarity(iris: Set[IRI]): Future[Seq[JaccardScore]] =
+    Future.sequence(iris.map(iri => classSubsumers(iri).map(iri -> _))).map { irisSubsumers =>
+      val irisToSubsumers = irisSubsumers.toMap
+      (for {
+        combo <- iris.toSeq.combinations(2)
+        left = combo(0)
+        right = combo(1)
+        intersectionCount = irisToSubsumers(left).intersect(irisToSubsumers(right)).size
+        unionCount = (irisToSubsumers(left) ++ irisToSubsumers(right)).size
+      } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
+    }
+
+  private def classSubsumers(iri: IRI): Future[Set[IRI]] = {
+    val query: QueryText =
+      sparql"""
+              SELECT DISTINCT ?subsumer
+              FROM $KBClosureGraph
+              WHERE {
+                $iri $rdfsSubClassOf ?subsumer .
+              }
+            """
+    App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
+  }
+
   private def stateSubsumers(studyIRI: IRI, characterNum: Int, symbol: String): Future[Set[IRI]] = {
     val query: QueryText =
       sparql"""
@@ -331,6 +355,15 @@ object Subsumer {
   def fromQuery(result: QuerySolution): Future[Subsumer] = {
     val iri = IRI.create(result.getResource("subsumer").getURI)
     Term.computedLabel(iri).map(term => Subsumer(term, result.getLiteral("ic").getDouble))
+  }
+
+}
+
+case class JaccardScore(terms: Set[IRI], score: Double) extends JSONResultItem {
+
+  def toJSON: JsObject = {
+    Map("terms" -> terms.map(_.toString).toJson,
+      "score" -> score.toJson).toJson.asJsObject()
   }
 
 }

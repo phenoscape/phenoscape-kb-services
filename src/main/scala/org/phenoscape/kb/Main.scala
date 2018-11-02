@@ -266,6 +266,26 @@ object Main extends HttpApp with App {
                     Similarity.stateSimilarity(leftStudyIRI, leftCharacterNum, leftSymbol, rightStudyIRI, rightCharacterNum, rightSymbol).map(_.toJson)
                   }
                 }
+              } ~
+              path("jaccard") { //FIXME can GET and POST share code better?
+                get {
+                  parameters('iris.as[Seq[String]]) { iriStrings =>
+                    complete {
+                      import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+                      val iris = iriStrings.map(IRI.create)
+                      Similarity.pairwiseJaccardSimilarity(iris.toSet)
+                    }
+                  }
+                } ~
+                  post {
+                    formFields('iris.as[Seq[String]]) { iriStrings =>
+                      complete {
+                        import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+                        val iris = iriStrings.map(IRI.create)
+                        Similarity.pairwiseJaccardSimilarity(iris.toSet)
+                      }
+                    }
+                  }
               }
           } ~
           pathPrefix("characterstate") {
