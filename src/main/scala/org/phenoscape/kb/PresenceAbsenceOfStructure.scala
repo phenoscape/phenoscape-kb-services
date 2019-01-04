@@ -76,7 +76,7 @@ object PresenceAbsenceOfStructure {
     App.executeSPARQLQuery(buildExhibitingAbsenceTotalQuery(entity, taxonFilter)).map(ResultCount.count)
 
   def presenceAbsenceMatrix(mainEntityClass: OWLClassExpression, taxonClass: OWLClassExpression, variableOnly: Boolean, includeParts: Boolean): Future[DataSet] = {
-    val entityClass = if (includeParts) (part_of some mainEntityClass) else mainEntityClass
+    val entityClass = if (includeParts) mainEntityClass or (part_of some mainEntityClass) else mainEntityClass
     for {
       query <- App.expandWithOwlet(buildMatrixQuery(entityClass, taxonClass))
       model <- App.executeSPARQLConstructQuery(query)
