@@ -1,32 +1,16 @@
 package org.phenoscape.kb
 
-import scala.collection.JavaConverters._
-import scala.concurrent.Future
-
-import org.apache.jena.graph.NodeFactory
-import org.apache.jena.query.Query
 import org.apache.jena.query.QuerySolution
-import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.engine.binding.BindingFactory
-import org.apache.jena.sparql.expr.E_Equals
-import org.apache.jena.sparql.expr.E_IsIRI
-import org.apache.jena.sparql.expr.E_LogicalOr
-import org.apache.jena.sparql.expr.ExprVar
-import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
-import org.apache.jena.sparql.syntax.ElementFilter
+import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
 import org.phenoscape.owl.Vocab._
-import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.phenoscape.scowl._
-import org.semanticweb.owlapi.model.IRI
-
-import KBVocab._
-import KBVocab.rdfsLabel
-import spray.json._
-import spray.json.DefaultJsonProtocol._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.semanticweb.owlapi.model.IRI
+import spray.json.DefaultJsonProtocol._
+import spray.json._
+
+import scala.concurrent.Future
 
 object AnatomicalEntity {
 
@@ -38,7 +22,8 @@ object AnatomicalEntity {
   private def homologyAnnotationQuery(term: IRI, includeSubClasses: Boolean): String = {
     val termSpec = if (includeSubClasses) sparql"GRAPH $KBClosureGraph { ?term $rdfsSubClassOf $term . } "
     else sparql"VALUES ?term { $term }"
-    val query = sparql"""
+    val query =
+      sparql"""
       SELECT DISTINCT ?subject ?object ?subjectTaxon ?subjectVTO ?objectTaxon ?objectVTO ?negated ?source ?evidenceType ?relation
       FROM $KBMainGraph
       WHERE {

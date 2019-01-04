@@ -1,47 +1,28 @@
 package org.phenoscape.kb
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.charset.StandardCharsets
+
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.marshalling.{Marshal, Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshal, Unmarshaller}
+import akka.stream.ActorMaterializer
+import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
+import org.apache.jena.datatypes.xsd.XSDDatatype
+import org.apache.jena.query._
+import org.apache.jena.rdf.model.{Model, ModelFactory}
+import org.apache.jena.sparql.syntax.ElementService
+import org.phenoscape.kb.Main.system
+import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.owlet.SPARQLComposer._
+import org.semanticweb.owlapi.model.IRI
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
-import org.apache.jena.datatypes.xsd.XSDDatatype
-import org.apache.jena.query.Query
-import org.apache.jena.query.QueryFactory
-import org.apache.jena.query.QuerySolution
-import org.apache.jena.query.ResultSet
-import org.apache.jena.query.ResultSetFactory
-import org.apache.jena.query.ResultSetFormatter
-import org.apache.jena.rdf.model.Model
-import org.apache.jena.rdf.model.ModelFactory
-import org.apache.jena.sparql.syntax.ElementService
-import org.phenoscape.owlet.SPARQLComposer._
-import org.semanticweb.owlapi.model.IRI
-
-import com.typesafe.config.ConfigFactory
-
-import Main.system
-import system.dispatcher
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.marshalling.Marshal
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.HttpCharsets
-import akka.http.scaladsl.model.HttpMethods
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.MediaType
-import akka.http.scaladsl.model.RequestEntity
-import akka.http.scaladsl.model.Uri
-import akka.http.scaladsl.model.headers
-import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
-import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.http.scaladsl.unmarshalling.Unmarshaller
-import akka.stream.ActorMaterializer
-import akka.util.Timeout
 
 object App {
 

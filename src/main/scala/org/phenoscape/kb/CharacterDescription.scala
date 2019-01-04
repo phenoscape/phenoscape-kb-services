@@ -1,36 +1,27 @@
 package org.phenoscape.kb
 
-import scala.collection.JavaConversions._
-import scala.concurrent.Future
-
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.graph.NodeFactory
-import org.apache.jena.query.Query
-import org.apache.jena.query.QuerySolution
+import org.apache.jena.query.{Query, QuerySolution}
 import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.E_OneOf
-import org.apache.jena.sparql.expr.ExprList
-import org.apache.jena.sparql.expr.ExprVar
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
+import org.apache.jena.sparql.expr.{E_OneOf, Expr, ExprList, ExprVar}
 import org.apache.jena.sparql.syntax.ElementFilter
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsLabel
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
+import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.TaxonEQAnnotation.{ps_entity_term, ps_related_entity_term}
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
-import org.semanticweb.owlapi.model.IRI
-import org.semanticweb.owlapi.model.OWLClassExpression
-
-import TaxonEQAnnotation.ps_entity_term
-import TaxonEQAnnotation.ps_related_entity_term
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.MediaTypes
-import spray.json._
+import org.semanticweb.owlapi.model.{IRI, OWLClassExpression}
 import spray.json.DefaultJsonProtocol._
+import spray.json._
+
+import scala.collection.JavaConverters._
+import scala.concurrent.Future
 
 object CharacterDescription {
 
@@ -62,12 +53,11 @@ object CharacterDescription {
     App.executeSPARQLQuery(buildCharacterDescriptionQuery(iri), fromQuerySolution(iri)).map(_.headOption)
 
   def annotatedCharacterDescriptionWithAnnotation(iri: IRI): Future[Option[AnnotatedCharacterDescription]] = {
-    val query = select_distinct('state, 'description, 'matrix, 'matrix_label) where (
-      bgp(
-        t('state, describes_phenotype, iri),
-        t('state, dcDescription, 'description),
-        t('matrix, has_character / may_have_state_value, 'state),
-        t('matrix, rdfsLabel, 'matrix_label)))
+    val query = select_distinct('state, 'description, 'matrix, 'matrix_label) where bgp(
+      t('state, describes_phenotype, iri),
+      t('state, dcDescription, 'description),
+      t('matrix, has_character / may_have_state_value, 'state),
+      t('matrix, rdfsLabel, 'matrix_label))
     val result = App.executeSPARQLQuery(query, result => {
       Term.computedLabel(iri).map { phenotype =>
         AnnotatedCharacterDescription(
@@ -89,7 +79,7 @@ object CharacterDescription {
     val taxonPatterns = if (taxon == owlThing) Nil else
       t('taxon, exhibits_state, 'state) :: t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
     val filters = if (publications.isEmpty) Nil else
-      new ElementFilter(new E_OneOf(new ExprVar('matrix), new ExprList(publications.map(new NodeValueNode(_)).toList))) :: Nil
+      new ElementFilter(new E_OneOf(new ExprVar('matrix), new ExprList(publications.map(new NodeValueNode(_)).toBuffer[Expr].asJava))) :: Nil
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         t('state, dcDescription, 'state_desc) ::
@@ -97,7 +87,7 @@ object CharacterDescription {
           t('matrix, has_character / may_have_state_value, 'state) ::
           t('matrix, rdfsLabel, 'matrix_label) ::
           entityPatterns ++
-          taxonPatterns: _*) ::
+            taxonPatterns: _*) ::
         filters: _*)
   }
 
@@ -143,7 +133,7 @@ object CharacterDescription {
 
   def buildBasicVariationProfileQuery(taxa: Seq[IRI]): Query = {
     val filters = if (taxa.isEmpty) Nil else
-      new ElementFilter(new E_OneOf(new ExprVar('taxon), new ExprList(taxa.map(new NodeValueNode(_)).toList))) :: Nil
+      new ElementFilter(new E_OneOf(new ExprVar('taxon), new ExprList(taxa.map(new NodeValueNode(_)).toBuffer[Expr].asJava))) :: Nil
     select_distinct() from "http://kb.phenoscape.org/" where (
       bgp(
         t('taxon, has_phenotypic_profile, 'profile),
@@ -154,27 +144,25 @@ object CharacterDescription {
   }
 
   def buildSearchQuery(text: String, limit: Int): Query = {
-    val query = select_distinct('state, 'state_desc, 'matrix, 'matrix_label) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('state_desc, BDSearch, NodeFactory.createLiteral(text)),
-        t('state_desc, BDMatchAllTerms, NodeFactory.createLiteral("true")),
-        t('state_desc, BDRank, 'rank),
-        t('state, dcDescription, 'state_desc),
-        t('state, rdfType, StandardState),
-        t('character, may_have_state_value, 'state),
-        t('matrix, has_character, 'character),
-        t('matrix, rdfsLabel, 'matrix_label))) order_by asc('rank)
+    val query = select_distinct('state, 'state_desc, 'matrix, 'matrix_label) from "http://kb.phenoscape.org/" where bgp(
+      t('state_desc, BDSearch, NodeFactory.createLiteral(text)),
+      t('state_desc, BDMatchAllTerms, NodeFactory.createLiteral("true")),
+      t('state_desc, BDRank, 'rank),
+      t('state, dcDescription, 'state_desc),
+      t('state, rdfType, StandardState),
+      t('character, may_have_state_value, 'state),
+      t('matrix, has_character, 'character),
+      t('matrix, rdfsLabel, 'matrix_label)) order_by asc('rank)
     query.setLimit(limit)
     query
   }
 
   def buildCharacterDescriptionQuery(iri: IRI): Query = {
-    select_distinct('state_desc, 'matrix, 'matrix_label) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t(iri, dcDescription, 'state_desc),
-        t('character, may_have_state_value, iri),
-        t('matrix, has_character, 'character),
-        t('matrix, rdfsLabel, 'matrix_label)))
+    select_distinct('state_desc, 'matrix, 'matrix_label) from "http://kb.phenoscape.org/" where bgp(
+      t(iri, dcDescription, 'state_desc),
+      t('character, may_have_state_value, iri),
+      t('matrix, has_character, 'character),
+      t('matrix, rdfsLabel, 'matrix_label))
   }
 
   def apply(result: QuerySolution): CharacterDescription = CharacterDescription(
@@ -191,9 +179,8 @@ object CharacterDescription {
       result.getLiteral("matrix_label").getLexicalForm))
 
   def eqAnnotationsForPhenotype(iri: IRI): Future[Seq[MinimalTerm]] = {
-    val query = select_distinct('eq) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t(iri, rdfsSubClassOf, 'eq)))
+    val query = select_distinct('eq) from "http://kb.phenoscape.org/" where bgp(
+      t(iri, rdfsSubClassOf, 'eq))
     for {
       eqs <- App.executeSPARQLQuery(query, result => IRI.create(result.getResource("eq").getURI))
       labeledEQs <- Future.sequence(eqs.map(Term.computedLabel))
@@ -236,7 +223,7 @@ case class AnnotatedCharacterDescription(characterDescription: CharacterDescript
 
   def toJSON: JsObject = (characterDescription.toJSON.fields ++ Map("phenotype" -> phenotype.toJSON)).toJson.asJsObject
 
-  override def toString(): String = {
+  override def toString: String = {
     s"${phenotype.iri}\t${phenotype.label}\t${characterDescription.iri}\t${characterDescription.description}\t${characterDescription.matrix.iri}\t${characterDescription.matrix.label}"
   }
 
@@ -256,13 +243,13 @@ object AnnotatedCharacterDescription { //FIXME
         phenotype)
     }
   }
-  
+
   implicit val AnnotatedCharacterDescriptionsTextMarshaller: ToEntityMarshaller[Seq[AnnotatedCharacterDescription]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { annotations =>
     val header = "phenotype IRI\tphenotype\tcharacter description IRI\tcharacter description\tstudy IRI\tstudy"
     s"$header\n${annotations.map(_.toString).mkString("\n")}"
   }
 
-  implicit val ComboAnnotatedCharacterDescriptionsMarshaller = Marshaller.oneOf(AnnotatedCharacterDescriptionsTextMarshaller, JSONResultItemsMarshaller)
+  implicit val ComboAnnotatedCharacterDescriptionsMarshaller: ToEntityMarshaller[Seq[AnnotatedCharacterDescription]] = Marshaller.oneOf(AnnotatedCharacterDescriptionsTextMarshaller, JSONResultItemsMarshaller)
 
 }
 

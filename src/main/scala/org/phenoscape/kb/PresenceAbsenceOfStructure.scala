@@ -4,46 +4,31 @@ import java.net.URI
 import java.text.SimpleDateFormat
 import java.util.Calendar
 
-import scala.collection.JavaConversions._
-import scala.collection.mutable
-import scala.concurrent.Future
-import scala.language.implicitConversions
-import scala.language.postfixOps
-
-import org.apache.jena.query.Query
-import org.apache.jena.query.QuerySolution
-import org.apache.jena.rdf.model.Property
-import org.apache.jena.rdf.model.ResourceFactory
+import org.apache.jena.query.{Query, QuerySolution}
+import org.apache.jena.rdf.model.{Property, ResourceFactory}
 import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.E_OneOf
-import org.apache.jena.sparql.expr.ExprList
-import org.apache.jena.sparql.expr.ExprVar
-import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
-import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
+import org.apache.jena.sparql.expr.aggregate.{AggCountDistinct, AggCountVarDistinct}
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
-import org.apache.jena.sparql.syntax.ElementFilter
-import org.apache.jena.sparql.syntax.ElementSubQuery
+import org.apache.jena.sparql.expr.{E_OneOf, Expr, ExprList, ExprVar}
+import org.apache.jena.sparql.syntax.{ElementFilter, ElementSubQuery}
 import org.apache.log4j.Logger
 import org.obo.datamodel.impl.OBOClassImpl
 import org.phenoscape.io.NeXMLUtil
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsLabel
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
+import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf}
 import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.model.Character
-import org.phenoscape.model.DataSet
-import org.phenoscape.model.MultipleState
 import org.phenoscape.model.MultipleState.MODE
-import org.phenoscape.model.State
-import org.phenoscape.model.{ Taxon => MatrixTaxon }
+import org.phenoscape.model.{Character, DataSet, MultipleState, State, Taxon => MatrixTaxon}
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
-import org.semanticweb.owlapi.model.IRI
-import org.semanticweb.owlapi.model.OWLClassExpression
-import org.semanticweb.owlapi.model.OWLEntity
+import org.semanticweb.owlapi.model.{IRI, OWLClassExpression, OWLEntity}
+
+import scala.collection.JavaConverters._
+import scala.collection.mutable
+import scala.concurrent.Future
+import scala.language.{implicitConversions, postfixOps}
 
 object PresenceAbsenceOfStructure {
 
@@ -86,14 +71,14 @@ object PresenceAbsenceOfStructure {
       val states: mutable.Map[String, State] = mutable.Map()
       val taxa: mutable.Map[String, MatrixTaxon] = mutable.Map()
       val presencesAndAbsences = {
-        val allPresences = model.listStatements(null, has_presence_of, null).toSet
-        val allAbsences = model.listStatements(null, has_absence_of, null).toSet
+        val allPresences = model.listStatements(null, has_presence_of, null).asScala.toSet
+        val allAbsences = model.listStatements(null, has_absence_of, null).asScala.toSet
         val allStatements = allPresences ++ allAbsences
         if (variableOnly) {
-          val presentEntities = model.listObjectsOfProperty(has_presence_of).toSet
-          val absentEntities = model.listObjectsOfProperty(has_absence_of).toSet
+          val presentEntities = model.listObjectsOfProperty(has_presence_of).asScala.toSet
+          val absentEntities = model.listObjectsOfProperty(has_absence_of).asScala.toSet
           val variableEntities = absentEntities & presentEntities
-          allStatements.filter(variableEntities contains _.getObject)
+          allStatements.filter(s => variableEntities(s.getObject))
         } else {
           allStatements
         }
@@ -132,7 +117,7 @@ object PresenceAbsenceOfStructure {
           case polymorphic: MultipleState => addStateToMultiState(polymorphic, state)
           case `state`                    => state
           case null                       => state
-          case _                          => new MultipleState(Set(currentState, state), MODE.POLYMORPHIC)
+          case _                          => new MultipleState(Set(currentState, state).asJava, MODE.POLYMORPHIC)
         }
         dataset.setStateForTaxon(matrixTaxon, character, stateToAssign)
       }
@@ -148,15 +133,15 @@ object PresenceAbsenceOfStructure {
     construct(
       t('taxon, 'relation, 'entity),
       t('taxon, rdfsLabel, 'taxon_label),
-      t('entity, rdfsLabel, 'entity_label)) from "http://kb.phenoscape.org/" where (
-        bgp(
-          t('taxon, 'relation, 'entity),
-          t('taxon, rdfsLabel, 'taxon_label),
-          t('entity, rdfsLabel, 'entity_label),
-          t('entity, rdfsSubClassOf, entityClass.asOMN),
-          t('taxon, rdfsSubClassOf, taxonClass.asOMN)),
-          new ElementFilter(new E_OneOf(new ExprVar('relation),
-            new ExprList(List(new NodeValueNode(has_presence_of), new NodeValueNode(has_absence_of))))))
+      t('entity, rdfsLabel, 'entity_label)) from "http://kb.phenoscape.org/" where(
+      bgp(
+        t('taxon, 'relation, 'entity),
+        t('taxon, rdfsLabel, 'taxon_label),
+        t('entity, rdfsLabel, 'entity_label),
+        t('entity, rdfsSubClassOf, entityClass.asOMN),
+        t('taxon, rdfsSubClassOf, taxonClass.asOMN)),
+      new ElementFilter(new E_OneOf(new ExprVar('relation),
+        new ExprList(List[Expr](new NodeValueNode(has_presence_of), new NodeValueNode(has_absence_of)).asJava))))
   }
 
   def expandMatrixQuery(query: Query): Future[Query] = {
@@ -226,9 +211,9 @@ object PresenceAbsenceOfStructure {
     select_distinct() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
       bgp((
         App.BigdataAnalyticQuery ::
-        t('taxon, has_absence_of, entityIRI) ::
-        t('taxon, rdfsLabel, 'taxon_label) ::
-        taxonFilterTriple): _*))
+          t('taxon, has_absence_of, entityIRI) ::
+          t('taxon, rdfsLabel, 'taxon_label) ::
+          taxonFilterTriple): _*))
   }
 
   def buildExhibitingAbsenceQuery(entityIRI: IRI, taxonFilter: Option[IRI], limit: Int, offset: Int): Query = {
@@ -253,9 +238,9 @@ object PresenceAbsenceOfStructure {
     select_distinct() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
       bgp((
         App.BigdataAnalyticQuery ::
-        t('taxon, has_presence_of, entityIRI) ::
-        t('taxon, rdfsLabel, 'taxon_label) ::
-        taxonFilterTriple): _*))
+          t('taxon, has_presence_of, entityIRI) ::
+          t('taxon, rdfsLabel, 'taxon_label) ::
+          taxonFilterTriple): _*))
   }
 
   def buildExhibitingPresenceQuery(entityIRI: IRI, taxonFilter: Option[IRI], limit: Int, offset: Int): Query = {
@@ -280,8 +265,8 @@ object PresenceAbsenceOfStructure {
     result.getLiteral("taxon_label").getLexicalForm)
 
   private def addStateToMultiState(multi: MultipleState, state: State): MultipleState = {
-    if (multi.getStates.map(_.getNexmlID).contains(state.getNexmlID)) multi
-    else new MultipleState(multi.getStates + state, multi.getMode)
+    if (multi.getStates.asScala.map(_.getNexmlID).contains(state.getNexmlID)) multi
+    else new MultipleState((multi.getStates.asScala + state).asJava, multi.getMode)
   }
 
   private lazy val logger = Logger.getLogger(this.getClass)
@@ -291,6 +276,8 @@ object PresenceAbsenceOfStructure {
 case class Association(entity: String, entityLabel: String, taxon: String, taxonLabel: String, state: String, stateLabel: String, matrixLabel: String, direct: Boolean)
 
 sealed abstract class PresenceAbsence(val symbol: String, val label: String)
+
 case object Absence extends PresenceAbsence("0", "absent")
+
 case object Presence extends PresenceAbsence("1", "present")
 
