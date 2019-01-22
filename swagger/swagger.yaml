@@ -657,6 +657,49 @@ paths:
           examples:
             application/json:
               value: -0.19564677483705345
+  /similarity/jaccard:
+    get:
+      tags:
+      - Semantic similarity
+      summary: Get pairwise Jaccard similarity for a set of terms [IN DEVELOPMENT—SUBJECT TO CHANGE]
+      description: Calculate similarity for every pair in a set of terms.
+      produces:
+      - application/json
+      parameters:
+      - name: iris
+        in: query
+        description: JSON array of term IRIs
+        required: true
+        type: string
+        format: JSON
+      responses:
+        200:
+          description: similarity scores
+          examples:
+            application/json:
+              value: TODO
+    post:
+      tags:
+      - Semantic similarity
+      summary: Get pairwise Jaccard similarity for a set of terms [IN DEVELOPMENT—SUBJECT TO CHANGE]
+      description: Calculate similarity for every pair in a set of terms.
+      consumes:
+      - application/x-www-form-urlencoded
+      produces:
+      - application/json
+      parameters:
+      - name: iris
+        in: formData
+        description: JSON array of term IRIs
+        required: true
+        type: string
+        format: JSON
+      responses:
+        200:
+          description: similarity scores
+          examples:
+            application/json:
+              value: TODO
   /entity/search:
     get:
       tags:
