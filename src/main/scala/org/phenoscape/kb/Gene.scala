@@ -1,53 +1,40 @@
 package org.phenoscape.kb
 
-import scala.collection.JavaConversions._
-import scala.concurrent.Future
-import scala.language.implicitConversions
-
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.graph.NodeFactory
-import org.apache.jena.query.Query
-import org.apache.jena.query.QuerySolution
-import org.apache.jena.rdf.model.Model
-import org.apache.jena.rdf.model.Property
-import org.apache.jena.rdf.model.Resource
-import org.apache.jena.rdf.model.ResourceFactory
+import org.apache.jena.query.{Query, QuerySolution}
+import org.apache.jena.rdf.model.{Model, Property, Resource, ResourceFactory}
 import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.E_NotOneOf
-import org.apache.jena.sparql.expr.ExprList
-import org.apache.jena.sparql.expr.ExprVar
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
+import org.apache.jena.sparql.expr.{E_NotOneOf, Expr, ExprList, ExprVar}
 import org.apache.jena.sparql.syntax.ElementFilter
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsLabel
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
+import org.phenoscape.kb.Facets.Facet
+import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 import org.phenoscape.kb.queries.GeneAffectingPhenotype
-import org.phenoscape.owl.NamedRestrictionGenerator
-import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
+import org.phenoscape.owl.{NamedRestrictionGenerator, Vocab}
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.semanticweb.owlapi.apibinding.OWLManager
-import org.semanticweb.owlapi.model.IRI
-import org.semanticweb.owlapi.model.OWLClassExpression
-import org.semanticweb.owlapi.model.OWLObjectProperty
-import org.phenoscape.kb.Facets.Facet
-
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.MediaTypes
-import spray.json._
+import org.semanticweb.owlapi.model.{IRI, OWLClassExpression, OWLObjectProperty}
 import spray.json.DefaultJsonProtocol._
+import spray.json._
+
+import scala.collection.JavaConverters._
+import scala.concurrent.Future
+import scala.language.implicitConversions
 
 object Gene {
 
   private val factory = OWLManager.getOWLDataFactory
 
   //FIXME this is a temporary hack until genes are directly associated with taxa in the KB
-  val geneIDPrefixToTaxon = Map(
+  private val geneIDPrefixToTaxon = Map(
     "http://zfin.org" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_7955"), "Danio rerio"),
     "http://www.informatics.jax.org" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_10090"), "Mus musculus"),
     "http://xenbase.org" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_8353"), "Xenopus"),
@@ -78,13 +65,12 @@ object Gene {
 
   def buildSearchQuery(text: String): Query = {
     val searchText = if (text.endsWith("*")) text else s"$text*"
-    val query = select_distinct('gene, 'gene_label) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('gene_label, BDSearch, NodeFactory.createLiteral(searchText)),
-        t('gene_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
-        t('gene_label, BDRank, 'rank),
-        t('gene, rdfsLabel, 'gene_label),
-        t('gene, rdfType, Vocab.Gene)))
+    val query = select_distinct('gene, 'gene_label) from "http://kb.phenoscape.org/" where bgp(
+      t('gene_label, BDSearch, NodeFactory.createLiteral(searchText)),
+      t('gene_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
+      t('gene_label, BDRank, 'rank),
+      t('gene, rdfsLabel, 'gene_label),
+      t('gene, rdfType, Vocab.Gene))
     query.addOrderBy('rank, Query.ORDER_ASCENDING)
     query.setLimit(100)
     query
@@ -96,13 +82,12 @@ object Gene {
       t('annotation, rdfType, 'phenotype) :: t('phenotype, rdfsSubClassOf, ((has_part some (inheres_in some entity)) or (has_part some (towards some entity))).asOMN) :: Nil
     val taxonPatterns = if (taxon == owlThing) Nil else
       t('annotation, associated_with_taxon, 'taxon) :: t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
-    val query = select_distinct() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('annotation, rdfType, AnnotatedPhenotype) ::
-          t('annotation, associated_with_gene, 'gene) ::
-          t('gene, rdfsLabel, 'gene_label) ::
-          taxonPatterns ++
-          entityPatterns: _*))
+    val query = select_distinct() from "http://kb.phenoscape.org/" where bgp(
+      t('annotation, rdfType, AnnotatedPhenotype) ::
+        t('annotation, associated_with_gene, 'gene) ::
+        t('gene, rdfsLabel, 'gene_label) ::
+        taxonPatterns ++
+          entityPatterns: _*)
     query
   }
 
@@ -124,10 +109,9 @@ object Gene {
   }
 
   def buildGeneQuery(iri: IRI): Query =
-    select('gene_label) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t(iri, rdfsLabel, 'gene_label),
-        t(iri, rdfType, Vocab.Gene)))
+    select('gene_label) from "http://kb.phenoscape.org/" where bgp(
+      t(iri, rdfsLabel, 'gene_label),
+      t(iri, rdfType, Vocab.Gene))
 
   def fromIRIQuery(iri: IRI)(result: QuerySolution): Gene = Gene(
     iri,
@@ -178,15 +162,15 @@ object Gene {
   def phenotypicProfile(iri: IRI): Future[Seq[SourcedMinimalTerm]] = {
     val query = construct(
       t(iri, hasAnnotation.asNode, 'annotation),
-      t('annotation, dcSource, 'source)) from "http://kb.phenoscape.org/" where (
-        bgp(
-          t('pheno_instance, rdfType, AnnotatedPhenotype),
-          t('pheno_instance, associated_with_gene, iri),
-          t('pheno_instance, rdfType, 'annotation)),
-          optional(bgp(t('pheno_instance, dcSource, 'source))),
-          new ElementFilter(new E_NotOneOf(new ExprVar('annotation), new ExprList(List(
-            new NodeValueNode(AnnotatedPhenotype),
-            new NodeValueNode(owlNamedIndividual))))))
+      t('annotation, dcSource, 'source)) from "http://kb.phenoscape.org/" where(
+      bgp(
+        t('pheno_instance, rdfType, AnnotatedPhenotype),
+        t('pheno_instance, associated_with_gene, iri),
+        t('pheno_instance, rdfType, 'annotation)),
+      optional(bgp(t('pheno_instance, dcSource, 'source))),
+      new ElementFilter(new E_NotOneOf(new ExprVar('annotation), new ExprList(List[Expr](
+        new NodeValueNode(AnnotatedPhenotype),
+        new NodeValueNode(owlNamedIndividual)).asJava))))
     for {
       annotationsData <- App.executeSPARQLConstructQuery(query)
       phenotypesWithSources = processProfileResultToAnnotationsAndSources(annotationsData)
@@ -197,15 +181,16 @@ object Gene {
   }
 
   private val hasAnnotation = ResourceFactory.createProperty("http://example.org/hasAnnotation")
+
   private implicit def objectPropertyToJenaProperty(prop: OWLObjectProperty): Property = {
     ResourceFactory.createProperty(prop.getIRI.toString)
   }
 
   private def processProfileResultToAnnotationsAndSources(model: Model): Set[(IRI, Set[IRI])] = {
-    model.listObjectsOfProperty(hasAnnotation).collect {
+    model.listObjectsOfProperty(hasAnnotation).asScala.collect {
       case annotation: Resource => annotation
     }.map { annotation =>
-      IRI.create(annotation.getURI) -> model.listObjectsOfProperty(annotation, dcSource).collect {
+      IRI.create(annotation.getURI) -> model.listObjectsOfProperty(annotation, dcSource).asScala.collect {
         case resource: Resource => Option(resource.getURI)
       }.flatten.map(IRI.create).toSet
     }.toSet
@@ -214,14 +199,14 @@ object Gene {
   def expressionProfile(iri: IRI): Future[Seq[SourcedMinimalTerm]] = {
     val query = construct(
       t(iri, hasAnnotation.asNode, 'entity),
-      t('entity, dcSource, 'source)) from "http://kb.phenoscape.org/" where (
-        bgp(
-          t('expression, rdfType, GeneExpression),
-          t('expression, associated_with_gene, iri),
-          t('expression, occurs_in, 'entity)),
-          optional(bgp(t('expression, dcSource, 'source))),
-          new ElementFilter(new E_NotOneOf(new ExprVar('entity), new ExprList(List(
-            new NodeValueNode(owlNamedIndividual), new NodeValueNode(owlClass))))))
+      t('entity, dcSource, 'source)) from "http://kb.phenoscape.org/" where(
+      bgp(
+        t('expression, rdfType, GeneExpression),
+        t('expression, associated_with_gene, iri),
+        t('expression, occurs_in, 'entity)),
+      optional(bgp(t('expression, dcSource, 'source))),
+      new ElementFilter(new E_NotOneOf(new ExprVar('entity), new ExprList(List[Expr](
+        new NodeValueNode(owlNamedIndividual), new NodeValueNode(owlClass)).asJava))))
     for {
       annotationsData <- App.executeSPARQLConstructQuery(query)
       entitiesWithSources = processProfileResultToAnnotationsAndSources(annotationsData)
@@ -243,12 +228,11 @@ object Gene {
 
   private def buildGeneExpressedInEntityQuery(entityIRI: IRI): Query = {
     val partOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
-    select_distinct() from KBMainGraph.toString from KBClosureGraph.toString where (
-      bgp(
-        t('gene, rdfsLabel, 'gene_label),
-        t('expression, associated_with_gene, 'gene),
-        //        t('expression, rdfType, GeneExpression), // faster without, and not necessary for current model
-        t('expression, occurs_in / rdfsSubClassOf / partOfSome, entityIRI)))
+    select_distinct() from KBMainGraph.toString from KBClosureGraph.toString where bgp(
+      t('gene, rdfsLabel, 'gene_label),
+      t('expression, associated_with_gene, 'gene),
+      //        t('expression, rdfType, GeneExpression), // faster without, and not necessary for current model
+      t('expression, occurs_in / rdfsSubClassOf / partOfSome, entityIRI))
   }
 
   def taxonForGeneIRI(iri: IRI): Taxon = geneIDPrefixToTaxon.collectFirst {
@@ -268,7 +252,7 @@ object Gene {
     s"$header\n${genes.map(_.toString).mkString("\n")}"
   }
 
-  implicit val ComboGenesMarshaller = Marshaller.oneOf(GenesTextMarshaller, JSONResultItemsMarshaller)
+  implicit val ComboGenesMarshaller: ToEntityMarshaller[Seq[Gene]] = Marshaller.oneOf(GenesTextMarshaller, JSONResultItemsMarshaller)
 
 }
 
@@ -278,7 +262,7 @@ case class Gene(iri: IRI, label: String, taxon: Taxon) extends LabeledTerm with 
     Map("@id" -> iri.toString.toJson, "label" -> label.toJson, "taxon" -> taxon.toJSON).toJson.asJsObject
   }
 
-  override def toString(): String = {
+  override def toString: String = {
     s"$iri\t$label\t${taxon.label}"
   }
 

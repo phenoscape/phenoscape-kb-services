@@ -286,6 +286,13 @@ object Main extends HttpApp with App {
                       }
                     }
                   }
+              } ~
+              path("matrix") {
+                parameters('terms.as[Seq[IRI]]) { iris =>
+                  complete {
+                    Graph.ancestorMatrix(iris.toSet)
+                  }
+                }
               }
           } ~
           pathPrefix("characterstate") {
@@ -483,7 +490,7 @@ object Main extends HttpApp with App {
           } ~
           pathPrefix("gene") {
             path("search") {
-              parameters('text, 'taxon.as[IRI].?) { (text, taxonOpt) =>
+              parameters('text, 'taxon.as[IRI].?) { (text, taxonOpt) => //FIXME add limit option?
                 complete {
                   import org.phenoscape.kb.Term.JSONResultItemsMarshaller
                   Gene.search(text, taxonOpt)

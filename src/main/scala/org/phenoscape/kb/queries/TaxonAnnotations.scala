@@ -44,7 +44,7 @@ object TaxonAnnotations {
       FROM $KBClosureGraph
       $namedQueriesBlock
       $whereClause
-      ORDER BY LCASE(?taxon_label) ?taxon LCASE(?phenotype_label) LCASE(?description) ?phenotype
+      ORDER BY LCASE(?taxon_label) ?taxon LCASE(?phenotype_label) ?phenotype
       $paging
       """
       BlazegraphNamedSubquery.updateReferencesFor(unifiedQueries, query.text)
