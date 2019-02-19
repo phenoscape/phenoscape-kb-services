@@ -286,6 +286,13 @@ object Main extends HttpApp with App {
                       }
                     }
                   }
+              } ~
+              path("matrix") {
+                parameters('terms.as[Seq[IRI]]) { iris =>
+                  complete {
+                    Graph.ancestorMatrix(iris.toSet)
+                  }
+                }
               }
           } ~
           pathPrefix("characterstate") {
