@@ -1,8 +1,5 @@
 package org.phenoscape.kb
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-
 import org.apache.jena.query.Query
 import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.expr.ExprVar
@@ -12,12 +9,14 @@ import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
-import org.semanticweb.owlapi.model.IRI
-import org.semanticweb.owlapi.model.OWLClassExpression
+import org.semanticweb.owlapi.model.{IRI, OWLClassExpression}
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object DataCoverageFigureReport {
 
-  val entities = Set(
+  private val entities = Set(
     "anocleithrum" -> "http://purl.obolibrary.org/obo/UBERON_4000160",
     "basipterygium bone" -> "http://purl.obolibrary.org/obo/UBERON_2000623",
     "carpal bone" -> "http://purl.obolibrary.org/obo/UBERON_0001435",
@@ -61,7 +60,7 @@ object DataCoverageFigureReport {
     "radial bone" -> "http://purl.obolibrary.org/obo/UBERON_2000271",
     "lepidotrichium" -> "http://purl.obolibrary.org/obo/UBERON_4000172")
 
-  val taxa = Set(
+  private val taxa = Set(
     "Acanthostega gunnari" -> "http://purl.obolibrary.org/obo/VTO_9001290",
     "Aztecia" -> "http://purl.obolibrary.org/obo/VTO_9022990",
     "Balanerpeton woodi" -> "http://purl.obolibrary.org/obo/VTO_9000671",
@@ -164,15 +163,15 @@ object DataCoverageFigureReport {
   private def buildQuery(taxonClass: OWLClassExpression, entityIRI: String): Query = {
     val entityClass = Class(IRI.create(entityIRI))
     val entityInd = Individual(entityIRI)
-    val query = select() from "http://kb.phenoscape.org/" where (
+    val query = select() from "http://kb.phenoscape.org/" where(
       bgp(
         t('taxon, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype)),
-        withOwlery(
-          t('taxon, rdfsSubClassOf, taxonClass.asOMN)),
-          withOwlery(
-            t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (towards value entityInd)).asOMN)),
-            App.BigdataRunPriorFirst)
+      withOwlery(
+        t('taxon, rdfsSubClassOf, taxonClass.asOMN)),
+      withOwlery(
+        t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (towards value entityInd)).asOMN)),
+      App.BigdataRunPriorFirst)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
     query
   }

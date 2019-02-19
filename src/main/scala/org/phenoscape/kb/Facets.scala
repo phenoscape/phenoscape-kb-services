@@ -1,15 +1,13 @@
 package org.phenoscape.kb
 
-import scala.concurrent.Future
-import org.semanticweb.owlapi.model.IRI
-import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.scowl._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import scalaz._
-import spray.json._
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import org.phenoscape.kb.Main.system.dispatcher
+import org.semanticweb.owlapi.model.IRI
 import spray.json.DefaultJsonProtocol._
+import spray.json._
+
+import scala.concurrent.Future
 
 object Facets {
 

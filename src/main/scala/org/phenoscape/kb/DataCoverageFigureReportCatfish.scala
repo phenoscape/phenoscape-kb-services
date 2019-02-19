@@ -17,7 +17,7 @@ import org.semanticweb.owlapi.model.IRI
 
 object DataCoverageFigureReportCatfish {
 
-  val entities = Set(
+  private val entities = Set(
     "pectoral fin" -> "http://purl.obolibrary.org/obo/UBERON_0000151",
     "pectoral girdle skeleton" -> "http://purl.obolibrary.org/obo/UBERON_0007831",
     "pelvic fin" -> "http://purl.obolibrary.org/obo/UBERON_0000152",
@@ -33,7 +33,7 @@ object DataCoverageFigureReportCatfish {
     "post-cranial axial skeletal system" -> "http://purl.obolibrary.org/obo/UBERON_0011138",
     "integumental system" -> "http://purl.obolibrary.org/obo/UBERON_0002416")
 
-  val Siluriformes = Class("http://purl.obolibrary.org/obo/VTO_0034991")
+  private val Siluriformes = Class("http://purl.obolibrary.org/obo/VTO_0034991")
 
   def query(): Future[String] = {
     val results = for {
@@ -74,13 +74,12 @@ object DataCoverageFigureReportCatfish {
   private def buildQuery(entityIRI: String): Query = {
     val entityClass = Class(IRI.create(entityIRI))
     val entityInd = Individual(entityIRI)
-    val query = select() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('taxon, exhibits_state, 'state),
-        t('taxon, rdfsLabel, 'taxon_label),
-        t('state, describes_phenotype, 'phenotype),
-        t('taxon, ObjectProperty(rdfsSubClassOf) *, Siluriformes),
-        t('phenotype, rdfsSubClassOf, ((phenotype_of some (part_of some entityClass)) or (towards value entityInd)).asOMN)))
+    val query = select() from "http://kb.phenoscape.org/" where bgp(
+      t('taxon, exhibits_state, 'state),
+      t('taxon, rdfsLabel, 'taxon_label),
+      t('state, describes_phenotype, 'phenotype),
+      t('taxon, ObjectProperty(rdfsSubClassOf) *, Siluriformes),
+      t('phenotype, rdfsSubClassOf, ((phenotype_of some (part_of some entityClass)) or (towards value entityInd)).asOMN))
     query.getProject.add(Var.alloc("taxon"))
     query.getProject.add(Var.alloc("taxon_label"))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))

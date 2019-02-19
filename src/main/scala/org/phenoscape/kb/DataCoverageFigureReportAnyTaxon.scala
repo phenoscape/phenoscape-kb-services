@@ -15,7 +15,7 @@ import org.semanticweb.owlapi.model.IRI
 
 object DataCoverageFigureReportAnyTaxon {
 
-  val entities = Set(
+  private val entities = Set(
     "anocleithrum" -> "http://purl.obolibrary.org/obo/UBERON_4000160",
     "basipterygium bone" -> "http://purl.obolibrary.org/obo/UBERON_2000623",
     "carpal bone" -> "http://purl.obolibrary.org/obo/UBERON_0001435",

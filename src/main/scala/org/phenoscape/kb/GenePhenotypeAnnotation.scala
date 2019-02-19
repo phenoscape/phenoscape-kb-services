@@ -1,50 +1,38 @@
 package org.phenoscape.kb
 
-import scala.collection.JavaConversions._
-import scala.concurrent.Future
-import scala.language.postfixOps
-
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.graph.NodeFactory
-import org.apache.jena.query.Query
-import org.apache.jena.query.QuerySolution
-import org.apache.jena.query.SortCondition
+import org.apache.jena.query.{Query, QuerySolution, SortCondition}
 import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.E_NotOneOf
-import org.apache.jena.sparql.expr.E_StrLowerCase
-import org.apache.jena.sparql.expr.ExprList
-import org.apache.jena.sparql.expr.ExprVar
+import org.apache.jena.sparql.expr._
 import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
-import org.apache.jena.sparql.syntax.ElementFilter
-import org.apache.jena.sparql.syntax.ElementSubQuery
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsLabel
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
+import org.apache.jena.sparql.syntax.{ElementFilter, ElementSubQuery}
+import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
-import org.semanticweb.owlapi.model.IRI
-import org.semanticweb.owlapi.model.OWLClassExpression
-
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.MediaTypes
-import spray.json._
+import org.semanticweb.owlapi.model.{IRI, OWLClassExpression}
 import spray.json.DefaultJsonProtocol._
+import spray.json._
+
+import scala.collection.JavaConverters._
+import scala.concurrent.Future
+import scala.language.postfixOps
 
 case class GenePhenotypeAnnotation(gene: MinimalTerm, phenotype: MinimalTerm, source: Option[IRI]) extends JSONResultItem {
 
-  def toJSON: JsObject = {
-    (Map("gene" -> gene.toJSON,
-      "phenotype" -> phenotype.toJSON,
-      "source" -> source.map(_.toString).getOrElse("").toJson)).toJson.asJsObject
-  }
+  def toJSON: JsObject = Map(
+    "gene" -> gene.toJSON,
+    "phenotype" -> phenotype.toJSON,
+    "source" -> source.map(_.toString).getOrElse("").toJson).toJson.asJsObject
 
-  override def toString(): String = {
-    s"${gene.iri}\t${gene.label}\t${phenotype.iri}\t${phenotype.label}\t${source}"
+  override def toString: String = {
+    s"${gene.iri}\t${gene.label}\t${phenotype.iri}\t${phenotype.label}\t$source"
   }
 
 }
@@ -76,8 +64,8 @@ object GenePhenotypeAnnotation {
       case (None, None)                          => None
     }
     val phenotypeTriple = phenotypeExpression.map(desc => t('phenotype, rdfsSubClassOf, desc.asOMN)).toList
-    val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf*, _)).toList
-    val query = select_distinct('gene, 'gene_label, 'phenotype, 'phenotype_label, 'source) where (
+    val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf *, _)).toList
+    val query = select_distinct('gene, 'gene_label, 'phenotype, 'phenotype_label, 'source) where(
       bgp(
         App.BigdataAnalyticQuery ::
           t('annotation, rdfType, AnnotatedPhenotype) ::
@@ -87,11 +75,11 @@ object GenePhenotypeAnnotation {
           t('phenotype, rdfsLabel, 'phenotype_label) ::
           t('annotation, associated_with_taxon, 'taxon) ::
           phenotypeTriple ++
-          taxonPatterns: _*),
-        optional(bgp(t('annotation, dcSource, 'source))),
-        new ElementFilter(new E_NotOneOf(new ExprVar('phenotype), new ExprList(List(
-          new NodeValueNode(AnnotatedPhenotype),
-          new NodeValueNode(owlNamedIndividual))))))
+            taxonPatterns: _*),
+      optional(bgp(t('annotation, dcSource, 'source))),
+      new ElementFilter(new E_NotOneOf(new ExprVar('phenotype), new ExprList(List[Expr](
+        new NodeValueNode(AnnotatedPhenotype),
+        new NodeValueNode(owlNamedIndividual)).asJava))))
     App.expandWithOwlet(query)
   }
 
@@ -114,7 +102,7 @@ object GenePhenotypeAnnotation {
     for {
       rawQuery <- buildBasicGenePhenotypeAnnotationsQuery(entity, quality, inTaxonOpt)
     } yield {
-      val query = select() from KBMainGraph.toString where (new ElementSubQuery(rawQuery))
+      val query = select() from KBMainGraph.toString where new ElementSubQuery(rawQuery)
       query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
       query
     }
@@ -125,6 +113,6 @@ object GenePhenotypeAnnotation {
     s"$header\n${annotations.map(_.toString).mkString("\n")}"
   }
 
-  implicit val ComboGenePhenotypeAnnotationsMarshaller = Marshaller.oneOf(AnnotationTextMarshaller, JSONResultItemsMarshaller)
+  implicit val ComboGenePhenotypeAnnotationsMarshaller: ToEntityMarshaller[Seq[GenePhenotypeAnnotation]] = Marshaller.oneOf(AnnotationTextMarshaller, JSONResultItemsMarshaller)
 
 }

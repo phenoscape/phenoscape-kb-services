@@ -32,7 +32,8 @@ object GeneAffectingPhenotype {
       val unifiedQueries = BlazegraphNamedSubquery.unifyQueries(subqueries)
       val namedQueriesBlock = if (unifiedQueries.nonEmpty) unifiedQueries.map(_.namedQuery).reduce(_ |+| _) else sparql""
       val paging = if (limit > 0) sparql"LIMIT $limit OFFSET $offset" else sparql""
-      val query = if (countOnly) sparql"""
+      val query = if (countOnly)
+        sparql"""
       SELECT (COUNT(*) AS ?count)
       FROM $KBMainGraph
       FROM $KBClosureGraph
@@ -42,7 +43,8 @@ object GeneAffectingPhenotype {
         $whereClause
       }
       """
-      else sparql"""
+      else
+        sparql"""
       SELECT DISTINCT ?gene ?gene_label
       FROM $KBMainGraph
       FROM $KBClosureGraph
@@ -123,13 +125,14 @@ object GeneAffectingPhenotype {
   }
 
   // named subquery is used like for taxon query, but may not really be necessary
-  private def phenotypeSubQueryFor(entity: Option[IRI], quality: Option[IRI], parts: Boolean): Option[BlazegraphNamedSubquery] = if (entity.nonEmpty || quality.nonEmpty) {
+  def phenotypeSubQueryFor(entity: Option[IRI], quality: Option[IRI], parts: Boolean): Option[BlazegraphNamedSubquery] = if (entity.nonEmpty || quality.nonEmpty) {
     val entityPattern = entity.map { e =>
       if (parts) sparql"?phenotype $rdfType/$PhenotypeOfSome/$rdfsSubClassOf/$PartOfSome $e . "
       else sparql"?phenotype $rdfType/$PhenotypeOfSome $e . "
     }.getOrElse(sparql"")
     val qualityPattern = quality.map(q => sparql"?phenotype $rdfType/$HasPartSome $q . ").getOrElse(sparql"")
-    Some(BlazegraphNamedSubquery(sparql"""
+    Some(BlazegraphNamedSubquery(
+      sparql"""
         SELECT DISTINCT ?phenotype WHERE {
           $entityPattern
           $qualityPattern
