@@ -63,12 +63,12 @@ object Graph {
         pairs <- futurePairs
       } yield {
         val termsSequence = terms.map(_.toString).toSeq.sorted
-        val header = s"\t${termsSequence.mkString("\t")}"
+        val header = s",${termsSequence.mkString(",")}"
         val groupedByAncestor = pairs.groupBy(_._2)
         val valuesLines = groupedByAncestor.map { case (ancestor, ancPairs) =>
           val termsForAncestor = ancPairs.map(_._1).toSet
           val values = termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
-          s"$ancestor\t${values.mkString("\t")}"
+          s"$ancestor,${values.mkString(",")}"
         }
         s"$header\n${valuesLines.mkString("\n")}"
       }
