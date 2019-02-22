@@ -288,9 +288,18 @@ object Main extends HttpApp with App {
                   }
               } ~
               path("matrix") {
-                parameters('terms.as[Seq[IRI]]) { iris =>
-                  complete {
-                    Graph.ancestorMatrix(iris.toSet)
+                get {
+                  parameters('terms.as[Seq[IRI]]) { iris =>
+                    complete {
+                      Graph.ancestorMatrix(iris.toSet)
+                    }
+                  }
+                } ~
+                post {
+                  formFields('terms.as[Seq[IRI]]) { iris =>
+                    complete {
+                      Graph.ancestorMatrix(iris.toSet)
+                    }
                   }
                 }
               }
