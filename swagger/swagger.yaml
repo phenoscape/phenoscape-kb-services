@@ -700,6 +700,47 @@ paths:
           examples:
             application/json:
               value: TODO
+  /similarity/matrix:
+    get:
+      tags:
+      - Semantic similarity
+      summary: Get matrix of subsuming terms for a list of terms [IN DEVELOPMENT—SUBJECT TO CHANGE]
+      description: Get matrix of subsuming terms for a list of terms, such that clients can perform their own calculations such as Jaccard similarity.
+      produces:
+      - text/plain
+      parameters:
+      - name: terms
+        in: query
+        description: comma-separated term IRIs
+        required: true
+        type: string
+      responses:
+        200:
+          description: subsumer matrix
+          examples:
+            text/plain:
+              value: TODO
+    post:
+      tags:
+      - Semantic similarity
+      summary: Get matrix of subsuming terms for a list of terms [IN DEVELOPMENT—SUBJECT TO CHANGE]
+      description: Get matrix of subsuming terms for a list of terms, such that clients can perform their own calculations such as Jaccard similarity.
+      consumes:
+      - application/x-www-form-urlencoded
+      produces:
+      - text/plain
+      parameters:
+      - name: terms
+        in: formData
+        description: comma-separated term IRIs
+        required: true
+        type: string
+      responses:
+        200:
+          description: subsumer matrix
+          examples:
+            text/plain:
+              value: TODO
   /entity/search:
     get:
       tags:
