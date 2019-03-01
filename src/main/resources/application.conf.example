@@ -1,5 +1,5 @@
 akka {
-  loglevel = INFO
+  loglevel = DEBUG
   loggers = ["akka.event.slf4j.Slf4jLogger"]
   logging-filter = "akka.event.slf4j.Slf4jLoggingFilter"
 }
@@ -8,20 +8,32 @@ akka.http {
 	server {
 		request-timeout = infinite
 		idle-timeout = infinite
+		parsing {
+			max-uri-length = 8k
+		}
 	}
 	client {
 		request-timeout = infinite
-        idle-timeout = infinite
+		idle-timeout = infinite
 		response-chunk-aggregation-limit = 500m
 		parsing.max-content-length = 500m
 	}
     host-connector {
         max-connections = 100
     }
+    host-connection-pool {
+                     idle-timeout = 30 min
+                     client.idle-timeout = 30 min
+                     max-connections = 100
+                     max-open-requests = 32768
+                     }
 }
 
+
+
 kb-services {
+  host = localhost
 	port = 8082
-	kb.endpoint = "http://kb-dev.phenoscape.org/bigsparql"
+	kb.endpoint = "https://stars-app.renci.org/phenoscape/sparql"
 	owlery.endpoint = "http://kb.phenoscape.org/owlery/kbs/phenoscape"
 }
