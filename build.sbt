@@ -6,8 +6,6 @@ name          := "phenoscape-kb-services"
 
 version       := "0.5"
 
-packageArchetype.java_server
-
 packageDescription in Debian := "Phenoscape KB services"
 
 maintainer in Debian := "James Balhoff"
