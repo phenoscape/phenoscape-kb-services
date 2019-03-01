@@ -1,5 +1,4 @@
-import com.typesafe.sbt.SbtNativePackager._
-import NativePackagerKeys._
+enablePlugins(JavaServerAppPackaging)
 
 organization  := "org.phenoscape"
 
