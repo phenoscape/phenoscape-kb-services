@@ -479,9 +479,9 @@ final case class Classification(term: MinimalTerm, superclasses: Set[MinimalTerm
   def toJSON: JsObject = JsObject(
     term.toJSON.fields ++
       Map(
-        "subClassOf" -> superclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson,
-        "superClassOf" -> subclasses.toSeq.sortBy(_.label).map(_.toJSON).toJson,
-        "equivalentTo" -> equivalents.toSeq.sortBy(_.label).map(_.toJSON).toJson))
+        "subClassOf" -> superclasses.toSeq.sortBy(_.label.toLowerCase).map(_.toJSON).toJson,
+        "superClassOf" -> subclasses.toSeq.sortBy(_.label.toLowerCase).map(_.toJSON).toJson,
+        "equivalentTo" -> equivalents.toSeq.sortBy(_.label.toLowerCase).map(_.toJSON).toJson))
 
 }
 
