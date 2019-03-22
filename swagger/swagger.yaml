@@ -668,7 +668,7 @@ paths:
       parameters:
       - name: iris
         in: query
-        description: JSON array of term IRIs
+        description: JSON array of term IRIs, e.g. ["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]
         required: true
         type: string
         format: JSON
@@ -677,7 +677,20 @@ paths:
           description: similarity scores
           examples:
             application/json:
-              value: TODO
+              value:
+                results:
+                - terms:
+                  - http://purl.obolibrary.org/obo/UBERON_0000151
+                  - http://purl.obolibrary.org/obo/UBERON_0000152
+                  score: 0.8717948717948718
+                - terms:
+                  - http://purl.obolibrary.org/obo/UBERON_0000151
+                  - http://purl.obolibrary.org/obo/UBERON_0003097
+                  score: 0.37610619469026546
+                - terms:
+                  - http://purl.obolibrary.org/obo/UBERON_0000152
+                  - http://purl.obolibrary.org/obo/UBERON_0003097
+                  score: 0.3695652173913043
     post:
       tags:
       - Semantic similarity
@@ -690,7 +703,7 @@ paths:
       parameters:
       - name: iris
         in: formData
-        description: JSON array of term IRIs
+        description: JSON array of term IRIs, e.g. ["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]
         required: true
         type: string
         format: JSON
@@ -699,7 +712,20 @@ paths:
           description: similarity scores
           examples:
             application/json:
-              value: TODO
+              value:
+                results:
+                - terms:
+                  - http://purl.obolibrary.org/obo/UBERON_0000151
+                  - http://purl.obolibrary.org/obo/UBERON_0000152
+                  score: 0.8717948717948718
+                - terms:
+                  - http://purl.obolibrary.org/obo/UBERON_0000151
+                  - http://purl.obolibrary.org/obo/UBERON_0003097
+                  score: 0.37610619469026546
+                - terms:
+                  - http://purl.obolibrary.org/obo/UBERON_0000152
+                  - http://purl.obolibrary.org/obo/UBERON_0003097
+                  score: 0.3695652173913043
   /similarity/matrix:
     get:
       tags:
