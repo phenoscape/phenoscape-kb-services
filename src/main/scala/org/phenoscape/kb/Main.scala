@@ -51,7 +51,7 @@ object Main extends HttpApp with App {
 
   implicit val IRIUnmarshaller: Unmarshaller[String, IRI] = Unmarshaller.strict(IRI.create)
 
-  implicit val IRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] = Unmarshaller.strict(_.split(",", -1).map(IRI.create))
+  implicit val IRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] = Unmarshaller.strict(_.split(",", -1).map(IRI.create)) //FIXME standardize services to use the JSON array unmarshaller, currently Seq[String]
 
   implicit val OWLClassUnmarshaller: Unmarshaller[String, OWLClass] = Unmarshaller.strict(text => factory.getOWLClass(IRI.create(text)))
 
@@ -289,16 +289,18 @@ object Main extends HttpApp with App {
               } ~
               path("matrix") {
                 get {
-                  parameters('terms.as[Seq[IRI]]) { iris =>
+                  parameters('terms.as[Seq[String]]) { iriStrings =>
                     complete {
-                      Graph.ancestorMatrix(iris.toSet)
+                      val iris = iriStrings.map(IRI.create).toSet
+                      Graph.ancestorMatrix(iris)
                     }
                   }
                 } ~
                 post {
-                  formFields('terms.as[Seq[IRI]]) { iris =>
+                  formFields('terms.as[Seq[String]]) { iriStrings =>
                     complete {
-                      Graph.ancestorMatrix(iris.toSet)
+                      val iris = iriStrings.map(IRI.create).toSet
+                      Graph.ancestorMatrix(iris)
                     }
                   }
                 }
