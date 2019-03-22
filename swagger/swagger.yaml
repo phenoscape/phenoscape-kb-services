@@ -737,7 +737,7 @@ paths:
       parameters:
       - name: terms
         in: query
-        description: comma-separated term IRIs, e.g. http://purl.obolibrary.org/obo/UBERON_0000151,http://purl.obolibrary.org/obo/UBERON_0000152,http://purl.obolibrary.org/obo/UBERON_0003097
+        description: JSON array of term IRIs, e.g. ["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]
         required: true
         type: string
       responses:
@@ -762,7 +762,7 @@ paths:
       parameters:
       - name: terms
         in: formData
-        description: comma-separated term IRIs, e.g. http://purl.obolibrary.org/obo/UBERON_0000151,http://purl.obolibrary.org/obo/UBERON_0000152,http://purl.obolibrary.org/obo/UBERON_0003097
+        description: JSON array of term IRIs, e.g. ["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]
         required: true
         type: string
       responses:
