@@ -403,6 +403,35 @@ paths:
       responses:
         200:
           description: NeXML-format evolutionary character matrix
+    post:
+      tags:
+      - OntoTrace
+      summary: OntoTrace
+      description: Generate matrix of inferred presence/absence associations for anatomical structures subsumed by the provided entity class expression, for any taxa within the provided taxon class expression. Returns a NeXML-format evolutionary character matrix.
+      consumes:
+      - application/x-www-form-urlencoded
+      produces:
+      - application/xml
+      parameters:
+      - name: taxon
+        in: formData
+        description: Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+        required: true
+        type: string
+      - name: entity
+        in: formData
+        description: Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+        required: true
+        type: string
+      - name: variable_only
+        in: formData
+        description: whether to restrict the matrix to characters with both 'present' and 'absent' values in the matrix
+        required: false
+        type: boolean
+        default: true
+      responses:
+        200:
+          description: NeXML-format evolutionary character matrix
   /similarity/query:
     get:
       tags:
