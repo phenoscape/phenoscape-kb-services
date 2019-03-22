@@ -198,13 +198,24 @@ object Main extends HttpApp with App {
               }
           } ~
           path("ontotrace") {
-            parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'variable_only.as[Boolean].?(true), 'parts.as[Boolean].?(false)) { (entity, taxon, variableOnly, includeParts) =>
-              respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> "ontotrace.xml"))) {
-                complete {
-                  PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon, variableOnly, includeParts)
+            get {
+              parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'variable_only.as[Boolean].?(true), 'parts.as[Boolean].?(false)) { (entity, taxon, variableOnly, includeParts) =>
+                respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> "ontotrace.xml"))) {
+                  complete {
+                    PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon, variableOnly, includeParts)
+                  }
                 }
               }
-            }
+            } ~
+              post {
+                formFields('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'variable_only.as[Boolean].?(true), 'parts.as[Boolean].?(false)) { (entity, taxon, variableOnly, includeParts) =>
+                  respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> "ontotrace.xml"))) {
+                    complete {
+                      PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon, variableOnly, includeParts)
+                    }
+                  }
+                }
+              }
           } ~
           pathPrefix("similarity") {
             path("query") {
@@ -296,14 +307,14 @@ object Main extends HttpApp with App {
                     }
                   }
                 } ~
-                post {
-                  formFields('terms.as[Seq[String]]) { iriStrings =>
-                    complete {
-                      val iris = iriStrings.map(IRI.create).toSet
-                      Graph.ancestorMatrix(iris)
+                  post {
+                    formFields('terms.as[Seq[String]]) { iriStrings =>
+                      complete {
+                        val iris = iriStrings.map(IRI.create).toSet
+                        Graph.ancestorMatrix(iris)
+                      }
                     }
                   }
-                }
               }
           } ~
           pathPrefix("characterstate") {
