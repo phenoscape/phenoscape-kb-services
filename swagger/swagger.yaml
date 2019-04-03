@@ -21,7 +21,6 @@ tags:
 - name: Genes
 - name: Studies
 schemes:
-- http
 - https
 paths:
   /kb/annotation_summary:
