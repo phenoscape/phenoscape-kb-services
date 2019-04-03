@@ -22,6 +22,7 @@ tags:
 - name: Studies
 schemes:
 - http
+- https
 paths:
   /kb/annotation_summary:
     get:
