@@ -265,7 +265,7 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("ic_disparity") {
-                parameters('iri.as[OWLClass], 'queryGraph.as[IRI], 'corpus_graph.as[IRI]) { (term, queryGraph, corpusGraph) =>
+                parameters('iri.as[OWLClass], 'query_graph.as[IRI], 'corpus_graph.as[IRI]) { (term, queryGraph, corpusGraph) =>
                   complete {
                     Similarity.icDisparity(term, queryGraph, corpusGraph).map(value => JsObject("value" -> value.toJson))
                   }
