@@ -1,23 +1,20 @@
 package org.phenoscape.kb.queries
 
-import scala.concurrent.Future
-import scala.language.postfixOps
-
 import org.phenoscape.kb.AnatomicalEntity
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
+import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.util.BlazegraphNamedSubquery
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.scowl._
-import org.phenoscape.sparql.SPARQLInterpolation._
-import org.phenoscape.sparql.SPARQLInterpolation.QueryText
+import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
 import org.semanticweb.owlapi.model.IRI
-
-import scalaz._
 import scalaz.Scalaz._
+import scalaz._
+
+import scala.concurrent.Future
+import scala.language.postfixOps
 
 object TaxaWithPhenotype {
 
@@ -32,7 +29,8 @@ object TaxaWithPhenotype {
       val unifiedQueries = BlazegraphNamedSubquery.unifyQueries(subqueries)
       val namedQueriesBlock = if (unifiedQueries.nonEmpty) unifiedQueries.map(_.namedQuery).reduce(_ |+| _) else sparql""
       val paging = if (limit > 0) sparql"LIMIT $limit OFFSET $offset" else sparql""
-      val query = if (countOnly) sparql"""
+      val query = if (countOnly)
+        sparql"""
       SELECT (COUNT(*) AS ?count)
       FROM $KBMainGraph
       FROM $KBClosureGraph
@@ -42,7 +40,8 @@ object TaxaWithPhenotype {
         $whereClause
       }
       """
-      else sparql"""
+      else
+        sparql"""
       SELECT DISTINCT ?taxon ?taxon_label
       FROM $KBMainGraph
       FROM $KBClosureGraph
@@ -111,7 +110,8 @@ object TaxaWithPhenotype {
 
   def phenotypeSubQueryFor(entity: Option[IRI], quality: Option[IRI], parts: Boolean): Set[BlazegraphNamedSubquery] = {
     val entityPattern = entity.map { e =>
-      if (parts) BlazegraphNamedSubquery(sparql"""
+      if (parts) BlazegraphNamedSubquery(
+        sparql"""
         SELECT DISTINCT ?phenotype WHERE {
           ?p $rdfsSubClassOf/$PhenotypeOfSome/$rdfsSubClassOf/$PartOfSome $e .
           GRAPH $KBMainGraph {
@@ -119,7 +119,8 @@ object TaxaWithPhenotype {
           }
         } 
         """)
-      else BlazegraphNamedSubquery(sparql"""
+      else BlazegraphNamedSubquery(
+        sparql"""
         SELECT DISTINCT ?phenotype WHERE {
           ?p $rdfsSubClassOf/$PhenotypeOfSome $e . 
           GRAPH $KBMainGraph {
@@ -128,7 +129,8 @@ object TaxaWithPhenotype {
         } 
         """)
     }
-    val qualityPattern = quality.map(q => BlazegraphNamedSubquery(sparql"""
+    val qualityPattern = quality.map(q => BlazegraphNamedSubquery(
+      sparql"""
         SELECT DISTINCT ?phenotype WHERE {
           ?p $rdfsSubClassOf/$HasPartSome $q . 
           GRAPH $KBMainGraph {
@@ -140,7 +142,7 @@ object TaxaWithPhenotype {
   }
 
   private def coreTaxonToPhenotype(inTaxa: Set[IRI], publicationOpt: Option[IRI], phenotypeQueries: Set[BlazegraphNamedSubquery]): QueryText = {
-    val taxonConstraints = (for { taxon <- inTaxa }
+    val taxonConstraints = (for {taxon <- inTaxa}
       yield sparql"?taxon $rdfsSubClassOf $taxon . ").fold(sparql"")(_ |+| _)
     val subQueryRefs = QueryText(phenotypeQueries.map(q => sparql"$q").map(_.text).mkString("\n"))
     val publicationVal = publicationOpt.map(pub => sparql"VALUES ?matrix {  $pub }").getOrElse(sparql"")

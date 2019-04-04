@@ -1,23 +1,19 @@
 package org.phenoscape.kb.queries
 
-import scala.concurrent.Future
-import scala.language.postfixOps
-
 import org.phenoscape.kb.AnatomicalEntity
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsLabel
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
+import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.util.BlazegraphNamedSubquery
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.scowl._
-import org.phenoscape.sparql.SPARQLInterpolation._
-import org.phenoscape.sparql.SPARQLInterpolation.QueryText
+import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
 import org.semanticweb.owlapi.model.IRI
-
-import scalaz._
 import scalaz.Scalaz._
+import scalaz._
+
+import scala.concurrent.Future
+import scala.language.postfixOps
 
 object TaxonAnnotations {
 
@@ -28,7 +24,8 @@ object TaxonAnnotations {
       val unifiedQueries = BlazegraphNamedSubquery.unifyQueries(subqueries)
       val namedQueriesBlock = if (unifiedQueries.nonEmpty) unifiedQueries.map(_.namedQuery).reduce(_ |+| _) else sparql""
       val paging = if (limit > 0) sparql"LIMIT $limit OFFSET $offset" else sparql""
-      val query = if (countOnly) sparql"""
+      val query = if (countOnly)
+        sparql"""
       SELECT (COUNT(*) AS ?count)
       FROM $KBMainGraph
       FROM $KBClosureGraph
@@ -38,7 +35,8 @@ object TaxonAnnotations {
         $whereClause
       }
       """
-      else sparql"""
+      else
+        sparql"""
       SELECT DISTINCT ?taxon ?taxon_label ?phenotype ?phenotype_label 
       FROM $KBMainGraph
       FROM $KBClosureGraph
@@ -107,7 +105,7 @@ object TaxonAnnotations {
   }
 
   private def coreTaxonToPhenotype(inTaxa: Set[IRI], publicationOpt: Option[IRI], phenotypeQueries: Set[BlazegraphNamedSubquery]): QueryText = {
-    val taxonConstraints = (for { taxon <- inTaxa }
+    val taxonConstraints = (for {taxon <- inTaxa}
       yield sparql"?taxon $rdfsSubClassOf $taxon . ").fold(sparql"")(_ |+| _)
     val subQueryRefs = QueryText(phenotypeQueries.map(q => sparql"$q").map(_.text).mkString("\n"))
     val publicationVal = publicationOpt.map(pub => sparql"VALUES ?matrix { $pub }").getOrElse(sparql"")

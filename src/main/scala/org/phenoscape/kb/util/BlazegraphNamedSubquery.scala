@@ -2,8 +2,7 @@ package org.phenoscape.kb.util
 
 import java.util.UUID
 
-import org.phenoscape.sparql.SPARQLInterpolation._
-import org.phenoscape.sparql.SPARQLInterpolation.QueryText
+import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
 
 final case class BlazegraphNamedSubquery(queryText: QueryText, ids: Set[String]) {
 
