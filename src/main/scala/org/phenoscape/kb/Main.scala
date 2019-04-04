@@ -650,10 +650,9 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("matrix") {
-                parameters('iri.as[IRI]) { (iri) =>
+                parameters('iri.as[IRI]) { iri =>
                   complete {
-                    val prettyPrinter = new scala.xml.PrettyPrinter(9999, 2)
-                    Study.queryMatrix(iri).map(prettyPrinter.format(_))
+                    Study.queryMatrix(iri)
                   }
                 }
               } ~

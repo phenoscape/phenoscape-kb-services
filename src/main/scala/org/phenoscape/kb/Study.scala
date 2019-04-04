@@ -2,11 +2,13 @@ package org.phenoscape.kb
 
 import java.util.UUID
 
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.MediaTypes
+
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import scala.language.implicitConversions
 import scala.xml.Elem
-
 import org.apache.jena.query.Query
 import org.apache.jena.query.QuerySolution
 import org.apache.jena.rdf.model.Model
@@ -24,7 +26,6 @@ import org.phenoscape.scowl._
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLEntity
-
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
@@ -162,7 +163,18 @@ object Study {
   //FIXME add to Vocab in phenoscape-owl-tools
   private val dcBibliographicCitation = factory.getOWLAnnotationProperty(IRI.create("http://rs.tdwg.org/dwc/terms/bibliographicCitation"))
 
-  def queryMatrix(study: IRI): Future[Elem] = {
+  final case class StudyMatrix(xml: Elem)
+
+  object StudyMatrix {
+
+    implicit val studyMatrixMarshaller: ToEntityMarshaller[StudyMatrix] = Marshaller.stringMarshaller(MediaTypes.`application/xml`).compose { matrix =>
+      val prettyPrinter = new scala.xml.PrettyPrinter(9999, 2)
+      prettyPrinter.format(matrix.xml)
+    }
+
+  }
+
+  def queryMatrix(study: IRI): Future[StudyMatrix] = {
     val pattern = Seq(
       t(study, rdfsLabel, 'study_label),
       t(study, dcBibliographicCitation, 'citation),
@@ -184,7 +196,7 @@ object Study {
     val query = construct(pattern: _*) from "http://kb.phenoscape.org/" where (
       bgp(pattern: _*))
     val modelFuture = App.executeSPARQLConstructQuery(query)
-    modelFuture.map(matrix(study, _))
+    modelFuture.map(matrix(study, _)).map(StudyMatrix(_))
   }
 
   def matrix(study: IRI, model: Model): Elem = { //FIXME add about=#
