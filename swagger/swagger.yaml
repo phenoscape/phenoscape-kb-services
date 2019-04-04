@@ -706,20 +706,19 @@ paths:
           description: similarity scores
           examples:
             application/json:
-              value:
-                results:
-                - terms:
-                  - http://purl.obolibrary.org/obo/UBERON_0000151
-                  - http://purl.obolibrary.org/obo/UBERON_0000152
-                  score: 0.8717948717948718
-                - terms:
-                  - http://purl.obolibrary.org/obo/UBERON_0000151
-                  - http://purl.obolibrary.org/obo/UBERON_0003097
-                  score: 0.37610619469026546
-                - terms:
-                  - http://purl.obolibrary.org/obo/UBERON_0000152
-                  - http://purl.obolibrary.org/obo/UBERON_0003097
-                  score: 0.3695652173913043
+              results:
+              - terms:
+                - http://purl.obolibrary.org/obo/UBERON_0000151
+                - http://purl.obolibrary.org/obo/UBERON_0000152
+                score: 0.8717948717948718
+              - terms:
+                - http://purl.obolibrary.org/obo/UBERON_0000151
+                - http://purl.obolibrary.org/obo/UBERON_0003097
+                score: 0.37610619469026546
+              - terms:
+                - http://purl.obolibrary.org/obo/UBERON_0000152
+                - http://purl.obolibrary.org/obo/UBERON_0003097
+                score: 0.3695652173913043
     post:
       tags:
       - Semantic similarity
@@ -741,20 +740,19 @@ paths:
           description: similarity scores
           examples:
             application/json:
-              value:
-                results:
-                - terms:
-                  - http://purl.obolibrary.org/obo/UBERON_0000151
-                  - http://purl.obolibrary.org/obo/UBERON_0000152
-                  score: 0.8717948717948718
-                - terms:
-                  - http://purl.obolibrary.org/obo/UBERON_0000151
-                  - http://purl.obolibrary.org/obo/UBERON_0003097
-                  score: 0.37610619469026546
-                - terms:
-                  - http://purl.obolibrary.org/obo/UBERON_0000152
-                  - http://purl.obolibrary.org/obo/UBERON_0003097
-                  score: 0.3695652173913043
+              results:
+              - terms:
+                - http://purl.obolibrary.org/obo/UBERON_0000151
+                - http://purl.obolibrary.org/obo/UBERON_0000152
+                score: 0.8717948717948718
+              - terms:
+                - http://purl.obolibrary.org/obo/UBERON_0000151
+                - http://purl.obolibrary.org/obo/UBERON_0003097
+                score: 0.37610619469026546
+              - terms:
+                - http://purl.obolibrary.org/obo/UBERON_0000152
+                - http://purl.obolibrary.org/obo/UBERON_0003097
+                score: 0.3695652173913043
   /similarity/matrix:
     get:
       tags:
