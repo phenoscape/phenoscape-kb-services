@@ -79,7 +79,7 @@ paths:
       parameters:
       - name: iri
         in: query
-        description: the term IRI, e.g. http://purl.obolibrary.org/obo/UBERON_0011618
+        description: the term IRI, e.g. `http://purl.obolibrary.org/obo/UBERON_0011618`
         required: true
         type: string
         format: IRI
@@ -102,7 +102,7 @@ paths:
         type: string
       - name: type
         in: query
-        description: the type of term to search for, e.g. http://www.w3.org/2002/07/owl#Class
+        description: the type of term to search for, e.g. `http://www.w3.org/2002/07/owl#Class`
         required: false
         type: string
         format: IRI
@@ -115,7 +115,7 @@ paths:
         format: IRI
       responses:
         200:
-          description: Term search results; values returned for 'matchType' may be 'exact', 'partial', or 'broad'.
+          description: Term search results; values returned for `matchType` may be `exact`, `partial`, or `broad`.
           schema:
             type: object
             properties:
@@ -139,7 +139,7 @@ paths:
         type: string
       - name: definedBy
         in: query
-        description: the ontology identifier IRI in which the search terms are defined, e.g. http://purl.obolibrary.org/obo/uberon.owl
+        description: the ontology identifier IRI in which the search terms are defined, e.g. `http://purl.obolibrary.org/obo/uberon.owl`
         required: false
         type: string
         format: IRI
@@ -150,7 +150,7 @@ paths:
         type: integer
       responses:
         200:
-          description: Term search results; values returned for 'matchType' may be 'exact', 'partial', or 'broad'.
+          description: Term search results; values returned for `matchType` may be `exact`, `partial`, or `broad`.
           schema:
             type: object
             properties:
@@ -367,7 +367,7 @@ paths:
       parameters:
       - name: expression
         in: query
-        description: class expression in Manchester syntax, e.g. "'part of' some head"
+        description: class expression in Manchester syntax, e.g. `'part of' some head`
         required: true
         type: string
       responses:
@@ -697,7 +697,7 @@ paths:
       parameters:
       - name: iris
         in: query
-        description: JSON array of term IRIs, e.g. ["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]
+        description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
         required: true
         type: string
         format: JSON
@@ -731,7 +731,7 @@ paths:
       parameters:
       - name: iris
         in: formData
-        description: JSON array of term IRIs, e.g. ["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]
+        description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
         required: true
         type: string
         format: JSON
@@ -764,7 +764,7 @@ paths:
       parameters:
       - name: terms
         in: query
-        description: JSON array of term IRIs, e.g. ["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]
+        description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
         required: true
         type: string
       responses:
@@ -792,7 +792,7 @@ paths:
       parameters:
       - name: terms
         in: formData
-        description: JSON array of term IRIs, e.g. ["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]
+        description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
         required: true
         type: string
       responses:
@@ -1165,7 +1165,7 @@ paths:
       parameters:
       - name: entity
         in: query
-        description: Anatomical term IRI, e.g. http://purl.obolibrary.org/obo/UBERON_0011618
+        description: Anatomical term IRI, e.g. `http://purl.obolibrary.org/obo/UBERON_0011618`
         required: false
         type: string
         format: IRI
