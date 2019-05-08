@@ -18,6 +18,7 @@ import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.owlet.SPARQLComposer
 import org.semanticweb.owlapi.model.{IRI, OWLClass, OWLNamedIndividual}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
@@ -232,6 +233,14 @@ object Similarity {
         unionCount = (irisToSubsumers(left) ++ irisToSubsumers(right)).size
       } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
     }
+
+  def presenceAbsenceDependencyMatrix(iris: Set[IRI]):Future[Set[Set[IRI, IRI, Boolean]]] = Future(for {
+      x <- iris
+      y <- iris
+    } yield Set(x, y, isSubclassOf(x, y) && isSubclassOf(y, x)))
+
+
+  def isSubclassOf(x: IRI, y: IRI): Boolean = ??? //SPARQLComposer.subClassOf()
 
   private def classSubsumers(iri: IRI): Future[Set[IRI]] = {
     val query: QueryText =
