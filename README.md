@@ -7,7 +7,7 @@ Web services application for the Phenoscape RDF knowledgebase.
 
 Configuration options are set in an `application.conf` file on the classpath. Some settings are specific to 
 phenoscape-kb-services, while some are [akka-http settings](https://doc.akka.io/docs/akka-http/current/configuration.html#configuration). 
-You can start by coping `src/main/resources/application.conf.example` to `src/main/resources/application.conf`.
+You can start by copying `src/main/resources/application.conf.example` to `src/main/resources/application.conf`.
 
 ### Run
 
