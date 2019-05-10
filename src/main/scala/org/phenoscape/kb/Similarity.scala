@@ -39,6 +39,7 @@ object Similarity {
   val GenesCorpus = IRI.create("http://kb.phenoscape.org/sim/genes")
   private val has_phenotypic_profile = ObjectProperty(Vocab.has_phenotypic_profile)
   private val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
+  private val implies_presence_of_some = ObjectProperty("http://purl.org/phenoscape/vocab.owl#implies_presence_of")
 
   val availableCorpora = Seq(TaxaCorpus, GenesCorpus)
 
@@ -247,6 +248,8 @@ object Similarity {
               ?entities $implies_presence_of_some $iri .
             }
         """
+      //Need to add implies_presence_of_some to vocab.scala?
+
       val dep = App.executeSPARQLQueryString(query_dep.text, qs => IRI.create(qs.getResource("entity").getURI)).map(_.toSet)
     }.toSet
 
