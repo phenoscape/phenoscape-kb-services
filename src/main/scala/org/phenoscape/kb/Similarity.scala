@@ -234,10 +234,27 @@ object Similarity {
       } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
     }
 
-  def presenceAbsenceDependencyMatrix(iris: Set[IRI]):Future[Set[Set[IRI, IRI, Boolean]]] = Future(for {
-      x <- iris
-      y <- iris
-    } yield Set(x, y, isSubclassOf(x, y) && isSubclassOf(y, x)))
+  def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[Set[Set[IRI, IRI, Boolean]]] = {
+    //Generate set of dependencies for all iris
+    val dependencies_set = for {
+      iri <- iris
+    } yield {
+      val query_dep: QueryText =
+        sparql"""
+            SELECT DISTINCT ?entities
+            FROM $KBClosureGraph
+            WHERE {
+              ?entities $implies_presence_of_some $iri .
+            }
+        """
+      val dep = App.executeSPARQLQueryString(query_dep.text, qs => IRI.create(qs.getResource("entity").getURI)).map(_.toSet)
+    }.toSet
+
+    for {
+      (x, x_index) <- iris.zipWithIndex
+      (y, y_index) <- iris.zipWithIndex
+    } yield (x, y, dependencies_set(x_index) subsetOf dependencies_set(y_index))
+  }
 
 
   def isSubclassOf(x: IRI, y: IRI): Boolean = ??? //SPARQLComposer.subClassOf()
