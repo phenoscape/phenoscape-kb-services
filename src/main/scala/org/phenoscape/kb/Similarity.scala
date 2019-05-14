@@ -12,7 +12,7 @@ import org.apache.jena.sparql.syntax._
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-import org.phenoscape.owl.Vocab
+import org.phenoscape.owl.{NamedRestrictionGenerator, Vocab}
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
@@ -39,7 +39,7 @@ object Similarity {
   val GenesCorpus = IRI.create("http://kb.phenoscape.org/sim/genes")
   private val has_phenotypic_profile = ObjectProperty(Vocab.has_phenotypic_profile)
   private val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
-  private val implies_presence_of_some = ObjectProperty("http://purl.org/phenoscape/vocab.owl#implies_presence_of")
+  private val implies_presence_of_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.IMPLIES_PRESENCE_OF.getIRI)
 
   val availableCorpora = Seq(TaxaCorpus, GenesCorpus)
 
@@ -235,32 +235,29 @@ object Similarity {
       } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
     }
 
-  def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[Set[Set[IRI, IRI, Boolean]]] = {
-    //Generate set of dependencies for all iris
-    val dependencies_set = for {
-      iri <- iris
-    } yield {
-      val query_dep: QueryText =
-        sparql"""
-            SELECT DISTINCT ?entities
-            FROM $KBClosureGraph
-            WHERE {
-              ?entities $implies_presence_of_some $iri .
-            }
-        """
-      //Need to add implies_presence_of_some to vocab.scala?
+  def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[Set[(IRI, IRI, Boolean)]] = {
+    val dependencies = for {
+     x <- iris
+     y <- iris
+    } yield (x, y, xImpliesY(x, y))
 
-      val dep = App.executeSPARQLQueryString(query_dep.text, qs => IRI.create(qs.getResource("entity").getURI)).map(_.toSet)
-    }.toSet
-
-    for {
-      (x, x_index) <- iris.zipWithIndex
-      (y, y_index) <- iris.zipWithIndex
-    } yield (x, y, dependencies_set(x_index) subsetOf dependencies_set(y_index))
+    Future.sequence(dependencies)
   }
 
+  def xImpliesY(x: IRI, y: IRI): Future[Boolean] = {
+    App.executeSPARQLQueryString(queryImpliesPresenceOf(x, y).toString, qs => qs)
+  }
 
-  def isSubclassOf(x: IRI, y: IRI): Boolean = ??? //SPARQLComposer.subClassOf()
+  private def queryImpliesPresenceOf(x: IRI, y: IRI): QueryText =
+      sparql"""
+            ASK
+            FROM $KBClosureGraph
+            WHERE {
+              ?x_presence $implies_presence_of_some $x .
+              ?y_presence $implies_presence_of_some $y .
+              ?x_presence $rdfsSubClassOf ?y_presence
+            }
+        """
 
   private def classSubsumers(iri: IRI): Future[Set[IRI]] = {
     val query: QueryText =
