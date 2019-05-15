@@ -3,7 +3,7 @@ package org.phenoscape.kb
 import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.graph.{NodeFactory, Node_Variable}
-import org.apache.jena.query.{Query, QuerySolution}
+import org.apache.jena.query.{Query, QueryFactory, QuerySolution}
 import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.expr.{E_NotOneOf, ExprList, ExprVar}
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
@@ -245,7 +245,7 @@ object Similarity {
   }
 
   def xImpliesY(x: IRI, y: IRI): Future[Boolean] = {
-    App.executeSPARQLQueryString(queryImpliesPresenceOf(x, y).toString, qs => qs)
+    App.executeSPARQLAskQuery(QueryFactory.create(queryImpliesPresenceOf(x, y).toString))
   }
 
   private def queryImpliesPresenceOf(x: IRI, y: IRI): QueryText =
