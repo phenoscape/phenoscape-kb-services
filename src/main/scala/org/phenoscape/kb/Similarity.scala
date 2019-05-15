@@ -235,11 +235,11 @@ object Similarity {
       } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
     }
 
-  def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[Set[(IRI, IRI, Boolean)]] = {
+  def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[Set[Map[(IRI, IRI), Boolean]]] = {
     val dependencies = for {
      x <- iris
      y <- iris
-    } yield (x, y, xImpliesY(x, y))
+    } yield Future.sequence(Map((x, y) -> xImpliesY(x, y)).map{case (a, b) => b.map(bb => (a, bb))}).map(_.toMap)
 
     Future.sequence(dependencies)
   }
