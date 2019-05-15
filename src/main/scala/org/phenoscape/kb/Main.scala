@@ -51,7 +51,7 @@ object Main extends HttpApp with App {
 
   implicit val IRIUnmarshaller: Unmarshaller[String, IRI] = Unmarshaller.strict(IRI.create)
 
-  implicit val IRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] = Unmarshaller.strict(_.split(",", -1).map(IRI.create))
+  implicit val IRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] = Unmarshaller.strict(_.split(",", -1).map(IRI.create)) //FIXME standardize services to use the JSON array unmarshaller, currently Seq[String]
 
   implicit val OWLClassUnmarshaller: Unmarshaller[String, OWLClass] = Unmarshaller.strict(text => factory.getOWLClass(IRI.create(text)))
 
@@ -198,13 +198,24 @@ object Main extends HttpApp with App {
               }
           } ~
           path("ontotrace") {
-            parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'variable_only.as[Boolean].?(true), 'parts.as[Boolean].?(false)) { (entity, taxon, variableOnly, includeParts) =>
-              respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> "ontotrace.xml"))) {
-                complete {
-                  PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon, variableOnly, includeParts)
+            get {
+              parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'variable_only.as[Boolean].?(true), 'parts.as[Boolean].?(false)) { (entity, taxon, variableOnly, includeParts) =>
+                respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> "ontotrace.xml"))) {
+                  complete {
+                    PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon, variableOnly, includeParts)
+                  }
                 }
               }
-            }
+            } ~
+              post {
+                formFields('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'variable_only.as[Boolean].?(true), 'parts.as[Boolean].?(false)) { (entity, taxon, variableOnly, includeParts) =>
+                  respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> "ontotrace.xml"))) {
+                    complete {
+                      PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon, variableOnly, includeParts)
+                    }
+                  }
+                }
+              }
           } ~
           pathPrefix("similarity") {
             path("query") {
@@ -254,7 +265,7 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("ic_disparity") {
-                parameters('iri.as[OWLClass], 'queryGraph.as[IRI], 'corpus_graph.as[IRI]) { (term, queryGraph, corpusGraph) =>
+                parameters('iri.as[OWLClass], 'query_graph.as[IRI], 'corpus_graph.as[IRI]) { (term, queryGraph, corpusGraph) =>
                   complete {
                     Similarity.icDisparity(term, queryGraph, corpusGraph).map(value => JsObject("value" -> value.toJson))
                   }
@@ -289,19 +300,21 @@ object Main extends HttpApp with App {
               } ~
               path("matrix") {
                 get {
-                  parameters('terms.as[Seq[IRI]]) { iris =>
+                  parameters('terms.as[Seq[String]]) { iriStrings =>
                     complete {
-                      Graph.ancestorMatrix(iris.toSet)
+                      val iris = iriStrings.map(IRI.create).toSet
+                      Graph.ancestorMatrix(iris)
                     }
                   }
                 } ~
-                post {
-                  formFields('terms.as[Seq[IRI]]) { iris =>
-                    complete {
-                      Graph.ancestorMatrix(iris.toSet)
+                  post {
+                    formFields('terms.as[Seq[String]]) { iriStrings =>
+                      complete {
+                        val iris = iriStrings.map(IRI.create).toSet
+                        Graph.ancestorMatrix(iris)
+                      }
                     }
                   }
-                }
               }
           } ~
           pathPrefix("characterstate") {
@@ -637,10 +650,9 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("matrix") {
-                parameters('iri.as[IRI]) { (iri) =>
+                parameters('iri.as[IRI]) { iri =>
                   complete {
-                    val prettyPrinter = new scala.xml.PrettyPrinter(9999, 2)
-                    Study.queryMatrix(iri).map(prettyPrinter.format(_))
+                    Study.queryMatrix(iri)
                   }
                 }
               } ~

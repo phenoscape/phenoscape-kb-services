@@ -1,23 +1,20 @@
 package org.phenoscape.kb.queries
 
-import scala.concurrent.Future
-import scala.language.postfixOps
-
 import org.phenoscape.kb.AnatomicalEntity
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
+import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.util.BlazegraphNamedSubquery
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.scowl._
-import org.phenoscape.sparql.SPARQLInterpolation._
-import org.phenoscape.sparql.SPARQLInterpolation.QueryText
+import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
 import org.semanticweb.owlapi.model.IRI
-
-import scalaz._
 import scalaz.Scalaz._
+import scalaz._
+
+import scala.concurrent.Future
+import scala.language.postfixOps
 
 object GeneAffectingPhenotype {
 

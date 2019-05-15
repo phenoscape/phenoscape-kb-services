@@ -13,6 +13,7 @@ import com.typesafe.config.ConfigFactory
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.query._
 import org.apache.jena.rdf.model.{Model, ModelFactory}
+import org.apache.jena.sparql.resultset.XMLInput
 import org.apache.jena.sparql.syntax.ElementService
 import org.phenoscape.kb.Main.system
 import org.phenoscape.kb.Main.system.dispatcher
@@ -61,6 +62,8 @@ object App {
 
   def executeSPARQLConstructQuery(query: Query): Future[Model] = sparqlConstructQuery(query)
 
+  def executeSPARQLAskQuery(query: Query): Future[Boolean] = sparqlAskQuery(query)
+
   def resultSetToTSV(result: ResultSet): String = {
     val outStream = new ByteArrayOutputStream()
     ResultSetFormatter.outputAsTSV(outStream, result)
@@ -78,6 +81,11 @@ object App {
   private implicit val SPARQLResultsXMLUnmarshaller = Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/sparql-results+xml`).map { data =>
     // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
     ResultSetFactory.fromXML(new String(data, StandardCharsets.UTF_8))
+  }
+
+  private implicit val SPARQLResultsBooleanUnmarshaller = Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/sparql-results+xml`).map { data =>
+    // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
+    XMLInput.booleanFromXML(new String(data, StandardCharsets.UTF_8))
   }
 
   private implicit val RDFXMLUnmarshaller = Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/rdf+xml`).map { data =>
@@ -124,5 +132,15 @@ object App {
       entity = requestEntity))
     model <- Unmarshal(response.entity).to[Model]
   } yield model
+
+  def sparqlAskQuery(query: Query): Future[Boolean] = for {
+    requestEntity <- Marshal(query).to[RequestEntity]
+    response <- Http().singleRequest(HttpRequest(
+      method = HttpMethods.POST,
+      headers = List(headers.Accept(`application/sparql-results+xml`)),
+      uri = KBEndpoint,
+      entity = requestEntity))
+    result <- Unmarshal(response.entity).to[Boolean]
+  } yield result
 
 }

@@ -49,7 +49,7 @@ object SPARQLEntityChecker extends OWLEntityChecker {
   private def buildQuery(label: String, entityType: IRI): String = {
     val literalType = NodeFactory.createURI(XSDDatatype.XSDstring.getURI)
     sparql"""
-        SELECT DISTINCT ?iri FROM $KBMainGraph 
+        SELECT DISTINCT ?iri FROM $KBMainGraph
         WHERE {
           ?iri ${RDFS.label} $label^^$literalType .
           ?iri ${RDF.`type`} $entityType .

@@ -177,7 +177,7 @@ object Gene {
       labelledPhenotypes <- Future.sequence(phenotypesWithSources.map {
         case (phenotype, sources) => Term.computedLabel(phenotype).map(SourcedMinimalTerm(_, sources))
       })
-    } yield labelledPhenotypes.toSeq.sortBy(_.term.label)
+    } yield labelledPhenotypes.toSeq.sortBy(_.term.label.toLowerCase)
   }
 
   private val hasAnnotation = ResourceFactory.createProperty("http://example.org/hasAnnotation")
@@ -213,7 +213,7 @@ object Gene {
       labelledEntities <- Future.sequence(entitiesWithSources.map {
         case (entity, sources) => Term.computedLabel(entity).map(SourcedMinimalTerm(_, sources))
       })
-    } yield labelledEntities.toSeq.sortBy(_.term.label)
+    } yield labelledEntities.toSeq.sortBy(_.term.label.toLowerCase)
   }
 
   case class Phenotype(iri: IRI)
