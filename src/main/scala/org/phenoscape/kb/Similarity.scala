@@ -252,6 +252,7 @@ object Similarity {
       sparql"""
             ASK
             FROM $KBClosureGraph
+            FROM $KBMainGraph
             WHERE {
               ?x_presence $implies_presence_of_some $x .
               ?y_presence $implies_presence_of_some $y .
