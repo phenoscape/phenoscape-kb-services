@@ -444,7 +444,7 @@ paths:
       parameters:
       - name: iri
         in: query
-        description: Gene IRI
+        description: query term IRI (gene or taxon)
         required: true
         type: string
         format: IRI
