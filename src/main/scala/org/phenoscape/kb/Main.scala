@@ -315,7 +315,17 @@ object Main extends HttpApp with App {
                       }
                     }
                   }
+              } ~
+            path("dependency") { //FIXME just for testing
+              get {
+                parameters('terms.as[Seq[String]]) { iriStrings =>
+                  complete {
+                    val iris = iriStrings.map(IRI.create).toSet
+                    Similarity.presenceAbsenceDependencyMatrix(iris).map(_.toString)
+                  }
+                }
               }
+            }
           } ~
           pathPrefix("characterstate") {
             path("search") { //undocumented and currently unused

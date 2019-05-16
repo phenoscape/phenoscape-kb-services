@@ -235,21 +235,21 @@ object Similarity {
       } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
     }
 
-  def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[Set[Map[(IRI, IRI), Boolean]]] = {
+  //TODO change to Future[Map[IRI, Map[IRI, Boolean]]]
+  def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[Map[(IRI, IRI), Boolean]] = {
     val dependencies = for {
-     x <- iris
-     y <- iris
-    } yield Future.sequence(Map((x, y) -> xImpliesY(x, y)).map{case (a, b) => b.map(bb => (a, bb))}).map(_.toMap)
-
-    Future.sequence(dependencies)
+      x <- iris
+      y <- iris
+    } yield if (x == y) Future.successful((x, y) -> true) else presenceImpliesPresenceOf(x, y).map((x, y) -> _)
+    Future.sequence(dependencies).map(_.toMap)
   }
 
-  def xImpliesY(x: IRI, y: IRI): Future[Boolean] = {
-    App.executeSPARQLAskQuery(QueryFactory.create(queryImpliesPresenceOf(x, y).toString))
+  def presenceImpliesPresenceOf(x: IRI, y: IRI): Future[Boolean] = {
+    App.executeSPARQLAskQuery(QueryFactory.create(queryImpliesPresenceOf(x, y).text))
   }
 
   private def queryImpliesPresenceOf(x: IRI, y: IRI): QueryText =
-      sparql"""
+    sparql"""
             ASK
             FROM $KBClosureGraph
             FROM $KBMainGraph
