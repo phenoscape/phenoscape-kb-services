@@ -769,7 +769,7 @@ paths:
         type: string
       responses:
         200:
-          description: subsumer matrix
+          description: 'Subsumer matrix: column headers are input terms; each row is a subsumer class, with 1 if the column header is  subsumed by the row term, and 1 if not.'
           examples:
             text/plain: |
               ,http://purl.obolibrary.org/obo/UBERON_0000151,http://purl.obolibrary.org/obo/UBERON_0000152,http://purl.obolibrary.org/obo/UBERON_0003097
@@ -797,7 +797,7 @@ paths:
         type: string
       responses:
         200:
-          description: subsumer matrix
+          description: 'Subsumer matrix: column headers are input terms; each row is a subsumer class, with 1 if the column header is  subsumed by the row term, and 1 if not.'
           examples:
             text/plain: |
               ,http://purl.obolibrary.org/obo/UBERON_0000151,http://purl.obolibrary.org/obo/UBERON_0000152,http://purl.obolibrary.org/obo/UBERON_0003097
