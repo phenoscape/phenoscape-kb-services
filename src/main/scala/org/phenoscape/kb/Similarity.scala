@@ -246,14 +246,6 @@ object Similarity {
   }
 
 
-  def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[Map[(IRI, IRI), Boolean]] = {
-    val dependencies = for {
-      x <- iris
-      y <- iris
-    } yield if (x == y) Future.successful((x, y) -> true) else presenceImpliesPresenceOf(x, y).map((x, y) -> _)
-    Future.sequence(dependencies).map(_.toMap)
-  }
-
 
   def presenceImpliesPresenceOf(x: IRI, y: IRI): Future[Boolean] = {
     App.executeSPARQLAskQuery(QueryFactory.create(queryImpliesPresenceOf(x, y).text))
