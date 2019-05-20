@@ -237,10 +237,15 @@ object Similarity {
       } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
     }
 
-  def print_presenceAbsenceDependecyMatrix(iris: Set[IRI]) = {
-    val dependencyMap_future = presenceAbsenceDependencyMatrix(iris)
+  def print_presenceAbsenceDependecyMatrix(dependencyMap: Map[IRI, Map[IRI, Boolean]]) = {
+    val sortedKeys = dependencyMap.keys.toList.sortBy(_.toString)
 
-    dependencyMap_future.map(_.map{ case (key, value) => value.keys.mkString("", " ,", "\n") + key + value.values.mkString(" [",", ", "] \n") })
+    sortedKeys.mkString("[",", ","]") //print column headers
+
+    for(x <- sortedKeys) yield {
+      print("\n" + x)
+      for(y <- sortedKeys) yield print(dependencyMap.get(x).get(y) + " ,")
+    }
   }
 
   def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[Map[IRI, Map[IRI, Boolean]]] = {
@@ -250,7 +255,7 @@ object Similarity {
     } yield if(x == y) Future.successful(x -> (y -> true)) else presenceImpliesPresenceOf(x, y).map(e => x -> (y -> e))
 
     //Convert from Set(x, (y, flag)) -> Map[x -> sorted Map[y -> flag]]
-    Future.sequence(dependencyTuples).map(_.groupBy(_._1).map{ case (key, value) => (key, value.map{ case (a, b) => b})}.map{ case (key, value) => (key, ListMap(value.toSeq.sortBy(_._1): _*))})
+    Future.sequence(dependencyTuples).map(_.groupBy(_._1).map{ case (key, value) => (key, value.map{ case (a, b) => b})}.map{ case (key, value) => (key, value.toMap)})
   }
 
 
