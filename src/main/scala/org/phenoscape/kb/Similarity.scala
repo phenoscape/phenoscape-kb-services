@@ -24,8 +24,10 @@ import spray.json.DefaultJsonProtocol._
 import spray.json._
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.collection.immutable.ListMap
 
 object Similarity {
 
@@ -235,14 +237,20 @@ object Similarity {
       } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
     }
 
+  def print_presenceAbsenceDependecyMatrix(iris: Set[IRI]) = {
+    val dependencyMap_future = presenceAbsenceDependencyMatrix(iris)
+
+    dependencyMap_future.map(_.map{ case (key, value) => value.keys.mkString("", " ,", "\n") + key + value.values.mkString(" [",", ", "] \n") })
+  }
+
   def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[Map[IRI, Map[IRI, Boolean]]] = {
-    val test = for {
+    val dependencyTuples = for {
       x <- iris
       y <- iris
     } yield if(x == y) Future.successful(x -> (y -> true)) else presenceImpliesPresenceOf(x, y).map(e => x -> (y -> e))
 
-    //Convert from Set(x, (y, flag)) -> Map[x -> Map[y -> flag]]
-    Future.sequence(test).map(_.groupBy(_._1).map{ case (key, value) => (key, value.map{case (a, b) => b})}.map{case (key, value) => (key, value.toMap)})
+    //Convert from Set(x, (y, flag)) -> Map[x -> sorted Map[y -> flag]]
+    Future.sequence(dependencyTuples).map(_.groupBy(_._1).map{ case (key, value) => (key, value.map{ case (a, b) => b})}.map{ case (key, value) => (key, ListMap(value.toSeq.sortBy(_._1): _*))})
   }
 
 
