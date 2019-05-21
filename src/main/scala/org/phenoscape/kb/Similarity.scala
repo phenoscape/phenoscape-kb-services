@@ -241,27 +241,30 @@ object Similarity {
   def matrixRendererFromMapOfMaps(mapOfMaps: Map[Any, Map[Any, Boolean]]) = {
     val sortedKeys = mapOfMaps.keys.toList.sortBy(_.toString)
 
-    sortedKeys.mkString("[",", ","]") //print column headers
+    sortedKeys.mkString("[", ", ", "]") //print column headers
 
-    for(x <- sortedKeys) yield {
+    for (x <- sortedKeys) yield {
       print("\n" + x + ", ")
-      for(y <- sortedKeys) yield mapOfMaps.get(x).get(y) match {
-        case true => ", " + "1"
+      for (y <- sortedKeys) yield mapOfMaps.get(x).get(y) match {
+        case true  => ", " + "1"
         case false => ", " + "0"
       }
     }
   }
 
   def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[Map[IRI, Map[IRI, Boolean]]] = {
+    import org.phenoscape.kb.util.Util.TraversableOps
+    import org.phenoscape.kb.util.Util.MapOps
     val dependencyTuples = for {
       x <- iris
       y <- iris
-    } yield if(x == y) Future.successful(x -> (y -> true)) else presenceImpliesPresenceOf(x, y).map(e => x -> (y -> e))
+    } yield if (x == y) Future.successful(x -> (y -> true)) else presenceImpliesPresenceOf(x, y).map(e => x -> (y -> e))
 
     //Convert from Set(x, (y, flag)) -> Map[x -> sorted Map[y -> flag]]
-    Future.sequence(dependencyTuples).map(_.groupBy(_._1).map{ case (key, value) => (key, value.map{ case (a, b) => b})}.map{ case (key, value) => (key, value.toMap)})
+    Future.sequence(dependencyTuples).map { deps =>
+      deps.groupMap(_._1)(_._2).mapVals(_.toMap)
+    }
   }
-
 
 
   def presenceImpliesPresenceOf(x: IRI, y: IRI): Future[Boolean] = {
