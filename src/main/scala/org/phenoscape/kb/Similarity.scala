@@ -237,14 +237,18 @@ object Similarity {
       } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
     }
 
-  def print_presenceAbsenceDependecyMatrix(dependencyMap: Map[IRI, Map[IRI, Boolean]]) = {
-    val sortedKeys = dependencyMap.keys.toList.sortBy(_.toString)
+  // Output a boolean matrix as CSV
+  def matrixRendererFromMapOfMaps(mapOfMaps: Map[Any, Map[Any, Boolean]]) = {
+    val sortedKeys = mapOfMaps.keys.toList.sortBy(_.toString)
 
     sortedKeys.mkString("[",", ","]") //print column headers
 
     for(x <- sortedKeys) yield {
-      print("\n" + x)
-      for(y <- sortedKeys) yield print(dependencyMap.get(x).get(y) + " ,")
+      print("\n" + x + ", ")
+      for(y <- sortedKeys) yield mapOfMaps.get(x).get(y) {
+        case true => ", " + "1"
+        case false => ", " + "0"
+      }
     }
   }
 
