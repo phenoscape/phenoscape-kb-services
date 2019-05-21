@@ -245,7 +245,7 @@ object Similarity {
 
     for(x <- sortedKeys) yield {
       print("\n" + x + ", ")
-      for(y <- sortedKeys) yield mapOfMaps.get(x).get(y) {
+      for(y <- sortedKeys) yield mapOfMaps.get(x).get(y) match {
         case true => ", " + "1"
         case false => ", " + "0"
       }
