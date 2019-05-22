@@ -239,17 +239,18 @@ object Similarity {
 
   // Output a boolean matrix as CSV
   def matrixRendererFromMapOfMaps(mapOfMaps: Map[Any, Map[Any, Boolean]]) = {
-    val sortedKeys = mapOfMaps.keys.toList.sortBy(_.toString)
 
-    sortedKeys.mkString("[", ", ", "]") //print column headers
+    val sortedKeys = mapOfMaps.keys.toList.map(_.toString).sorted
+    var resultString = "headers, " + sortedKeys.mkString(", ") //print column headers
 
-    for (x <- sortedKeys) yield {
-      print("\n" + x + ", ")
-      for (y <- sortedKeys) yield mapOfMaps.get(x).get(y) match {
-        case true  => ", " + "1"
-        case false => ", " + "0"
+    for(x <- sortedKeys) yield {
+      resultString = resultString.concat("\n" + x)
+      for(y <- sortedKeys) yield mapOfMaps.get(x).get(y) match {
+        case true  => resultString = resultString.concat(", " + "1")
+        case false => resultString = resultString.concat(", " + "0")
       }
     }
+    resultString
   }
 
   def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[Map[IRI, Map[IRI, Boolean]]] = {
