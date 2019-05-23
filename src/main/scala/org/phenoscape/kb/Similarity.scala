@@ -240,7 +240,7 @@ object Similarity {
   // Output a boolean matrix as CSV
   def matrixRendererFromMapOfMaps(mapOfMaps: Map[Any, Map[Any, Boolean]]) = {
 
-    val sortedKeys = mapOfMaps.keys.toList.map(_.toString).sorted
+    val sortedKeys = mapOfMaps.keys.toList.sortBy(_.toString)
     var resultString = "headers, " + sortedKeys.mkString(", ") //print column headers
 
     for (x <- sortedKeys) yield {
