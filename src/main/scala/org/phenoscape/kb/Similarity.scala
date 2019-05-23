@@ -262,7 +262,7 @@ object Similarity {
       y <- iris
     } yield if (x == y) Future.successful(x -> (y -> true)) else presenceImpliesPresenceOf(x, y).map(e => x -> (y -> e))
 
-    //Convert from Set(x, (y, flag)) -> Map[x -> sorted Map[y -> flag]]
+    //Convert from Set(x, (y, flag)) -> Map[x -> Map[y -> flag]]
     Future.sequence(dependencyTuples).map { deps =>
       deps.groupMap(_._1)(_._2).mapVals(_.toMap)
     }
