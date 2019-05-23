@@ -243,10 +243,10 @@ object Similarity {
     val sortedKeys = mapOfMaps.keys.toList.map(_.toString).sorted
     var resultString = "headers, " + sortedKeys.mkString(", ") //print column headers
 
-    for(x <- sortedKeys) yield {
+    for (x <- sortedKeys) yield {
       resultString = resultString.concat("\n" + x)
-      for(y <- sortedKeys) yield mapOfMaps.get(x).get(y) match {
-        case true  => resultString = resultString.concat(", " + "1")
+      for (y <- sortedKeys) yield mapOfMaps.get(x).get(y) match {
+        case true => resultString = resultString.concat(", " + "1")
         case false => resultString = resultString.concat(", " + "0")
       }
     }
