@@ -3,7 +3,7 @@ package org.phenoscape.kb
 import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.graph.{NodeFactory, Node_Variable}
-import org.apache.jena.query.{Query, QuerySolution}
+import org.apache.jena.query.{Query, QueryFactory, QuerySolution}
 import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.expr.{E_NotOneOf, ExprList, ExprVar}
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
@@ -12,19 +12,22 @@ import org.apache.jena.sparql.syntax._
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-import org.phenoscape.owl.Vocab
+import org.phenoscape.owl.{NamedRestrictionGenerator, Vocab}
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.owlet.SPARQLComposer
 import org.semanticweb.owlapi.model.{IRI, OWLClass, OWLNamedIndividual}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.collection.immutable.ListMap
 
 object Similarity {
 
@@ -38,6 +41,7 @@ object Similarity {
   val GenesCorpus = IRI.create("http://kb.phenoscape.org/sim/genes")
   private val has_phenotypic_profile = ObjectProperty(Vocab.has_phenotypic_profile)
   private val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
+
 
   val availableCorpora = Seq(TaxaCorpus, GenesCorpus)
 
@@ -233,6 +237,8 @@ object Similarity {
       } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
     }
 
+
+
   private def classSubsumers(iri: IRI): Future[Set[IRI]] = {
     val query: QueryText =
       sparql"""
@@ -367,3 +373,4 @@ case class JaccardScore(terms: Set[IRI], score: Double) extends JSONResultItem {
   }
 
 }
+
