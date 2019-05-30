@@ -1,14 +1,19 @@
 package org.phenoscape.kb
 
-import org.apache.jena.query.QuerySolution
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.MediaTypes
+import org.apache.jena.query.{QueryFactory, QuerySolution}
 import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
+import org.phenoscape.kb.Similarity.rdfsSubClassOf
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.owl.{NamedRestrictionGenerator, Vocab}
 import org.semanticweb.owlapi.model.IRI
 import spray.json.DefaultJsonProtocol._
 import spray.json._
+import org.phenoscape.kb.Main.system.dispatcher
 
 import scala.concurrent.Future
 
@@ -16,6 +21,7 @@ object AnatomicalEntity {
 
   private val dcSource = ObjectProperty(IRI.create("http://purl.org/dc/elements/1.1/source"))
   private val ECO = IRI.create("http://purl.obolibrary.org/obo/eco.owl")
+  private val implies_presence_of_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.IMPLIES_PRESENCE_OF.getIRI)
 
   def homologyAnnotations(term: IRI, includeSubClasses: Boolean): Future[Seq[HomologyAnnotation]] = App.executeSPARQLQueryString(homologyAnnotationQuery(term, includeSubClasses), HomologyAnnotation(_, term))
 
@@ -61,6 +67,54 @@ object AnatomicalEntity {
     query.text
   }
 
+  // Output a boolean matrix as CSV
+  def matrixRendererFromMapOfMaps[A](dependencyMatrix: DependencyMatrix[A]) = {
+
+    val mapOfMaps = dependencyMatrix.map
+    val sortedKeys = mapOfMaps.keys.toList.sortBy(_.toString)
+    val headers = s"headers, ${sortedKeys.mkString(", ")}" //print column headers
+
+    val matrix = for (x <- sortedKeys) yield {
+      val row = s"$x"
+      val values = for (y <- sortedKeys) yield mapOfMaps(x)(y) match {
+        case true => 1
+        case false => 0
+      }
+      s"$row, ${values.mkString(", ")}"
+    }
+    s"$headers\n${matrix.mkString("\n")}"
+  }
+
+  def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[DependencyMatrix[IRI]] = {
+    import org.phenoscape.kb.util.Util.TraversableOps
+    import org.phenoscape.kb.util.Util.MapOps
+    val dependencyTuples = for {
+      x <- iris
+      y <- iris
+    } yield if (x == y) Future.successful(x -> (y -> true)) else presenceImpliesPresenceOf(x, y).map(e => x -> (y -> e))
+
+    //Convert from Set(x, (y, flag)) -> Map[x -> Map[y -> flag]]
+    Future.sequence(dependencyTuples).map { deps =>
+      DependencyMatrix(deps.groupMap(_._1)(_._2).mapVals(_.toMap))
+    }
+  }
+
+
+  def presenceImpliesPresenceOf(x: IRI, y: IRI): Future[Boolean] = {
+    App.executeSPARQLAskQuery(QueryFactory.create(queryImpliesPresenceOf(x, y).text))
+  }
+
+  private def queryImpliesPresenceOf(x: IRI, y: IRI): QueryText =
+    sparql"""
+            ASK
+            FROM $KBClosureGraph
+            FROM $KBMainGraph
+            WHERE {
+              ?x_presence $implies_presence_of_some $x .
+              ?y_presence $implies_presence_of_some $y .
+              ?x_presence $rdfsSubClassOf ?y_presence
+            }
+        """
 }
 
 final case class HomologyAnnotation(subject: IRI, subjectTaxon: IRI, `object`: IRI, objectTaxon: IRI, source: String, evidence: IRI, negated: Boolean, relation: IRI) extends JSONResultItem {
@@ -107,5 +161,14 @@ object HomologyAnnotation {
       querySolution.getLiteral("negated").getBoolean,
       IRI.create(querySolution.getResource("relation").getURI))
   }
+
+}
+
+final case class DependencyMatrix[A](map: Map[A, Map[A, Boolean]])
+
+object DependencyMatrix {
+
+  implicit val csvMarshaller : ToEntityMarshaller[DependencyMatrix[_]] = Marshaller.stringMarshaller(MediaTypes.`text/plain`).compose(matrix =>
+    AnatomicalEntity.matrixRendererFromMapOfMaps(matrix))
 
 }

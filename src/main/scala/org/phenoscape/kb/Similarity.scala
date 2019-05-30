@@ -41,7 +41,7 @@ object Similarity {
   val GenesCorpus = IRI.create("http://kb.phenoscape.org/sim/genes")
   private val has_phenotypic_profile = ObjectProperty(Vocab.has_phenotypic_profile)
   private val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
-  private val implies_presence_of_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.IMPLIES_PRESENCE_OF.getIRI)
+
 
   val availableCorpora = Seq(TaxaCorpus, GenesCorpus)
 
@@ -237,53 +237,7 @@ object Similarity {
       } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
     }
 
-  // Output a boolean matrix as CSV
-  def matrixRendererFromMapOfMaps(mapOfMaps: Map[Any, Map[Any, Boolean]]) = {
 
-    val sortedKeys = mapOfMaps.keys.toList.sortBy(_.toString)
-    val headers = s"headers, ${sortedKeys.mkString(", ")}" //print column headers
-
-    val matrix = for (x <- sortedKeys) yield {
-      val row = s"$x"
-      val values = for (y <- sortedKeys) yield mapOfMaps(x)(y) match {
-        case true => 1
-        case false => 0
-      }
-      s"$row, ${values.mkString(", ")}"
-    }
-    s"$headers\n${matrix.mkString("\n")}"
-  }
-
-  def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[Map[IRI, Map[IRI, Boolean]]] = {
-    import org.phenoscape.kb.util.Util.TraversableOps
-    import org.phenoscape.kb.util.Util.MapOps
-    val dependencyTuples = for {
-      x <- iris
-      y <- iris
-    } yield if (x == y) Future.successful(x -> (y -> true)) else presenceImpliesPresenceOf(x, y).map(e => x -> (y -> e))
-
-    //Convert from Set(x, (y, flag)) -> Map[x -> Map[y -> flag]]
-    Future.sequence(dependencyTuples).map { deps =>
-      deps.groupMap(_._1)(_._2).mapVals(_.toMap)
-    }
-  }
-
-
-  def presenceImpliesPresenceOf(x: IRI, y: IRI): Future[Boolean] = {
-    App.executeSPARQLAskQuery(QueryFactory.create(queryImpliesPresenceOf(x, y).text))
-  }
-
-  private def queryImpliesPresenceOf(x: IRI, y: IRI): QueryText =
-    sparql"""
-            ASK
-            FROM $KBClosureGraph
-            FROM $KBMainGraph
-            WHERE {
-              ?x_presence $implies_presence_of_some $x .
-              ?y_presence $implies_presence_of_some $y .
-              ?x_presence $rdfsSubClassOf ?y_presence
-            }
-        """
 
   private def classSubsumers(iri: IRI): Future[Set[IRI]] = {
     val query: QueryText =
@@ -419,3 +373,4 @@ case class JaccardScore(terms: Set[IRI], score: Double) extends JSONResultItem {
   }
 
 }
+

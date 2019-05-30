@@ -60,14 +60,14 @@ object Main extends HttpApp with App {
   implicit val SimpleMapFromJSONString: Unmarshaller[String, Map[String, String]] = Unmarshaller.strict { text =>
     text.parseJson match {
       case o: JsObject => o.fields.map { case (key, value) => key -> value.toString }
-      case _           => throw new IllegalArgumentException(s"Not a valid JSON map: $text")
+      case _ => throw new IllegalArgumentException(s"Not a valid JSON map: $text")
     }
   }
 
   implicit val SeqFromJSONString: Unmarshaller[String, Seq[String]] = Unmarshaller.strict { text =>
     text.parseJson match {
       case a: JsArray => a.elements.map(_.convertTo[String])
-      case _          => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
+      case _ => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
     }
   }
 
@@ -184,7 +184,7 @@ object Main extends HttpApp with App {
                   complete {
                     Term.resolveLabelExpression(expression) match {
                       case Success(expression) => expression
-                      case Failure(error)      => StatusCodes.UnprocessableEntity -> error
+                      case Failure(error) => StatusCodes.UnprocessableEntity -> error
                     }
                   }
                 }
@@ -315,17 +315,7 @@ object Main extends HttpApp with App {
                       }
                     }
                   }
-              } ~
-            path("dependency") { //FIXME just for testing
-              get {
-                parameters('terms.as[Seq[String]]) { iriStrings =>
-                  complete {
-                    val iris = iriStrings.map(IRI.create).toSet
-                    Similarity.presenceAbsenceDependencyMatrix(iris).map(_.toString)
-                  }
-                }
               }
-            }
           } ~
           pathPrefix("characterstate") {
             path("search") { //undocumented and currently unused
@@ -389,9 +379,9 @@ object Main extends HttpApp with App {
                   (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
                       facetBy match {
-                        case "entity"  => Taxon.facetTaxaWithPhenotypeByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "entity" => Taxon.facetTaxaWithPhenotypeByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                         case "quality" => Taxon.facetTaxaWithPhenotypeByQuality(qualityOpt, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "taxon"   => Taxon.facetTaxaWithPhenotypeByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon" => Taxon.facetTaxaWithPhenotypeByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
                 }
@@ -401,9 +391,9 @@ object Main extends HttpApp with App {
                   (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
                       facetBy match {
-                        case "entity"  => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "entity" => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                         case "quality" => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByQuality(qualityOpt, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "taxon"   => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon" => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
                 }
@@ -518,6 +508,16 @@ object Main extends HttpApp with App {
                     AnatomicalEntity.homologyAnnotations(entity, false)
                   }
                 }
+              } ~
+              path("dependency") {
+                get {
+                  parameters('terms.as[Seq[String]]) { iriStrings =>
+                    complete {
+                      val iris = iriStrings.map(IRI.create).toSet
+                      AnatomicalEntity.presenceAbsenceDependencyMatrix(iris)
+                    }
+                  }
+                }
               }
           } ~
           pathPrefix("gene") {
@@ -605,7 +605,7 @@ object Main extends HttpApp with App {
                   (entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
                       facetBy match {
-                        case "entity"  => Gene.facetGenesWithPhenotypeByEntity(entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "entity" => Gene.facetGenesWithPhenotypeByEntity(entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                         case "quality" => Gene.facetGenesWithPhenotypeByQuality(qualityOpt, entityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
@@ -635,9 +635,9 @@ object Main extends HttpApp with App {
                   (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
                       facetBy match {
-                        case "entity"  => Study.facetStudiesByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "entity" => Study.facetStudiesByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                         case "quality" => Study.facetStudiesByQuality(qualityOpt, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "taxon"   => Study.facetStudiesByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon" => Study.facetStudiesByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
                 }
@@ -690,9 +690,9 @@ object Main extends HttpApp with App {
                   (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
                       facetBy match {
-                        case "entity"  => Phenotype.facetPhenotypeByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "entity" => Phenotype.facetPhenotypeByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                         case "quality" => Phenotype.facetPhenotypeByQuality(qualityOpt, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "taxon"   => Phenotype.facetPhenotypeByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon" => Phenotype.facetPhenotypeByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
                 }
