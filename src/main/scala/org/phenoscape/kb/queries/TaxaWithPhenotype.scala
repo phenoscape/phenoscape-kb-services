@@ -1,8 +1,10 @@
 package org.phenoscape.kb.queries
 
 import org.phenoscape.kb.AnatomicalEntity
+import org.phenoscape.kb.PresenceAbsenceOfStructure.implies_presence_of_some
 import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
 import org.phenoscape.kb.util.BlazegraphNamedSubquery
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.owl.NamedRestrictionGenerator
@@ -22,7 +24,7 @@ object TaxaWithPhenotype {
   private val PartOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
   private val HasPartSome = NamedRestrictionGenerator.getClassRelationIRI(has_part.getIRI)
 
-  def buildQuery(entity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, countOnly: Boolean, limit: Int, offset: Int): Future[String] = {
+  def buildQuery(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, countOnly: Boolean, limit: Int, offset: Int): Future[String] = {
     for {
       (whereClause, subqueries) <- constructWhereClause(entity, quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     } yield {
@@ -54,7 +56,7 @@ object TaxaWithPhenotype {
     }
   }
 
-  private def constructWhereClause(entity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[(QueryText, Set[BlazegraphNamedSubquery])] = {
+  private def constructWhereClause(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[(QueryText, Set[BlazegraphNamedSubquery])] = {
     val validHomologyRelation = (if (includeHistoricalHomologs) Set(homologous_to.getIRI) else Set.empty) ++ (if (includeSerialHomologs) Set(serially_homologous_to.getIRI) else Set.empty)
     val homologyQueryPartsFut: ListT[Future, (List[QueryText], Set[BlazegraphNamedSubquery])] = for {
       entityTerm <- entity.toList |> Future.successful |> ListT.apply
@@ -108,27 +110,14 @@ object TaxaWithPhenotype {
     }
   }
 
-  def phenotypeSubQueryFor(entity: Option[IRI], quality: Option[IRI], parts: Boolean): Set[BlazegraphNamedSubquery] = {
-    val entityPattern = entity.map { e =>
-      if (parts) BlazegraphNamedSubquery(
-        sparql"""
-        SELECT DISTINCT ?phenotype WHERE {
-          ?p $rdfsSubClassOf/$PhenotypeOfSome/$rdfsSubClassOf/$PartOfSome $e .
-          GRAPH $KBMainGraph {
-            ?phenotype $rdfsSubClassOf ?p .
-          }
-        } 
-        """)
-      else BlazegraphNamedSubquery(
-        sparql"""
-        SELECT DISTINCT ?phenotype WHERE {
-          ?p $rdfsSubClassOf/$PhenotypeOfSome $e . 
-          GRAPH $KBMainGraph {
-            ?phenotype $rdfsSubClassOf ?p .
-          }
-        } 
-        """)
-    }
+  def phenotypeSubQueryFor(entity: Option[IRI], quality: QualitySpec, parts: Boolean): Set[BlazegraphNamedSubquery] = quality match {
+    case PhenotypicQuality(qualityOpt) => phenotypicQualitySubQueryFor(entity, qualityOpt, parts)
+    case InferredPresence              => entity.map(e => entityPhenotypeSubQueryFor(e, parts, implies_presence_of_some)).toSet
+    case InferredAbsence               => entity.map(e => entityPhenotypeSubQueryFor(e, parts, ABSENCE_OF)).toSet
+  }
+
+  def phenotypicQualitySubQueryFor(entity: Option[IRI], quality: Option[IRI], parts: Boolean): Set[BlazegraphNamedSubquery] = {
+    val entityPattern = entity.map(entityPhenotypeSubQueryFor(_, parts, PhenotypeOfSome))
     val qualityPattern = quality.map(q => BlazegraphNamedSubquery(
       sparql"""
         SELECT DISTINCT ?phenotype WHERE {
@@ -141,8 +130,31 @@ object TaxaWithPhenotype {
     entityPattern.toSet ++ qualityPattern.toSet
   }
 
+  def entityPhenotypeSubQueryFor(entity: IRI, parts: Boolean, relation: IRI): BlazegraphNamedSubquery = {
+    if (parts) BlazegraphNamedSubquery(
+      sparql"""
+        SELECT DISTINCT ?phenotype WHERE {
+          ?p $rdfsSubClassOf/$relation/$rdfsSubClassOf/$PartOfSome $entity .
+          GRAPH $KBMainGraph {
+            ?phenotype $rdfsSubClassOf ?p .
+          }
+        }
+        """)
+    else BlazegraphNamedSubquery(
+      sparql"""
+        SELECT DISTINCT ?phenotype WHERE {
+          ?p $rdfsSubClassOf/$relation $entity .
+          GRAPH $KBMainGraph {
+            ?phenotype $rdfsSubClassOf ?p .
+          }
+        }
+        """)
+  }
+
   private def coreTaxonToPhenotype(inTaxa: Set[IRI], publicationOpt: Option[IRI], phenotypeQueries: Set[BlazegraphNamedSubquery]): QueryText = {
-    val taxonConstraints = (for {taxon <- inTaxa}
+    val taxonConstraints = (for {
+      taxon <- inTaxa
+    }
       yield sparql"?taxon $rdfsSubClassOf $taxon . ").fold(sparql"")(_ |+| _)
     val subQueryRefs = QueryText(phenotypeQueries.map(q => sparql"$q").map(_.text).mkString("\n"))
     val publicationVal = publicationOpt.map(pub => sparql"VALUES ?matrix {  $pub }").getOrElse(sparql"")
