@@ -3,6 +3,7 @@ package org.phenoscape.kb.queries
 import org.phenoscape.kb.AnatomicalEntity
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.queries.QueryUtil.QualitySpec
 import org.phenoscape.kb.util.BlazegraphNamedSubquery
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.owl.Vocab._
@@ -15,7 +16,7 @@ import scala.concurrent.Future
 
 object StudiesRelevantToPhenotype {
 
-  def buildQuery(entity: Option[IRI], quality: Option[IRI], inTaxon: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, countOnly: Boolean, limit: Int, offset: Int): Future[String] = {
+  def buildQuery(entity: Option[IRI], quality: QualitySpec, inTaxon: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, countOnly: Boolean, limit: Int, offset: Int): Future[String] = {
     for {
       (whereClause, subqueries) <- constructWhereClause(entity, quality, inTaxon, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     } yield {
@@ -48,7 +49,7 @@ object StudiesRelevantToPhenotype {
   }
 
   //TODO extract common parts with TaxaWithPhenotype
-  private def constructWhereClause(entity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[(QueryText, Set[BlazegraphNamedSubquery])] = {
+  private def constructWhereClause(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[(QueryText, Set[BlazegraphNamedSubquery])] = {
     val validHomologyRelation = (if (includeHistoricalHomologs) Set(homologous_to.getIRI) else Set.empty) ++ (if (includeSerialHomologs) Set(serially_homologous_to.getIRI) else Set.empty)
     val homologyQueryPartsFut: ListT[Future, (List[QueryText], Set[BlazegraphNamedSubquery])] = for {
       entityTerm <- entity.toList |> Future.successful |> ListT.apply
