@@ -6,7 +6,7 @@ object MatrixRendererTest extends App {
 
   val outerMap: Map[Any, Map[Any, Boolean]] = Map("y1" -> innerMap, "y2" -> innerMap, "y3" -> innerMap)
 
-  val outputString = Similarity.matrixRendererFromMapOfMaps(outerMap)
+  val outputString = AnatomicalEntity.matrixRendererFromMapOfMaps(DependencyMatrix(outerMap))
 
   println(outputString)
 
