@@ -19,6 +19,7 @@ import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
 import org.apache.jena.sparql.syntax.ElementSubQuery
 import org.phenoscape.kb.Facets.Facet
 import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.queries.QueryUtil.{PhenotypicQuality, QualitySpec}
 import org.phenoscape.kb.queries.StudiesRelevantToPhenotype
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
@@ -50,29 +51,29 @@ object Study {
     result.getLiteral("label").getLexicalForm,
     result.getLiteral("citation").getLexicalForm)
 
-  def queryStudies(entity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[MinimalTerm]] = for {
+  def queryStudies(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[MinimalTerm]] = for {
     query <- StudiesRelevantToPhenotype.buildQuery(entity, quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
     studies <- App.executeSPARQLQueryString(query, queryToTerm)
   } yield studies
 
-  def queryStudiesTotal(entity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = for {
+  def queryStudiesTotal(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = for {
     query <- StudiesRelevantToPhenotype.buildQuery(entity, quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
     result <- App.executeSPARQLQuery(query)
   } yield ResultCount.count(result)
 
-  def facetStudiesByEntity(focalEntity: Option[IRI], quality: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+  def facetStudiesByEntity(focalEntity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => queryStudiesTotal(Some(iri), quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.queryAnatomySubClasses(iri, KBVocab.Uberon, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(_.toSet)
     Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine, false)
   }
 
   def facetStudiesByQuality(focalQuality: Option[IRI], entity: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => queryStudiesTotal(entity, Some(iri), inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val query = (iri: IRI) => queryStudiesTotal(entity, PhenotypicQuality(Some(iri)), inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
     Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine, false)
   }
 
-  def facetStudiesByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
+  def facetStudiesByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: QualitySpec, publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => queryStudiesTotal(entity, quality, Some(iri), publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
     Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine, true)
@@ -204,9 +205,11 @@ object Study {
     val otuToID = (for {
       otu <- model.listObjectsOfProperty(has_TU)
     } yield otu.asResource.getURI -> s"otu_${UUID.randomUUID.toString}").toMap
+
     def idForStateGroup(states: Set[String]): String =
       if (states.size == 1) s"state_${UUID.randomUUID.toString}"
       else states.map(state => idForStateGroup(Set(state))).toSeq.sorted.mkString("_")
+
     val characterToIDSuffix = (for {
       character <- model.listObjectsOfProperty(has_character)
     } yield character.asResource.getURI -> UUID.randomUUID.toString).toMap
@@ -221,80 +224,62 @@ object Study {
       stateGroup <- stateGroups
     } yield stateGroup -> idForStateGroup(stateGroup)) ++ allIndividualStatesAsSets.map(group => group -> idForStateGroup(group))
     val orderedCharacters = model.listObjectsOfProperty(has_character).toSeq.sortBy(character => model.getProperty(character.asResource, list_index).getInt).map(_.asResource.getURI)
+
     def label(uri: String): String = model.getProperty(ResourceFactory.createResource(uri), rdfsLabel).getString
+
     def symbol(stateGroup: Set[String]): String = (stateGroup.map(state => model.getProperty(ResourceFactory.createResource(state), state_symbol).getString)).toSeq.sorted.mkString(" and ")
 
     <nexml xmlns="http://www.nexml.org/2009" xmlns:dc="http://purl.org/dc/terms/" xmlns:dwc="http://rs.tdwg.org/dwc/terms/" xmlns:obo="http://purl.obolibrary.org/obo/" xmlns:ps="http://purl.org/phenoscape/vocab.owl#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="0.9" xsi:schemaLocation="http://www.nexml.org/2009 http://www.nexml.org/2009/nexml.xsd http://www.bioontologies.org/obd/schema/pheno http://purl.org/phenoscape/phenoxml.xsd">
-      {
-        <meta xsi:type="ResourceMeta" rel="dc:source" href={ study.toString }>
-          <meta xsi:type="LiteralMeta" property="dc:bibliographicCitation">
-            { model.getProperty(ResourceFactory.createResource(study.toString), ResourceFactory.createProperty(dcBibliographicCitation.getIRI.toString)).getString }
-          </meta>
-          <meta xsi:type="LiteralMeta" property="rdfs:label" content={ label(study.toString) }/>
-        </meta>
-      }
-      <otus id={ otusID }>
-        {
-          for {
-            otu <- model.listObjectsOfProperty(has_TU)
-            taxon = model.listObjectsOfProperty(otu.asResource, has_external_reference).next.asResource
-            label = model.listObjectsOfProperty(taxon, rdfsLabel).next.asLiteral.getLexicalForm
-            otuID = otuToID(otu.asResource.getURI)
-          } yield <otu id={ otuID } about={ s"#$otuID" } label={ label }>
-                    <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href={ taxon.getURI }/>
-                  </otu>
-        }
-      </otus>
-      <characters id={ s"characters_${UUID.randomUUID.toString}" } xsi:type="StandardCells" otus={ otusID }>
+      {<meta xsi:type="ResourceMeta" rel="dc:source" href={study.toString}>
+      <meta xsi:type="LiteralMeta" property="dc:bibliographicCitation">
+        {model.getProperty(ResourceFactory.createResource(study.toString), ResourceFactory.createProperty(dcBibliographicCitation.getIRI.toString)).getString}
+      </meta>
+      <meta xsi:type="LiteralMeta" property="rdfs:label" content={label(study.toString)}/>
+    </meta>}<otus id={otusID}>
+      {for {
+        otu <- model.listObjectsOfProperty(has_TU)
+        taxon = model.listObjectsOfProperty(otu.asResource, has_external_reference).next.asResource
+        label = model.listObjectsOfProperty(taxon, rdfsLabel).next.asLiteral.getLexicalForm
+        otuID = otuToID(otu.asResource.getURI)
+      } yield <otu id={otuID} about={s"#$otuID"} label={label}>
+        <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href={taxon.getURI}/>
+      </otu>}
+    </otus>
+      <characters id={s"characters_${UUID.randomUUID.toString}"} xsi:type="StandardCells" otus={otusID}>
         <format>
-          {
-            for {
-              (character, idSuffix) <- characterToIDSuffix
-            } yield <states id={ s"states_$idSuffix" }>
-                      {
-                        for {
-                          stateGroup <- neededStateGroups(character)
-                          stateGroupID = stateGroupIDs(stateGroup)
-                        } yield if (stateGroup.size < 2)
-                          <state id={ stateGroupID } about={ s"#$stateGroupID" } label={ label(stateGroup.head) } symbol={ symbol(stateGroup) }>
-                            {
-                              val phenotypeURI = model.getProperty(ResourceFactory.createResource(stateGroup.head), describes_phenotype).getResource.getURI
-                              // FIXME need to add labels to phenotypes in KB, then move this inside phenotype meta
-                              //<meta xsi:type="LiteralMeta" property="rdfs:label" content={ label(phenotypeURI) }/>
-                              <meta xsi:type="ResourceMeta" rel="ps:describes_phenotype" href={ phenotypeURI }>
-                              </meta>
-                            }
-                          </state>
-                        else
-                          <polymorphic_state_set id={ stateGroupID } symbol={ symbol(stateGroup) }>
-                            {
-                              for {
-                                member <- stateGroup
-                              } yield <member state={ stateGroupIDs(Set(member)) }/>
-                            }
-                          </polymorphic_state_set>
-                      }
-                    </states>
-          }
-          {
-            for {
-              character <- orderedCharacters
-            } yield <char id={ s"character_${characterToIDSuffix(character)}" } label={ label(character) } states={ s"states_${characterToIDSuffix(character)}" }/>
-          }
+          {for {
+          (character, idSuffix) <- characterToIDSuffix
+        } yield <states id={s"states_$idSuffix"}>
+          {for {
+            stateGroup <- neededStateGroups(character)
+            stateGroupID = stateGroupIDs(stateGroup)
+          } yield if (stateGroup.size < 2)
+            <state id={stateGroupID} about={s"#$stateGroupID"} label={label(stateGroup.head)} symbol={symbol(stateGroup)}>
+              {val phenotypeURI = model.getProperty(ResourceFactory.createResource(stateGroup.head), describes_phenotype).getResource.getURI
+            // FIXME need to add labels to phenotypes in KB, then move this inside phenotype meta
+            //<meta xsi:type="LiteralMeta" property="rdfs:label" content={ label(phenotypeURI) }/>
+            <meta xsi:type="ResourceMeta" rel="ps:describes_phenotype" href={phenotypeURI}>
+            </meta>}
+            </state>
+          else
+            <polymorphic_state_set id={stateGroupID} symbol={symbol(stateGroup)}>
+              {for {
+              member <- stateGroup
+            } yield <member state={stateGroupIDs(Set(member))}/>}
+            </polymorphic_state_set>}
+        </states>}{for {
+          character <- orderedCharacters
+        } yield <char id={s"character_${characterToIDSuffix(character)}"} label={label(character)} states={s"states_${characterToIDSuffix(character)}"}/>}
         </format>
         <matrix>
-          {
-            for {
-              otu <- model.listObjectsOfProperty(has_TU)
-              otuURI = otu.asResource.getURI
-            } yield <row id={ s"row_${otuToID(otuURI)}" } otu={ otuToID(otuURI) }>
-                      {
-                        for {
-                          cell <- model.listSubjectsWithProperty(belongs_to_TU, otu)
-                        } yield <cell char={ s"character_${characterToIDSuffix(model.getProperty(cell, belongs_to_character).getResource.getURI)}" } state={ stateGroupIDs(model.listObjectsOfProperty(cell, has_state).map(_.asResource.getURI).toSet) }/>
-                      }
-                    </row>
-          }
+          {for {
+          otu <- model.listObjectsOfProperty(has_TU)
+          otuURI = otu.asResource.getURI
+        } yield <row id={s"row_${otuToID(otuURI)}"} otu={otuToID(otuURI)}>
+          {for {
+            cell <- model.listSubjectsWithProperty(belongs_to_TU, otu)
+          } yield <cell char={s"character_${characterToIDSuffix(model.getProperty(cell, belongs_to_character).getResource.getURI)}"} state={stateGroupIDs(model.listObjectsOfProperty(cell, has_state).map(_.asResource.getURI).toSet)}/>}
+        </row>}
         </matrix>
       </characters>
     </nexml>

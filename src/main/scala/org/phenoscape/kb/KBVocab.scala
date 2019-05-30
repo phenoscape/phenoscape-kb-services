@@ -58,4 +58,7 @@ object KBVocab {
   val qualityRoot = IRI.create("http://purl.obolibrary.org/obo/PATO_0000001")
   val taxonRoot = IRI.create("http://purl.obolibrary.org/obo/VTO_0000001")
 
+  val InferredPresence = IRI.create("http://purl.org/phenoscape/vocab.owl#inferred_presence")
+  val InferredAbsence = IRI.create("http://purl.org/phenoscape/vocab.owl#inferred_absence")
+
 }
