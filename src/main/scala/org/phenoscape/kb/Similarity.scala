@@ -373,4 +373,3 @@ case class JaccardScore(terms: Set[IRI], score: Double) extends JSONResultItem {
   }
 
 }
-
