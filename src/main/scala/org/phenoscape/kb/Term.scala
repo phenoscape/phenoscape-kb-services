@@ -42,8 +42,11 @@ object Term {
 
   private val factory = OWLManager.getOWLDataFactory
 
-  def search(text: String, termType: IRI, property: IRI): Future[Seq[MatchedTerm[MinimalTerm]]] = {
-    App.executeSPARQLQuery(buildSearchQuery(text, termType, property), Term.fromMinimalQuerySolution).map(orderBySearchedText(_, text))
+  def search(text: String, termType: IRI, properties: Seq[IRI], definedBy: Option[IRI], includeDeprecated: Boolean = false, limit: Int = 100): Future[Seq[MatchedTerm[DefinedMinimalTerm]]] = {
+    def resultFromQuerySolution(qs: QuerySolution): DefinedMinimalTerm = DefinedMinimalTerm(MinimalTerm(
+      IRI.create(qs.getResource("term").getURI),
+      qs.getLiteral("term_label").getLexicalForm), Option(qs.getResource("ont")).map(o => IRI.create(o.getURI)))
+    App.executeSPARQLQueryString(buildTermSearchQuery(text, termType, properties.toList, definedBy, includeDeprecated, limit).text, resultFromQuerySolution).map(orderBySearchedText(_, text).distinct)
   }
 
   def searchOntologyTerms(text: String, definedBy: IRI, limit: Int): Future[Seq[MatchedTerm[MinimalTerm]]] = {
@@ -332,19 +335,30 @@ object Term {
     query
   }
 
-  def buildSearchQuery(text: String, termType: IRI, property: IRI): Query = {
+  def buildTermSearchQuery(text: String, termType: IRI, properties: List[IRI], definedBy: Option[IRI], includeDeprecated: Boolean = false, limit: Int = 100): QueryText = {
+    import scalaz.Scalaz._
     val searchText = if (text.endsWith("*")) text else s"$text*"
-    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where(
-      bgp(
-        t('term_label, BDSearch, NodeFactory.createLiteral(searchText)),
-        t('term_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
-        t('term_label, BDRank, 'rank),
-        t('term, rdfsLabel, 'term_label),
-        t('term, rdfType, termType)),
-      new ElementFilter((new E_IsIRI(new ExprVar('term)))))
-    query.addOrderBy('rank, Query.ORDER_ASCENDING)
-    query.setLimit(100)
-    query
+    val deprecatedFilter = if (includeDeprecated) sparql"" else sparql" FILTER NOT EXISTS { ?term $owlDeprecated true . } "
+    val definedByPattern = definedBy.map(ont => sparql" ?term $rdfsIsDefinedBy $ont .").getOrElse(sparql"")
+    val termToTextRel = (if (properties.nonEmpty) properties else List(RDFSLabel.getIRI)).map(p => sparql"$p").intersperse(sparql" | ").reduce(_ |+| _)
+    sparql"""
+            SELECT DISTINCT ?term ?term_label ?ont
+            FROM $KBMainGraph
+            WHERE {
+              ?matched_label $BDSearch $searchText .
+              ?matched_label $BDMatchAllTerms true .
+              ?matched_label $BDRank ?rank .
+              ?term $termToTextRel ?matched_label .
+              ?term $RDFSLabel ?term_label .
+              ?term $rdfType $termType .
+              $definedByPattern
+              OPTIONAL { ?term $rdfsIsDefinedBy ?ont . }
+              FILTER(isIRI(?term))
+              $deprecatedFilter
+            }
+            ORDER BY ASC(?rank)
+            LIMIT $limit
+          """
   }
 
   private def triplesBlock(elements: Element*): ElementGroup = {
@@ -427,6 +441,19 @@ final case class SourcedMinimalTerm(term: MinimalTerm, sources: Set[IRI]) extend
 
   def toJSON: JsObject = (term.toJSON.fields +
     ("sources" -> sources.map(iri => Map("@id" -> iri.toString)).toJson)).toJson.asJsObject
+
+}
+
+final case class DefinedMinimalTerm(term: MinimalTerm, definedBy: Option[IRI]) extends LabeledTerm with JSONResultItem {
+
+  def iri: IRI = term.iri
+
+  def label: String = term.label
+
+  def toJSON: JsObject = {
+    val extra = definedBy.map("isDefinedBy" -> _.toString.toJson).toList
+    (term.toJSON.fields ++ extra).toJson.asJsObject
+  }
 
 }
 
