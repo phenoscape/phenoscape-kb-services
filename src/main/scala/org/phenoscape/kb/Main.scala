@@ -102,10 +102,11 @@ object Main extends HttpApp with App {
         } ~
           pathPrefix("term") {
             path("search") {
-              parameters('text, 'type.as[IRI].?(owlClass), 'property.?(rdfsLabel)) { (text, termType, property) =>
+              parameters('text, 'type.as[IRI].?(owlClass), 'properties.as[Seq[String]].?, 'definedBy.as[IRI].?, 'includeDeprecated.as[Boolean].?(false), 'limit.as[Int].?(100)) { (text, termType, properties, definedByOpt, includeDeprecated, limit) =>
                 complete {
+                  val props = properties.map(_.map(IRI.create)).getOrElse(List(rdfsLabel, hasExactSynonym.getIRI, hasNarrowSynonym.getIRI, hasBroadSynonym.getIRI))
                   import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-                  Term.search(text, termType, property)
+                  Term.search(text, termType, props, definedByOpt, includeDeprecated, limit)
                 }
               }
             } ~

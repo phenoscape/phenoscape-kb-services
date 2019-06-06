@@ -2,67 +2,51 @@ package org.phenoscape.kb
 
 import java.util.regex.Pattern
 
-import scala.collection.JavaConversions._
-import scala.collection.mutable
-import scala.concurrent.Future
-import scala.language.postfixOps
-
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.NodeFactory
-import org.apache.jena.query.Query
-import org.apache.jena.query.QuerySolution
+import org.apache.jena.query.{Query, QuerySolution}
 import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.E_IsIRI
-import org.apache.jena.sparql.expr.E_NotExists
-import org.apache.jena.sparql.expr.E_OneOf
-import org.apache.jena.sparql.expr.ExprList
-import org.apache.jena.sparql.expr.ExprVar
+import org.apache.jena.sparql.expr._
 import org.apache.jena.sparql.expr.aggregate.AggMin
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
-import org.apache.jena.sparql.path.P_Link
-import org.apache.jena.sparql.path.P_OneOrMore1
-import org.apache.jena.sparql.syntax.Element
-import org.apache.jena.sparql.syntax.ElementFilter
-import org.apache.jena.sparql.syntax.ElementGroup
-import org.apache.jena.sparql.syntax.ElementUnion
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsLabel
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
+import org.apache.jena.sparql.path.{P_Link, P_OneOrMore1}
+import org.apache.jena.sparql.syntax.{Element, ElementFilter, ElementGroup, ElementUnion}
+import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
+import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.ingest.util.ExpressionUtil
 import org.phenoscape.kb.util.SPARQLEntityChecker
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owl.util.ExpressionsUtil
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
+import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.manchestersyntax.parser.ManchesterOWLSyntaxClassExpressionParser
-import org.semanticweb.owlapi.manchestersyntax.renderer.ManchesterOWLSyntaxOWLObjectRendererImpl
-import org.semanticweb.owlapi.manchestersyntax.renderer.ParserException
-import org.semanticweb.owlapi.model.IRI
-import org.semanticweb.owlapi.model.OWLClassExpression
-import org.semanticweb.owlapi.model.OWLEntity
-import org.semanticweb.owlapi.model.OWLObject
+import org.semanticweb.owlapi.manchestersyntax.renderer.{ManchesterOWLSyntaxOWLObjectRendererImpl, ParserException}
+import org.semanticweb.owlapi.model.{IRI, OWLClassExpression, OWLEntity, OWLObject}
 import org.semanticweb.owlapi.util.ShortFormProvider
-
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
-import org.phenoscape.sparql.SPARQLInterpolation._
-import org.phenoscape.sparql.SPARQLInterpolation.QueryText
-
-import Main.system.dispatcher
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import scalaz._
-import spray.json._
 import spray.json.DefaultJsonProtocol._
-import org.phenoscape.owl.NamedRestrictionGenerator
+import spray.json._
+
+import scala.collection.JavaConverters._
+import scala.collection.mutable
+import scala.concurrent.Future
+import scala.language.postfixOps
 
 object Term {
 
   private val factory = OWLManager.getOWLDataFactory
 
-  def search(text: String, termType: IRI, property: IRI): Future[Seq[MatchedTerm[MinimalTerm]]] = {
-    App.executeSPARQLQuery(buildSearchQuery(text, termType, property), Term.fromMinimalQuerySolution).map(orderBySearchedText(_, text))
+  def search(text: String, termType: IRI, properties: Seq[IRI], definedBy: Option[IRI], includeDeprecated: Boolean = false, limit: Int = 100): Future[Seq[MatchedTerm[DefinedMinimalTerm]]] = {
+    def resultFromQuerySolution(qs: QuerySolution): DefinedMinimalTerm = DefinedMinimalTerm(MinimalTerm(
+      IRI.create(qs.getResource("term").getURI),
+      qs.getLiteral("term_label").getLexicalForm), Option(qs.getResource("ont")).map(o => IRI.create(o.getURI)))
+    App.executeSPARQLQueryString(buildTermSearchQuery(text, termType, properties.toList, definedBy, includeDeprecated, limit).text, resultFromQuerySolution).map(orderBySearchedText(_, text).distinct)
   }
 
   def searchOntologyTerms(text: String, definedBy: IRI, limit: Int): Future[Seq[MatchedTerm[MinimalTerm]]] = {
@@ -71,6 +55,7 @@ object Term {
 
   def label(iri: IRI): Future[Option[MinimalTerm]] = {
     def convert(result: QuerySolution): MinimalTerm = MinimalTerm(iri, result.getLiteral("term_label").getLexicalForm)
+
     App.executeSPARQLQuery(buildLabelQuery(iri), convert).map(_.headOption)
   }
 
@@ -99,21 +84,21 @@ object Term {
   def computeLabelForAnonymousTerm(iri: IRI): Future[MinimalTerm] = iri.toString match {
     case expression if expression.startsWith(ExpressionUtil.namedExpressionPrefix) || expression.startsWith(ExpressionUtil.namedSubClassPrefix) =>
       labelForNamedExpression(iri)
-    case negation if negation.startsWith("http://phenoscape.org/not/") =>
+    case negation if negation.startsWith("http://phenoscape.org/not/")                                                                          =>
       computedLabel(IRI.create(negation.replaceFirst(Pattern.quote("http://phenoscape.org/not/"), ""))).map { term =>
         MinimalTerm(iri, s"not ${term.label}")
       }
-    case absence if absence.startsWith("http://phenoscape.org/not_has_part/") =>
+    case absence if absence.startsWith("http://phenoscape.org/not_has_part/")                                                                   =>
       computedLabel(IRI.create(absence.replaceFirst(Pattern.quote("http://phenoscape.org/not_has_part/"), ""))).map { term =>
         MinimalTerm(iri, s"absence of ${term.label}")
       }
-    case _ => Future.successful(MinimalTerm(iri, iri.toString))
+    case _                                                                                                                                      => Future.successful(MinimalTerm(iri, iri.toString))
   }
 
   def labelForNamedExpression(iri: IRI): Future[MinimalTerm] =
     ExpressionsUtil.expressionForName(Class(iri)).map { expression =>
       for {
-        terms <- Future.sequence(expression.getSignature.map(term => computedLabel(term.getIRI)))
+        terms <- Future.sequence(expression.getSignature.asScala.map(term => computedLabel(term.getIRI)))
         labelMap = terms.map(term => term.iri -> term.label).toMap
       } yield {
         val renderer = createEntityRenderer(new LabelMapProvider(labelMap))
@@ -131,6 +116,7 @@ object Term {
     def termResult(result: QuerySolution) = (
       result.getLiteral("label").getLexicalForm,
       Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""))
+
     val termFuture = App.executeSPARQLQuery(buildTermQuery(iri), termResult).map(_.headOption)
     val synonymsFuture = termSynonyms(iri)
     val relsFuture = termRelationships(iri)
@@ -168,6 +154,7 @@ object Term {
         termID == "http://www.w3.org/2002/07/owl#Nothing" ||
         termID == "http://www.w3.org/2002/07/owl#Thing"
     }
+
     val superclassesFuture = querySuperClasses(iri, source)
     val subclassesFuture = querySubClasses(iri, source)
     val equivalentsFuture = queryEquivalentClasses(iri, source)
@@ -202,12 +189,14 @@ object Term {
 
   def queryAnatomySubClasses(iri: IRI, source: IRI, byPartOf: Boolean, byHistoricalHomolog: Boolean, bySerialHomolog: Boolean): Future[Seq[MinimalTerm]] = {
     val partOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
-    val direct = sparql"""
+    val direct =
+      sparql"""
       {
         ?term $rdfsSubClassOf $iri .
       }
       """.text
-    val partOf = if (byPartOf) List(sparql"""
+    val partOf = if (byPartOf) List(
+      sparql"""
       {
         ?partOfClass $partOfSome $iri .
         ?term $rdfsSubClassOf ?partOfClass .
@@ -215,7 +204,8 @@ object Term {
      """.text)
     else Nil
     val pieces = QueryText((direct :: partOf).mkString(" UNION "))
-    val query = sparql"""
+    val query =
+      sparql"""
       SELECT DISTINCT ?term ?term_label
       FROM $KBMainGraph
       WHERE {
@@ -233,11 +223,11 @@ object Term {
     val union = new ElementUnion()
     union.addElement(bgp(t('term, owlEquivalentClass, iri)))
     union.addElement(bgp(t(iri, owlEquivalentClass, 'term)))
-    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
+    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where(
       bgp(
         (t('term, rdfsLabel, 'term_label) ::
           definedByTriple): _*),
-        union)
+      union)
     App.executeSPARQLQuery(query, fromMinimalQuerySolution)
   }
 
@@ -258,20 +248,21 @@ object Term {
   }
 
   def leastCommonSubsumers(iris: Iterable[IRI], source: Option[IRI]): Future[Seq[IRI]] = {
-    def superClassTriple(iri: IRI) = t(iri, rdfsSubClassOf*, 'super)
+    def superClassTriple(iri: IRI) = t(iri, rdfsSubClassOf *, 'super)
+
     val definedByTriple = source.map(t('super, rdfsIsDefinedBy, _)).toList
     val superClassesQuery = select_distinct('super) from "http://kb.phenoscape.org/" where (
       bgp(
         (t('super, rdfType, owlClass) ::
           definedByTriple ++
-          iris.map(superClassTriple).toList): _*))
+            iris.map(superClassTriple).toList): _*))
     val superSuperClassesQuery = select_distinct('supersuper) from "http://kb.phenoscape.org/" where (
       bgp(
         (t('super, rdfType, owlClass) ::
           t('supersuper, rdfType, owlClass) ::
           t('super, new P_OneOrMore1(new P_Link(rdfsSubClassOf)), 'supersuper) ::
           definedByTriple ++
-          iris.map(superClassTriple).toList): _*))
+            iris.map(superClassTriple).toList): _*))
     val superClassesFuture = App.executeSPARQLQuery(superClassesQuery, _.getResource("super").getURI)
     val superSuperClassesFuture = App.executeSPARQLQuery(superSuperClassesQuery, _.getResource("supersuper").getURI)
     for {
@@ -292,11 +283,11 @@ object Term {
   }
 
   def buildTermQuery(iri: IRI): Query =
-    select_distinct('label, 'definition) from "http://kb.phenoscape.org/" where (
+    select_distinct('label, 'definition) from "http://kb.phenoscape.org/" where(
       bgp(
         t(iri, rdfsLabel, 'label)),
-        optional(bgp(
-          t(iri, definition, 'definition))))
+      optional(bgp(
+        t(iri, definition, 'definition))))
 
   def termRelationships(iri: IRI): Future[Seq[TermRelationship]] =
     App.executeSPARQLQuery(buildRelationsQuery(iri), (result) => TermRelationship(
@@ -308,7 +299,8 @@ object Term {
         result.getLiteral("filler_name").getString)))
 
   def termSynonyms(iri: IRI): Future[Seq[(IRI, String)]] = {
-    val query = sparql"""
+    val query =
+      sparql"""
       SELECT DISTINCT ?relation ?synonym
       FROM $KBMainGraph
       WHERE {
@@ -326,15 +318,15 @@ object Term {
   }
 
   def buildRelationsQuery(iri: IRI): Query = {
-    val query = select('relation, 'filler) from "http://kb.phenoscape.org/" where (
+    val query = select('relation, 'filler) from "http://kb.phenoscape.org/" where(
       bgp(
         t(iri, rdfsSubClassOf, 'restriction),
         t('restriction, owlOnProperty, 'relation),
         t('relation, rdfsLabel, 'relation_label),
         t('restriction, owlSomeValuesFrom, 'filler),
         t('filler, rdfsLabel, 'filler_label)),
-        new ElementFilter(new E_IsIRI(new ExprVar('relation))),
-        new ElementFilter(new E_IsIRI(new ExprVar('filler))))
+      new ElementFilter(new E_IsIRI(new ExprVar('relation))),
+      new ElementFilter(new E_IsIRI(new ExprVar('filler))))
     // We need to handle multiple labels in the DB for properties (and possibly classes)
     query.getProject.add(Var.alloc("filler_name"), query.allocAggregate(new AggMin(new ExprVar('filler_label))))
     query.getProject.add(Var.alloc("relation_name"), query.allocAggregate(new AggMin(new ExprVar('relation_label))))
@@ -343,19 +335,30 @@ object Term {
     query
   }
 
-  def buildSearchQuery(text: String, termType: IRI, property: IRI): Query = {
+  def buildTermSearchQuery(text: String, termType: IRI, properties: List[IRI], definedBy: Option[IRI], includeDeprecated: Boolean = false, limit: Int = 100): QueryText = {
+    import scalaz.Scalaz._
     val searchText = if (text.endsWith("*")) text else s"$text*"
-    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('term_label, BDSearch, NodeFactory.createLiteral(searchText)),
-        t('term_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
-        t('term_label, BDRank, 'rank),
-        t('term, rdfsLabel, 'term_label),
-        t('term, rdfType, termType)),
-        new ElementFilter((new E_IsIRI(new ExprVar('term)))))
-    query.addOrderBy('rank, Query.ORDER_ASCENDING)
-    query.setLimit(100)
-    query
+    val deprecatedFilter = if (includeDeprecated) sparql"" else sparql" FILTER NOT EXISTS { ?term $owlDeprecated true . } "
+    val definedByPattern = definedBy.map(ont => sparql" ?term $rdfsIsDefinedBy $ont .").getOrElse(sparql"")
+    val termToTextRel = (if (properties.nonEmpty) properties else List(RDFSLabel.getIRI)).map(p => sparql"$p").intersperse(sparql" | ").reduce(_ |+| _)
+    sparql"""
+            SELECT DISTINCT ?term ?term_label ?ont
+            FROM $KBMainGraph
+            WHERE {
+              ?matched_label $BDSearch $searchText .
+              ?matched_label $BDMatchAllTerms true .
+              ?matched_label $BDRank ?rank .
+              ?term $termToTextRel ?matched_label .
+              ?term $RDFSLabel ?term_label .
+              ?term $rdfType $termType .
+              $definedByPattern
+              OPTIONAL { ?term $rdfsIsDefinedBy ?ont . }
+              FILTER(isIRI(?term))
+              $deprecatedFilter
+            }
+            ORDER BY ASC(?rank)
+            LIMIT $limit
+          """
   }
 
   private def triplesBlock(elements: Element*): ElementGroup = {
@@ -366,7 +369,7 @@ object Term {
 
   def buildOntologyTermQuery(text: String, definedBy: IRI, limit: Int): Query = {
     val searchText = if (text.endsWith("*")) text else s"$text*"
-    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
+    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where(
       bgp(
         t('matched_label, BDSearch, NodeFactory.createLiteral(searchText)),
         t('matched_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
@@ -375,8 +378,8 @@ object Term {
         t('term, rdfsLabel, 'term_label),
         t('term, rdfsIsDefinedBy, definedBy),
         t('term, rdfType, owlClass)),
-        new ElementFilter(new E_IsIRI(new ExprVar('term))),
-        new ElementFilter(new E_NotExists(triplesBlock(bgp(t('term, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
+      new ElementFilter(new E_IsIRI(new ExprVar('term))),
+      new ElementFilter(new E_NotExists(triplesBlock(bgp(t('term, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
     query.addOrderBy('rank, Query.ORDER_ASCENDING)
     if (limit > 0) query.setLimit(limit)
     query
@@ -391,11 +394,11 @@ object Term {
   }
 
   def buildLabelsQuery(iris: IRI*): Query = {
-    val nodes = iris.map(iri => new NodeValueNode(NodeFactory.createURI(iri.toString)))
-    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
+    val nodes: Seq[Expr] = iris.map(iri => new NodeValueNode(NodeFactory.createURI(iri.toString)))
+    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where(
       bgp(
         t('term, rdfsLabel, 'term_label)),
-        new ElementFilter(new E_OneOf(new ExprVar('term), new ExprList(nodes))))
+      new ElementFilter(new E_OneOf(new ExprVar('term), ExprList.create(nodes.asJava))))
     query
   }
 
@@ -441,6 +444,19 @@ final case class SourcedMinimalTerm(term: MinimalTerm, sources: Set[IRI]) extend
 
 }
 
+final case class DefinedMinimalTerm(term: MinimalTerm, definedBy: Option[IRI]) extends LabeledTerm with JSONResultItem {
+
+  def iri: IRI = term.iri
+
+  def label: String = term.label
+
+  def toJSON: JsObject = {
+    val extra = definedBy.map("isDefinedBy" -> _.toString.toJson).toList
+    (term.toJSON.fields ++ extra).toJson.asJsObject
+  }
+
+}
+
 final case class MatchedTerm[T <: LabeledTerm](term: T, matchType: MatchType) extends JSONResultItem {
 
   def toJSON: JsObject = (term.toJSON.fields +
@@ -455,11 +471,13 @@ case object ExactMatch extends MatchType {
   override val toString = "exact"
 
 }
+
 case object PartialMatch extends MatchType {
 
   override val toString = "partial"
 
 }
+
 case object BroadMatch extends MatchType {
 
   override val toString = "broad"
