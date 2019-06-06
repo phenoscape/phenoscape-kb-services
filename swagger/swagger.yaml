@@ -1106,7 +1106,7 @@ paths:
           type: string
           format: IRI
         produces:
-        - application/csv
+        - text/csv
         responses:
           200:
             description: presence-absence dependency matrix
