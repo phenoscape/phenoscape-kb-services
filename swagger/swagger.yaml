@@ -176,7 +176,7 @@ paths:
               results:
                 type: array
                 items:
-                  $ref: '#/definitions/inline_response_200_1_results'
+                  $ref: '#/definitions/inline_response_200_2_results'
   /term/label:
     get:
       tags:
@@ -2097,19 +2097,42 @@ definitions:
       matchType:
         type: string
         example: exact
+      isDefinedBy:
+        type: string
+        format: IRI
+        example: http://purl.obolibrary.org/obo/uberon.owl
+        description: Ontology source for term (may not be present)
   inline_response_200_1:
     properties:
       results:
         type: array
         items:
           $ref: '#/definitions/inline_response_200_1_results'
+  inline_response_200_2_results:
+    properties:
+      '@id':
+        type: string
+        format: IRI
+        example: http://purl.obolibrary.org/obo/UBERON_3000957
+      label:
+        type: string
+        example: basihyal
+      matchType:
+        type: string
+        example: exact
   inline_response_200_2:
     properties:
       results:
         type: array
         items:
-          $ref: '#/definitions/TermWithLabel'
+          $ref: '#/definitions/inline_response_200_2_results'
   inline_response_200_3:
+    properties:
+      results:
+        type: array
+        items:
+          $ref: '#/definitions/TermWithLabel'
+  inline_response_200_4:
     properties:
       '@id':
         type: string
