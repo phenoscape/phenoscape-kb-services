@@ -105,14 +105,33 @@ paths:
         description: the type of term to search for, e.g. `http://www.w3.org/2002/07/owl#Class`
         required: false
         type: string
+        default: http://www.w3.org/2002/07/owl#Class
         format: IRI
-      - name: property
+      - name: properties
         in: query
-        description: relation between term and text
+        description: relation between term and text; JSON array of IRI strings
         required: false
         type: string
-        default: http://www.w3.org/2000/01/rdf-schema#label
+        default: '["http://www.w3.org/2000/01/rdf-schema#label", "http://www.geneontology.org/formats/oboInOwl#hasExactSynonym", "http://www.geneontology.org/formats/oboInOwl#NarrowSynonym", "http://www.geneontology.org/formats/oboInOwl#hasBroadSynonym"]'
+        format: JSON
+      - name: definedBy
+        in: query
+        description: the ontology identifier IRI in which the search terms are defined, e.g. `http://purl.obolibrary.org/obo/uberon.owl`
+        required: false
+        type: string
         format: IRI
+      - name: includeDeprecated
+        in: query
+        description: include deprecated (obsolete) terms in results
+        required: false
+        type: boolean
+        default: false
+      - name: limit
+        in: query
+        description: maximum terms to return
+        required: false
+        type: integer
+        default: 100
       responses:
         200:
           description: Term search results; values returned for `matchType` may be `exact`, `partial`, or `broad`.
@@ -127,7 +146,7 @@ paths:
     get:
       tags:
       - Terms
-      summary: Ontology class search
+      summary: Ontology class search [DEPRECATED]
       description: Search for classes from a particular ontology.
       produces:
       - application/json
