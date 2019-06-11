@@ -42,11 +42,11 @@ object Term {
 
   private val factory = OWLManager.getOWLDataFactory
 
-  def search(text: String, termType: IRI, properties: Seq[IRI], definedBy: Option[IRI], includeDeprecated: Boolean = false, limit: Int = 100): Future[Seq[MatchedTerm[DefinedMinimalTerm]]] = {
+  def search(text: String, termType: IRI, properties: Seq[IRI], definedBys: Seq[IRI], includeDeprecated: Boolean = false, limit: Int = 100): Future[Seq[MatchedTerm[DefinedMinimalTerm]]] = {
     def resultFromQuerySolution(qs: QuerySolution): DefinedMinimalTerm = DefinedMinimalTerm(MinimalTerm(
       IRI.create(qs.getResource("term").getURI),
       qs.getLiteral("term_label").getLexicalForm), Option(qs.getResource("ont")).map(o => IRI.create(o.getURI)))
-    App.executeSPARQLQueryString(buildTermSearchQuery(text, termType, properties.toList, definedBy, includeDeprecated, limit).text, resultFromQuerySolution).map(orderBySearchedText(_, text).distinct)
+    App.executeSPARQLQueryString(buildTermSearchQuery(text, termType, properties.toList, definedBys, includeDeprecated, limit).text, resultFromQuerySolution).map(orderBySearchedText(_, text).distinct)
   }
 
   def searchOntologyTerms(text: String, definedBy: IRI, limit: Int): Future[Seq[MatchedTerm[MinimalTerm]]] = {
@@ -335,11 +335,17 @@ object Term {
     query
   }
 
-  def buildTermSearchQuery(text: String, termType: IRI, properties: List[IRI], definedBy: Option[IRI], includeDeprecated: Boolean = false, limit: Int = 100): QueryText = {
+  def buildTermSearchQuery(text: String, termType: IRI, properties: List[IRI], definedBys: Seq[IRI], includeDeprecated: Boolean = false, limit: Int = 100): QueryText = {
     import scalaz.Scalaz._
     val searchText = if (text.endsWith("*")) text else s"$text*"
     val deprecatedFilter = if (includeDeprecated) sparql"" else sparql" FILTER NOT EXISTS { ?term $owlDeprecated true . } "
-    val definedByPattern = definedBy.map(ont => sparql" ?term $rdfsIsDefinedBy $ont .").getOrElse(sparql"")
+    val definedByPattern = if (definedBys.nonEmpty) {
+      val definedByValues = definedBys.map(ont => sparql" $ont ").reduce(_ |+| _)
+      sparql"""
+                VALUES ?definingOnt { $definedByValues }
+                ?term $rdfsIsDefinedBy ?definingOnt .
+            """
+    } else sparql""
     val termToTextRel = (if (properties.nonEmpty) properties else List(RDFSLabel.getIRI)).map(p => sparql"$p").intersperse(sparql" | ").reduce(_ |+| _)
     sparql"""
             SELECT DISTINCT ?term ?term_label ?ont
