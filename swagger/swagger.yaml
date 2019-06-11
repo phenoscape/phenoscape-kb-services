@@ -116,10 +116,10 @@ paths:
         format: JSON
       - name: definedBy
         in: query
-        description: the ontology identifier IRI in which the search terms are defined, e.g. `http://purl.obolibrary.org/obo/uberon.owl`
+        description: the ontology identifier IRI(s) in which the search terms are defined, e.g. `http://purl.obolibrary.org/obo/uberon.owl`; JSON array of IRI strings
         required: false
         type: string
-        format: IRI
+        format: JSON
       - name: includeDeprecated
         in: query
         description: include deprecated (obsolete) terms in results
