@@ -168,7 +168,7 @@ final case class DependencyMatrix[A](map: Map[A, Map[A, Boolean]])
 
 object DependencyMatrix {
 
-  implicit val csvMarshaller : ToEntityMarshaller[DependencyMatrix[_]] = Marshaller.stringMarshaller(MediaTypes.`text/plain`).compose(matrix =>
+  implicit val csvMarshaller : ToEntityMarshaller[DependencyMatrix[_]] = Marshaller.stringMarshaller(MediaTypes.`text/csv`).compose(matrix =>
     AnatomicalEntity.matrixRendererFromMapOfMaps(matrix))
 
 }
