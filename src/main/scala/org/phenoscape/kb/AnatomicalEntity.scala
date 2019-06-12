@@ -72,7 +72,7 @@ object AnatomicalEntity {
 
     val mapOfMaps = dependencyMatrix.map
     val sortedKeys = mapOfMaps.keys.toList.sortBy(_.toString)
-    val headers = s"${sortedKeys.mkString(",")}" //print column headers
+    val headers = s",${sortedKeys.mkString(",")}" //print column headers
 
     val matrix = for (x <- sortedKeys) yield {
       val row = s"$x"
