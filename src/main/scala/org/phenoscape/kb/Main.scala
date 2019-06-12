@@ -12,9 +12,7 @@ import org.semanticweb.owlapi.model.OWLClass
 import org.semanticweb.owlapi.model.OWLClassExpression
 import org.semanticweb.owlapi.model.OWLNamedIndividual
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary
-
 import com.typesafe.config.ConfigFactory
-
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -33,6 +31,7 @@ import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.http.scaladsl.server.directives.CachingDirectives._
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
+import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
 import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
@@ -51,7 +50,9 @@ object Main extends HttpApp with App {
 
   implicit val IRIUnmarshaller: Unmarshaller[String, IRI] = Unmarshaller.strict(IRI.create)
 
-  implicit val IRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] = Unmarshaller.strict(_.split(",", -1).map(IRI.create))
+  implicit val QualitySpecUnmarshaller: Unmarshaller[String, QualitySpec] = IRIUnmarshaller.map(QualitySpec.fromIRI)
+
+  implicit val IRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] = Unmarshaller.strict(_.split(",", -1).map(IRI.create)) //FIXME standardize services to use the JSON array unmarshaller, currently Seq[String]
 
   implicit val OWLClassUnmarshaller: Unmarshaller[String, OWLClass] = Unmarshaller.strict(text => factory.getOWLClass(IRI.create(text)))
 
@@ -60,14 +61,14 @@ object Main extends HttpApp with App {
   implicit val SimpleMapFromJSONString: Unmarshaller[String, Map[String, String]] = Unmarshaller.strict { text =>
     text.parseJson match {
       case o: JsObject => o.fields.map { case (key, value) => key -> value.toString }
-      case _           => throw new IllegalArgumentException(s"Not a valid JSON map: $text")
+      case _ => throw new IllegalArgumentException(s"Not a valid JSON map: $text")
     }
   }
 
   implicit val SeqFromJSONString: Unmarshaller[String, Seq[String]] = Unmarshaller.strict { text =>
     text.parseJson match {
       case a: JsArray => a.elements.map(_.convertTo[String])
-      case _          => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
+      case _ => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
     }
   }
 
@@ -101,10 +102,12 @@ object Main extends HttpApp with App {
         } ~
           pathPrefix("term") {
             path("search") {
-              parameters('text, 'type.as[IRI].?(owlClass), 'property.?(rdfsLabel)) { (text, termType, property) =>
+              parameters('text, 'type.as[IRI].?(owlClass), 'properties.as[Seq[String]].?, 'definedBy.as[Seq[String]].?, 'includeDeprecated.as[Boolean].?(false), 'limit.as[Int].?(100)) { (text, termType, properties, definedByOpt, includeDeprecated, limit) =>
                 complete {
+                  val props = properties.map(_.map(IRI.create)).getOrElse(List(rdfsLabel, hasExactSynonym.getIRI, hasNarrowSynonym.getIRI, hasBroadSynonym.getIRI))
+                  val definedBys = definedByOpt.map(_.map(IRI.create)).getOrElse(Nil)
                   import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-                  Term.search(text, termType, property)
+                  Term.search(text, termType, props, definedBys, includeDeprecated, limit)
                 }
               }
             } ~
@@ -184,7 +187,7 @@ object Main extends HttpApp with App {
                   complete {
                     Term.resolveLabelExpression(expression) match {
                       case Success(expression) => expression
-                      case Failure(error)      => StatusCodes.UnprocessableEntity -> error
+                      case Failure(error) => StatusCodes.UnprocessableEntity -> error
                     }
                   }
                 }
@@ -198,13 +201,24 @@ object Main extends HttpApp with App {
               }
           } ~
           path("ontotrace") {
-            parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'variable_only.as[Boolean].?(true), 'parts.as[Boolean].?(false)) { (entity, taxon, variableOnly, includeParts) =>
-              respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> "ontotrace.xml"))) {
-                complete {
-                  PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon, variableOnly, includeParts)
+            get {
+              parameters('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'variable_only.as[Boolean].?(true), 'parts.as[Boolean].?(false)) { (entity, taxon, variableOnly, includeParts) =>
+                respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> "ontotrace.xml"))) {
+                  complete {
+                    PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon, variableOnly, includeParts)
+                  }
                 }
               }
-            }
+            } ~
+              post {
+                formFields('entity.as[OWLClassExpression], 'taxon.as[OWLClassExpression], 'variable_only.as[Boolean].?(true), 'parts.as[Boolean].?(false)) { (entity, taxon, variableOnly, includeParts) =>
+                  respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment, Map("filename" -> "ontotrace.xml"))) {
+                    complete {
+                      PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon, variableOnly, includeParts)
+                    }
+                  }
+                }
+              }
           } ~
           pathPrefix("similarity") {
             path("query") {
@@ -254,7 +268,7 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("ic_disparity") {
-                parameters('iri.as[OWLClass], 'queryGraph.as[IRI], 'corpus_graph.as[IRI]) { (term, queryGraph, corpusGraph) =>
+                parameters('iri.as[OWLClass], 'query_graph.as[IRI], 'corpus_graph.as[IRI]) { (term, queryGraph, corpusGraph) =>
                   complete {
                     Similarity.icDisparity(term, queryGraph, corpusGraph).map(value => JsObject("value" -> value.toJson))
                   }
@@ -288,11 +302,22 @@ object Main extends HttpApp with App {
                   }
               } ~
               path("matrix") {
-                parameters('terms.as[Seq[IRI]]) { iris =>
-                  complete {
-                    Graph.ancestorMatrix(iris.toSet)
+                get {
+                  parameters('terms.as[Seq[String]]) { iriStrings =>
+                    complete {
+                      val iris = iriStrings.map(IRI.create).toSet
+                      Graph.ancestorMatrix(iris)
+                    }
                   }
-                }
+                } ~
+                  post {
+                    formFields('terms.as[Seq[String]]) { iriStrings =>
+                      complete {
+                        val iris = iriStrings.map(IRI.create).toSet
+                        Graph.ancestorMatrix(iris)
+                      }
+                    }
+                  }
               }
           } ~
           pathPrefix("characterstate") {
@@ -327,8 +352,17 @@ object Main extends HttpApp with App {
                 (taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                   complete {
                     import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-                    if (total) Taxon.directPhenotypesTotalFor(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                    else Taxon.directPhenotypesFor(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                    val entityIsNamed = entityOpt.forall(!_.isAnonymous)
+                    val qualityIsNamed = qualityOpt.forall(!_.isAnonymous)
+                    if (entityIsNamed && qualityIsNamed) {
+                      val entityIRI = entityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+                      val qualitySpec = qualityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI).map(QualitySpec.fromIRI).getOrElse(PhenotypicQuality(None))
+                      if (total) Taxon.directPhenotypesTotalFor(taxon, entityIRI, qualitySpec, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                      else Taxon.directPhenotypesFor(taxon, entityIRI, qualitySpec, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                    } else {
+                      if (total) Taxon.directPhenotypesTotalForExpression(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                      else Taxon.directPhenotypesForExpression(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                    }
                   }
               }
             } ~
@@ -342,46 +376,58 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("with_phenotype") {
-                parameters('entity.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'quality.as[OWLClassExpression].?(owlThing: OWLClassExpression), 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                  (entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+                parameters('entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                  (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                     complete {
                       import org.phenoscape.kb.Taxon.ComboTaxaMarshaller
-                      if (total) {
-                        Taxon.withPhenotypeTotal(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                      } else Taxon.withPhenotype(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                      val entityIsNamed = entityOpt.forall(!_.isAnonymous)
+                      val qualityIsNamed = qualityOpt.forall(!_.isAnonymous)
+                      if (entityIsNamed && qualityIsNamed) {
+                        val entityIRI = entityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+                        val qualitySpec = qualityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI).map(QualitySpec.fromIRI).getOrElse(PhenotypicQuality(None))
+                        if (total) Taxon.withPhenotypeTotal(entityIRI, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                        else Taxon.withPhenotype(entityIRI, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                      } else {
+                        if (total) Taxon.withPhenotypeExpressionTotal(entityOpt.getOrElse(owlThing), qualityOpt.getOrElse(owlThing), taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                        else Taxon.withPhenotypeExpression(entityOpt.getOrElse(owlThing), qualityOpt.getOrElse(owlThing), taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                      }
                     }
                 }
               } ~
               path("facet" / "phenotype" / Segment) { facetBy =>
-                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
-                  (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
+                parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
+                  (entityOpt, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
+                      val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
                       facetBy match {
-                        case "entity"  => Taxon.facetTaxaWithPhenotypeByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "quality" => Taxon.facetTaxaWithPhenotypeByQuality(qualityOpt, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "taxon"   => Taxon.facetTaxaWithPhenotypeByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "entity"  => Taxon.facetTaxaWithPhenotypeByEntity(entityOpt, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "quality" => Taxon.facetTaxaWithPhenotypeByQuality(qualitySpec.asOptionalQuality, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon"   => Taxon.facetTaxaWithPhenotypeByTaxon(taxonOpt, entityOpt, qualitySpec, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
                 }
               } ~
               path("facet" / "annotations" / Segment) { facetBy =>
-                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
-                  (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
+                parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
+                  (entityOpt, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
+                      val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
                       facetBy match {
-                        case "entity"  => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "quality" => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByQuality(qualityOpt, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "taxon"   => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+
+                        case "entity"  => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByEntity(entityOpt, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "quality" => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByQuality(qualitySpec.asOptionalQuality, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon"   => TaxonPhenotypeAnnotation.facetTaxonAnnotationsByTaxon(taxonOpt, entityOpt, qualitySpec, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
                 }
               } ~
               path("annotations") { //FIXME needs documentation
-                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                  (entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+                parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                  (entity, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                     complete {
-                      if (total) TaxonPhenotypeAnnotation.queryAnnotationsTotal(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                      else TaxonPhenotypeAnnotation.queryAnnotations(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                      val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
+                      if (total) TaxonPhenotypeAnnotation.queryAnnotationsTotal(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                      else TaxonPhenotypeAnnotation.queryAnnotations(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                     }
                 }
               } ~
@@ -486,6 +532,16 @@ object Main extends HttpApp with App {
                     AnatomicalEntity.homologyAnnotations(entity, false)
                   }
                 }
+              } ~
+              path("dependency") {
+                get {
+                  parameters('terms.as[Seq[String]]) { iriStrings =>
+                    complete {
+                      val iris = iriStrings.map(IRI.create).toSet
+                      AnatomicalEntity.presenceAbsenceDependencyMatrix(iris)
+                    }
+                  }
+                }
               }
           } ~
           pathPrefix("gene") {
@@ -573,7 +629,7 @@ object Main extends HttpApp with App {
                   (entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
                       facetBy match {
-                        case "entity"  => Gene.facetGenesWithPhenotypeByEntity(entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "entity" => Gene.facetGenesWithPhenotypeByEntity(entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                         case "quality" => Gene.facetGenesWithPhenotypeByQuality(qualityOpt, entityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
@@ -589,23 +645,26 @@ object Main extends HttpApp with App {
           } ~
           pathPrefix("study") {
             path("query") { //FIXME doc out of date
-              parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                (entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+              parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                (entity, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                   complete {
                     import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-                    if (total) Study.queryStudiesTotal(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                    else Study.queryStudies(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                    val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
+                    if (total) Study.queryStudiesTotal(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                    else Study.queryStudies(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                   }
               }
             } ~
               path("facet" / Segment) { facetBy =>
-                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
-                  (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
+                parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
+                  (entityOpt, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
+                      val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
                       facetBy match {
-                        case "entity"  => Study.facetStudiesByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "quality" => Study.facetStudiesByQuality(qualityOpt, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "taxon"   => Study.facetStudiesByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+
+                        case "entity"  => Study.facetStudiesByEntity(entityOpt, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "quality" => Study.facetStudiesByQuality(qualitySpec.asOptionalQuality, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon"   => Study.facetStudiesByTaxon(taxonOpt, entityOpt, qualitySpec, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
                 }
@@ -628,10 +687,9 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("matrix") {
-                parameters('iri.as[IRI]) { (iri) =>
+                parameters('iri.as[IRI]) { iri =>
                   complete {
-                    val prettyPrinter = new scala.xml.PrettyPrinter(9999, 2)
-                    Study.queryMatrix(iri).map(prettyPrinter.format(_))
+                    Study.queryMatrix(iri)
                   }
                 }
               } ~
@@ -645,23 +703,26 @@ object Main extends HttpApp with App {
           } ~
           pathPrefix("phenotype") {
             path("query") {
-              parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                (entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+              parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                (entity, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                   complete {
                     import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-                    if (total) Phenotype.queryTaxonPhenotypesTotal(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                    else Phenotype.queryTaxonPhenotypes(entity, quality, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                    val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
+                    if (total) Phenotype.queryTaxonPhenotypesTotal(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                    else Phenotype.queryTaxonPhenotypes(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                   }
               }
             } ~
               path("facet" / Segment) { facetBy =>
-                parameters('entity.as[IRI].?, 'quality.as[IRI].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
-                  (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
+                parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false)) {
+                  (entityOpt, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
+                      val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
                       facetBy match {
-                        case "entity"  => Phenotype.facetPhenotypeByEntity(entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "quality" => Phenotype.facetPhenotypeByQuality(qualityOpt, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-                        case "taxon"   => Phenotype.facetPhenotypeByTaxon(taxonOpt, entityOpt, qualityOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+
+                        case "entity"  => Phenotype.facetPhenotypeByEntity(entityOpt, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "quality" => Phenotype.facetPhenotypeByQuality(qualitySpec.asOptionalQuality, entityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "taxon"   => Phenotype.facetPhenotypeByTaxon(taxonOpt, entityOpt, qualitySpec, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
                 }

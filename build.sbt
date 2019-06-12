@@ -1,13 +1,10 @@
-import com.typesafe.sbt.SbtNativePackager._
-import NativePackagerKeys._
+enablePlugins(JavaServerAppPackaging)
 
 organization  := "org.phenoscape"
 
 name          := "phenoscape-kb-services"
 
 version       := "0.5"
-
-packageArchetype.java_server
 
 packageDescription in Debian := "Phenoscape KB services"
 
@@ -23,7 +20,7 @@ daemonUser in Linux := "phenoscape" // user which will execute the application
 
 daemonGroup in Linux := "phenoscape"    // group which will execute the application
 
-scalaVersion  := "2.12.5"
+scalaVersion  := "2.12.8"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
 

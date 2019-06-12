@@ -1,33 +1,31 @@
 package org.phenoscape.kb.queries
 
-import scala.concurrent.Future
-import scala.language.postfixOps
-
 import org.phenoscape.kb.AnatomicalEntity
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsLabel
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
+import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.queries.QueryUtil.QualitySpec
 import org.phenoscape.kb.util.BlazegraphNamedSubquery
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.owl.Vocab._
-import org.phenoscape.sparql.SPARQLInterpolation._
-import org.phenoscape.sparql.SPARQLInterpolation.QueryText
+import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
 import org.semanticweb.owlapi.model.IRI
-
-import scalaz._
 import scalaz.Scalaz._
+import scalaz._
+
+import scala.concurrent.Future
+import scala.language.postfixOps
 
 object DirectPhenotypesForTaxon {
 
-  def buildQuery(taxon: IRI, entity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, countOnly: Boolean, limit: Int, offset: Int): Future[String] = {
+  def buildQuery(taxon: IRI, entity: Option[IRI], quality: QualitySpec, includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, countOnly: Boolean, limit: Int, offset: Int): Future[String] = {
     for {
       (whereClause, subqueries) <- constructWhereClause(taxon, entity, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     } yield {
       val unifiedQueries = BlazegraphNamedSubquery.unifyQueries(subqueries)
       val namedQueriesBlock = if (unifiedQueries.nonEmpty) unifiedQueries.map(_.namedQuery).reduce(_ |+| _) else sparql""
       val paging = if (limit > 0) sparql"LIMIT $limit OFFSET $offset" else sparql""
-      val query = if (countOnly) sparql"""
+      val query = if (countOnly)
+        sparql"""
       SELECT (COUNT(*) AS ?count)
       FROM $KBMainGraph
       FROM $KBClosureGraph
@@ -37,7 +35,8 @@ object DirectPhenotypesForTaxon {
         $whereClause
       }
       """
-      else sparql"""
+      else
+        sparql"""
       SELECT DISTINCT ?state ?description ?matrix ?matrix_label ?phenotype
       FROM $KBMainGraph
       FROM $KBClosureGraph
@@ -51,7 +50,7 @@ object DirectPhenotypesForTaxon {
   }
 
   //TODO extract common parts with TaxaWithPhenotype
-  private def constructWhereClause(taxon: IRI, entity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[(QueryText, Set[BlazegraphNamedSubquery])] = {
+  private def constructWhereClause(taxon: IRI, entity: Option[IRI], quality: QualitySpec, includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[(QueryText, Set[BlazegraphNamedSubquery])] = {
     val validHomologyRelation = (if (includeHistoricalHomologs) Set(homologous_to.getIRI) else Set.empty[IRI]) ++ (if (includeSerialHomologs) Set(serially_homologous_to.getIRI) else Set.empty[IRI])
     val homologyQueryPartsFut: ListT[Future, (List[QueryText], Set[BlazegraphNamedSubquery])] = for {
       entityTerm <- entity.toList |> Future.successful |> ListT.apply
@@ -107,7 +106,7 @@ object DirectPhenotypesForTaxon {
 
   private def coreTaxonToPhenotype(taxon: IRI, inTaxa: Set[IRI], phenotypeQueries: Set[BlazegraphNamedSubquery]): QueryText = {
     // triple pattern without variables must go inside filter
-    val taxonConstraints = (for { inTaxon <- inTaxa }
+    val taxonConstraints = (for {inTaxon <- inTaxa}
       yield sparql"FILTER EXISTS { $taxon $rdfsSubClassOf $inTaxon . }").fold(sparql"")(_ |+| _)
     val subQueryRefs = QueryText(phenotypeQueries.map(q => sparql"$q").map(_.text).mkString("\n"))
     sparql"""

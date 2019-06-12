@@ -1,14 +1,10 @@
 package org.phenoscape.kb.util
 
-import org.apache.jena.query.ParameterizedSparqlString
-import org.phenoscape.sparql.SPARQLInterpolation._
-import org.phenoscape.sparql.SPARQLInterpolation.SPARQLInterpolator.SPARQLContext
-import org.semanticweb.owlapi.model.IRI
-import org.semanticweb.owlapi.model.OWLAnnotationProperty
-import org.semanticweb.owlapi.model.OWLClass
-import org.semanticweb.owlapi.model.OWLObjectProperty
-
 import contextual._
+import org.apache.jena.query.ParameterizedSparqlString
+import org.phenoscape.sparql.SPARQLInterpolation.SPARQLInterpolator.SPARQLContext
+import org.phenoscape.sparql.SPARQLInterpolation._
+import org.semanticweb.owlapi.model.{IRI, OWLAnnotationProperty, OWLClass, OWLObjectProperty}
 import scalaz._
 
 object SPARQLInterpolatorOWLAPI {
