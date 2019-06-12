@@ -1120,7 +1120,7 @@ paths:
         parameters:
         - name: terms
           in: query
-          description: JSON array of term IRIs `["http://purl.obolibrary.org/obo/UBERON_0000981", "http://purl.obolibrary.org/obo/UBERON_0002103", " http://purl.obolibrary.org/obo/UBERON_0000976", "http://purl.obolibrary.org/obo/UBERON_0002102"]`
+          description: JSON array of term IRIs `["http://purl.obolibrary.org/obo/UBERON_0000981", "http://purl.obolibrary.org/obo/UBERON_0002103", "http://purl.obolibrary.org/obo/UBERON_0000976", "http://purl.obolibrary.org/obo/UBERON_0002102"]`
           required: true
           type: string
           format: JSON
