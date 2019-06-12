@@ -1118,7 +1118,7 @@ paths:
         summary: Presence-absence dependency matrix
         description: Return presence-absence dependency matrix for entities
         parameters:
-        - name: iris
+        - name: terms
           in: query
           description: JSON array of term IRIs `["http://purl.obolibrary.org/obo/UBERON_0000981", "http://purl.obolibrary.org/obo/UBERON_0002103", " http://purl.obolibrary.org/obo/UBERON_0000976", "http://purl.obolibrary.org/obo/UBERON_0002102"]`
           required: true
