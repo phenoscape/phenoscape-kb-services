@@ -61,14 +61,14 @@ object Main extends HttpApp with App {
   implicit val SimpleMapFromJSONString: Unmarshaller[String, Map[String, String]] = Unmarshaller.strict { text =>
     text.parseJson match {
       case o: JsObject => o.fields.map { case (key, value) => key -> value.toString }
-      case _ => throw new IllegalArgumentException(s"Not a valid JSON map: $text")
+      case _           => throw new IllegalArgumentException(s"Not a valid JSON map: $text")
     }
   }
 
   implicit val SeqFromJSONString: Unmarshaller[String, Seq[String]] = Unmarshaller.strict { text =>
     text.parseJson match {
       case a: JsArray => a.elements.map(_.convertTo[String])
-      case _ => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
+      case _          => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
     }
   }
 
@@ -149,18 +149,18 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("all_ancestors") {
-                parameters('iri.as[IRI]) { (iri) =>
+                parameters('iri.as[IRI], 'parts.as[Boolean].?(false)) { (iri, includeAsPart) =>
                   complete {
                     import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-                    Term.allAncestors(iri)
+                    Term.allAncestors(iri, includeAsPart)
                   }
                 }
               } ~
               path("all_descendants") {
-                parameters('iri.as[IRI]) { (iri) =>
+                parameters('iri.as[IRI], 'parts.as[Boolean].?(false)) { (iri, includeParts) =>
                   complete {
                     import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-                    Term.allDescendants(iri)
+                    Term.allDescendants(iri, includeParts)
                   }
                 }
               } ~
@@ -187,7 +187,7 @@ object Main extends HttpApp with App {
                   complete {
                     Term.resolveLabelExpression(expression) match {
                       case Success(expression) => expression
-                      case Failure(error) => StatusCodes.UnprocessableEntity -> error
+                      case Failure(error)      => StatusCodes.UnprocessableEntity -> error
                     }
                   }
                 }
@@ -629,7 +629,7 @@ object Main extends HttpApp with App {
                   (entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
                       facetBy match {
-                        case "entity" => Gene.facetGenesWithPhenotypeByEntity(entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "entity"  => Gene.facetGenesWithPhenotypeByEntity(entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                         case "quality" => Gene.facetGenesWithPhenotypeByQuality(qualityOpt, entityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }

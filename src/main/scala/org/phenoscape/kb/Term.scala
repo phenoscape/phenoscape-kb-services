@@ -42,10 +42,13 @@ object Term {
 
   private val factory = OWLManager.getOWLDataFactory
 
+  private val PartOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
+
   def search(text: String, termType: IRI, properties: Seq[IRI], definedBys: Seq[IRI], includeDeprecated: Boolean = false, limit: Int = 100): Future[Seq[MatchedTerm[DefinedMinimalTerm]]] = {
     def resultFromQuerySolution(qs: QuerySolution): DefinedMinimalTerm = DefinedMinimalTerm(MinimalTerm(
       IRI.create(qs.getResource("term").getURI),
       qs.getLiteral("term_label").getLexicalForm), Option(qs.getResource("ont")).map(o => IRI.create(o.getURI)))
+
     App.executeSPARQLQueryString(buildTermSearchQuery(text, termType, properties.toList, definedBys, includeDeprecated, limit).text, resultFromQuerySolution).map(orderBySearchedText(_, text).distinct)
   }
 
@@ -231,16 +234,29 @@ object Term {
     App.executeSPARQLQuery(query, fromMinimalQuerySolution)
   }
 
-  def allAncestors(iri: IRI): Future[Seq[MinimalTerm]] = {
+  def allAncestors(iri: IRI, includePartOf: Boolean): Future[Seq[MinimalTerm]] = {
+    val superclasses =
+      sparql"""
+            GRAPH $KBClosureGraph {
+              $iri $rdfsSubClassOf ?term .
+              FILTER($iri != ?term)
+            }
+            """
+    val partOfs =
+      sparql"""
+            ?container $PartOfSome ?term .
+            GRAPH $KBClosureGraph {
+              $iri $rdfsSubClassOf ?container .
+              FILTER($iri != ?container)
+            }
+            """
+    val all = if (includePartOf) sparql" { $superclasses } UNION { $partOfs } " else superclasses
     val query =
       sparql"""
             SELECT ?term (SAMPLE(?term_label_n) AS ?term_label)
             FROM $KBMainGraph
             WHERE {
-              GRAPH $KBClosureGraph {
-                $iri $rdfsSubClassOf ?term .
-                FILTER($iri != ?term)
-              }
+              $all
               ?term $rdfsLabel ?term_label_n .
             }
             GROUP BY ?term
@@ -248,16 +264,29 @@ object Term {
     App.executeSPARQLQueryString(query.text, fromMinimalQuerySolution)
   }
 
-  def allDescendants(iri: IRI): Future[Seq[MinimalTerm]] = {
+  def allDescendants(iri: IRI, includeParts: Boolean): Future[Seq[MinimalTerm]] = {
+    val subclasses =
+      sparql"""
+            GRAPH $KBClosureGraph {
+              ?term $rdfsSubClassOf $iri .
+              FILTER($iri != ?term)
+            }
+            """
+    val parts =
+      sparql"""
+            ?query $PartOfSome $iri .
+            GRAPH $KBClosureGraph {
+              ?term $rdfsSubClassOf ?query .
+              FILTER(?query != ?term)
+            }
+            """
+    val all = if (includeParts) sparql" { $subclasses } UNION { $parts } " else subclasses
     val query =
       sparql"""
             SELECT ?term (SAMPLE(?term_label_n) AS ?term_label)
             FROM $KBMainGraph
             WHERE {
-              GRAPH $KBClosureGraph {
-                ?term $rdfsSubClassOf $iri .
-                FILTER($iri != ?term)
-              }
+              $all
               ?term $rdfsLabel ?term_label_n .
             }
             GROUP BY ?term
@@ -322,7 +351,7 @@ object Term {
       SELECT DISTINCT ?relation ?synonym
       FROM $KBMainGraph
       WHERE {
-        VALUES ?relation { 
+        VALUES ?relation {
       		  $hasExactSynonym
       		  $hasRelatedSynonym
       		  $hasNarrowSynonym
