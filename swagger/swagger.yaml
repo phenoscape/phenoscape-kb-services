@@ -274,6 +274,12 @@ paths:
         description: the term IRI
         required: true
         type: string
+      - name: parts
+        in: query
+        description: whether to include terms `X` for which this term is a subclass of `part_of some X`
+        required: false
+        type: boolean
+        default: false
       responses:
         200:
           description: term ancestors
@@ -293,6 +299,12 @@ paths:
         description: the term IRI
         required: true
         type: string
+      - name: parts
+        in: query
+        description: whether to include terms which are subclasses of `part_of some <this term>`
+        required: false
+        type: boolean
+        default: false
       responses:
         200:
           description: term descendants
