@@ -232,19 +232,37 @@ object Term {
   }
 
   def allAncestors(iri: IRI): Future[Seq[MinimalTerm]] = {
-    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t(iri, new P_OneOrMore1(new P_Link(rdfsSubClassOf)), 'term),
-        t('term, rdfsLabel, 'term_label)))
-    App.executeSPARQLQuery(query, fromMinimalQuerySolution)
+    val query =
+      sparql"""
+            SELECT ?term (SAMPLE(?term_label_n) AS ?term_label)
+            FROM $KBMainGraph
+            WHERE {
+              GRAPH $KBClosureGraph {
+                $iri $rdfsSubClassOf ?term .
+                FILTER($iri != ?term)
+              }
+              ?term $rdfsLabel ?term_label_n .
+            }
+            GROUP BY ?term
+            """
+    App.executeSPARQLQueryString(query.text, fromMinimalQuerySolution)
   }
 
   def allDescendants(iri: IRI): Future[Seq[MinimalTerm]] = {
-    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('term, new P_OneOrMore1(new P_Link(rdfsSubClassOf)), iri),
-        t('term, rdfsLabel, 'term_label)))
-    App.executeSPARQLQuery(query, fromMinimalQuerySolution)
+    val query =
+      sparql"""
+            SELECT ?term (SAMPLE(?term_label_n) AS ?term_label)
+            FROM $KBMainGraph
+            WHERE {
+              GRAPH $KBClosureGraph {
+                ?term $rdfsSubClassOf $iri .
+                FILTER($iri != ?term)
+              }
+              ?term $rdfsLabel ?term_label_n .
+            }
+            GROUP BY ?term
+            """
+    App.executeSPARQLQueryString(query.text, fromMinimalQuerySolution)
   }
 
   def leastCommonSubsumers(iris: Iterable[IRI], source: Option[IRI]): Future[Seq[IRI]] = {
