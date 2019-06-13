@@ -82,7 +82,7 @@ object AnatomicalEntity {
       }
       s"$row, ${values.mkString(",")}"
     }
-    s"$headers\n${matrix.mkString("\n")}"
+    s"$headers\n${matrix.mkString("\n")}\n"
   }
 
   def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[DependencyMatrix[IRI]] = {
