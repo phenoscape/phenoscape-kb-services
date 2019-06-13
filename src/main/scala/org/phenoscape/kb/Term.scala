@@ -348,12 +348,13 @@ object Term {
     } else sparql""
     val termToTextRel = (if (properties.nonEmpty) properties else List(RDFSLabel.getIRI)).map(p => sparql"$p").intersperse(sparql" | ").reduce(_ |+| _)
     sparql"""
-            SELECT DISTINCT ?term ?term_label ?ont
+            SELECT DISTINCT ?term ?term_label ?ont ?boosted_rank
             FROM $KBMainGraph
             WHERE {
               ?matched_label $BDSearch $searchText .
               ?matched_label $BDMatchAllTerms true .
               ?matched_label $BDRank ?rank .
+              BIND(IF(?matched_label = $text, 0, ?rank) AS ?boosted_rank)
               ?term $termToTextRel ?matched_label .
               ?term $RDFSLabel ?term_label .
               ?term $rdfType $termType .
@@ -362,7 +363,7 @@ object Term {
               FILTER(isIRI(?term))
               $deprecatedFilter
             }
-            ORDER BY ASC(?rank)
+            ORDER BY ASC(?boosted_rank)
             LIMIT $limit
           """
   }
