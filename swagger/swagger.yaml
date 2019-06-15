@@ -791,7 +791,7 @@ paths:
       summary: Get matrix of subsuming terms for a list of terms [IN DEVELOPMENT—SUBJECT TO CHANGE]
       description: Get matrix of subsuming terms for a list of terms, such that clients can perform their own calculations such as Jaccard similarity.
       produces:
-      - text/plain
+      - text/csv
       parameters:
       - name: terms
         in: query
@@ -802,7 +802,7 @@ paths:
         200:
           description: 'Subsumer matrix: column headers are input terms; each row is a subsumer class, with 1 if the column header is subsumed by the row term, and 0 if not.'
           examples:
-            text/plain: |
+            text/csv: |
               ,http://purl.obolibrary.org/obo/UBERON_0000151,http://purl.obolibrary.org/obo/UBERON_0000152,http://purl.obolibrary.org/obo/UBERON_0003097
               http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0009569%3E,1,1,0
               http://purl.obolibrary.org/obo/BFO_0000004,1,1,1
@@ -819,7 +819,7 @@ paths:
       consumes:
       - application/x-www-form-urlencoded
       produces:
-      - text/plain
+      - text/csv
       parameters:
       - name: terms
         in: formData
@@ -830,7 +830,7 @@ paths:
         200:
           description: 'Subsumer matrix: column headers are input terms; each row is a subsumer class, with 1 if the column header is subsumed by the row term, and 0 if not.'
           examples:
-            text/plain: |
+            text/csv: |
               ,http://purl.obolibrary.org/obo/UBERON_0000151,http://purl.obolibrary.org/obo/UBERON_0000152,http://purl.obolibrary.org/obo/UBERON_0003097
               http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0009569%3E,1,1,0
               http://purl.obolibrary.org/obo/BFO_0000004,1,1,1
