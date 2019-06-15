@@ -127,12 +127,22 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("labels") {
-                parameters('iris.as[Seq[IRI]]) { (iris) =>
-                  complete {
-                    import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-                    Term.labels(iris: _*)
+                get {
+                  parameters('iris.as[Seq[IRI]]) { (iris) =>
+                    complete {
+                      import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+                      Term.labels(iris: _*)
+                    }
                   }
-                }
+                } ~
+                  post {
+                    formFields('iris.as[Seq[IRI]]) { (iris) =>
+                      complete {
+                        import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+                        Term.labels(iris: _*)
+                      }
+                    }
+                  }
               } ~
               path("classification") {
                 parameters('iri.as[IRI], 'definedBy.as[IRI].?) { (iri, source) =>
@@ -541,7 +551,15 @@ object Main extends HttpApp with App {
                       AnatomicalEntity.presenceAbsenceDependencyMatrix(iris)
                     }
                   }
-                }
+                } ~
+                  post {
+                    formFields('terms.as[Seq[String]]) { iriStrings =>
+                      complete {
+                        val iris = iriStrings.map(IRI.create).toSet
+                        AnatomicalEntity.presenceAbsenceDependencyMatrix(iris)
+                      }
+                    }
+                  }
               }
           } ~
           pathPrefix("gene") {
