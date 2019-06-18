@@ -71,12 +71,12 @@ object AnatomicalEntity {
   def matrixRendererFromMapOfMaps[A](dependencyMatrix: DependencyMatrix[A]) = {
 
     val mapOfMaps = dependencyMatrix.map
-    val sortedKeys = mapOfMaps.keys.toList.sortBy(_.toString)
-    val headers = s",${sortedKeys.mkString(",")}" //print column headers
+    val mapKeys = mapOfMaps.keys.toList
+    val headers = s",${mapKeys.mkString(",")}" //print column headers
 
-    val matrix = for (x <- sortedKeys) yield {
+    val matrix = for (x <- mapKeys) yield {
       val row = s"$x"
-      val values = for (y <- sortedKeys) yield mapOfMaps(x)(y) match {
+      val values = for (y <- mapKeys) yield mapOfMaps(x)(y) match {
         case true => 1
         case false => 0
       }
