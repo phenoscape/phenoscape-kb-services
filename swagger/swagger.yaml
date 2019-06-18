@@ -864,6 +864,58 @@ paths:
               http://purl.obolibrary.org/obo/UBERON_0000061,1,1,1
               http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0000475%3E,1,1,1
               http://purl.obolibrary.org/obo/UBERON_0010314,0,0,1
+  /similarity/frequency:
+    get:
+      tags:
+        - Semantic similarity
+      summary: Get frequency score for ontology terms
+      description: Get frequency score (subsumed items) for ontology terms according to some identified corpus.
+      produces:
+        - text/csv
+      parameters:
+        - name: terms
+          in: query
+          description: JSON array of term IRIs, e.g. `["http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0008897%3E"]`
+          required: true
+          type: string
+        - name: corpus_graph
+          in: query
+          description: IRI of corpus defined in KB, e.g. `http://kb.phenoscape.org/sim/taxa`
+          required: true
+          type: string
+      responses:
+        200:
+          description: 'Term frequency table: first column is term IRI, second column is occurrence count.'
+          examples:
+            text/csv: |
+              http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0008897%3E,237
+    post:
+      tags:
+        - Semantic similarity
+      summary: Get frequency score for ontology terms
+      description: Get frequency score (subsumed items) for ontology terms according to some identified corpus.
+      consumes:
+        - application/x-www-form-urlencoded
+      produces:
+        - text/csv
+      parameters:
+        - name: terms
+          in: query
+          description: JSON array of term IRIs, e.g. `["http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0008897%3E"]`
+          required: true
+          type: string
+        - name: corpus_graph
+          in: query
+          description: IRI of corpus defined in KB, e.g. `http://kb.phenoscape.org/sim/taxa`
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: 'Term frequency table: first column is term IRI, second column is occurrence count.'
+          examples:
+            text/csv: |
+              http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0008897%3E,237
   /entity/search:
     get:
       tags:
