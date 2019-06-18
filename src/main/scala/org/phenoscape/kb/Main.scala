@@ -328,6 +328,27 @@ object Main extends HttpApp with App {
                       }
                     }
                   }
+              } ~
+              path("frequency") {
+                get {
+                  //FIXME not sure IRI for identifying corpus is best approach, particularly when scores are not stored ahead of time in a graph
+                  parameters('terms.as[Seq[String]], 'corpus_graph.as[IRI]) { (iriStrings, corpusIRI) =>
+                    complete {
+                      import Similarity.TermFrequencyTable.TermFrequencyTableCSV
+                      val iris = iriStrings.map(IRI.create).toSet
+                      Similarity.frequency(iris, corpusIRI)
+                    }
+                  }
+                } ~
+                  post {
+                    formFields('terms.as[Seq[String]], 'corpus_graph.as[IRI]) { (iriStrings, corpusIRI) =>
+                      complete {
+                        import Similarity.TermFrequencyTable.TermFrequencyTableCSV
+                        val iris = iriStrings.map(IRI.create).toSet
+                        Similarity.frequency(iris, corpusIRI)
+                      }
+                    }
+                  }
               }
           } ~
           pathPrefix("characterstate") {
