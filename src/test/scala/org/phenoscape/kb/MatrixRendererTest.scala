@@ -1,5 +1,4 @@
 package org.phenoscape.kb
-import utest._
 
 object MatrixRendererTest extends App {
 
