@@ -537,7 +537,7 @@ object Main extends HttpApp with App {
                 get {
                   parameters('terms.as[Seq[String]]) { iriStrings =>
                     complete {
-                      val iris = iriStrings.map(IRI.create).toSet
+                      val iris = iriStrings.map(IRI.create).toList
                       AnatomicalEntity.presenceAbsenceDependencyMatrix(iris)
                     }
                   }
