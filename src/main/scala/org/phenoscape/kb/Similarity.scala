@@ -238,7 +238,6 @@ object Similarity {
     }
 
 
-
   private def classSubsumers(iri: IRI): Future[Set[IRI]] = {
     val query: QueryText =
       sparql"""
@@ -268,6 +267,42 @@ object Similarity {
               }
             """
     App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
+  }
+
+  def frequency(terms: Set[IRI], corpus: IRI): Future[TermFrequencyTable] = {
+    import scalaz.Scalaz._
+    corpus match {
+      case TaxaCorpus =>
+        val values = if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ |+| _) else sparql""
+        val query: QueryText =
+          sparql"""
+              PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+              SELECT ?term (COUNT(DISTINCT ?profile) AS ?count)
+              FROM $KBMainGraph
+              WHERE {
+                VALUES ?term { $values }
+                ?profile ^$has_phenotypic_profile/$rdfsIsDefinedBy $VTO .
+                GRAPH $KBClosureGraph {
+                  ?profile $rdfType ?term .
+                }
+              }
+              GROUP BY ?term
+            """
+        App.executeSPARQLQueryString(query.text, qs =>
+          IRI.create(qs.getResource("term").getURI) ->
+            qs.getLiteral("count").getInt).map(_.toMap)
+      case _          => Future.successful(Map.empty)
+    }
+  }
+
+  type TermFrequencyTable = Map[IRI, Int]
+
+  object TermFrequencyTable {
+
+    implicit val TermFrequencyTableCSV: ToEntityMarshaller[TermFrequencyTable] = Marshaller.stringMarshaller(MediaTypes.`text/csv`).compose { table =>
+      table.keys.toSeq.sortBy(_.toString).map(k => s"$k,${table(k)}").mkString("\n")
+    }
+
   }
 
 }

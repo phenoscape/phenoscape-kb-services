@@ -1,5 +1,7 @@
 package org.phenoscape.kb
 
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.query.Query
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
@@ -39,10 +41,10 @@ object Graph {
       t('term, rdfsLabel, 'term_label))
   }
 
-  def ancestorMatrix(terms: Set[IRI]): Future[String] = {
+  def ancestorMatrix(terms: Set[IRI]): Future[AncestorMatrix] = {
     import scalaz._
     import Scalaz._
-    if (terms.isEmpty) Future.successful("")
+    if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
       val valuesElements = terms.map(t => sparql" $t ").reduce(_ |+| _)
       val query =
@@ -70,10 +72,17 @@ object Graph {
           val values = termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
           s"$ancestor,${values.mkString(",")}"
         }
-        s"$header\n${valuesLines.mkString("\n")}"
+        AncestorMatrix(s"$header\n${valuesLines.mkString("\n")}")
       }
     }
   }
 
+  final case class AncestorMatrix(csv: String)
+
+  object AncestorMatrix {
+
+    implicit val matrixMarshaller: ToEntityMarshaller[AncestorMatrix] = Marshaller.stringMarshaller(MediaTypes.`text/csv`).compose(_.csv)
+
+  }
 
 }

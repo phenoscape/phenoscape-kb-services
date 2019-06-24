@@ -16,11 +16,9 @@ import com.typesafe.config.ConfigFactory
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.HttpHeader
+import akka.http.scaladsl.model.{HttpHeader, HttpMethod, StatusCodes, Uri, headers}
 import akka.http.scaladsl.model.HttpMethods.GET
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.Uri
-import akka.http.scaladsl.model.headers
+import akka.http.scaladsl.model.HttpMethods.POST
 import akka.http.scaladsl.model.headers.ContentDispositionTypes
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.HttpApp
@@ -61,21 +59,21 @@ object Main extends HttpApp with App {
   implicit val SimpleMapFromJSONString: Unmarshaller[String, Map[String, String]] = Unmarshaller.strict { text =>
     text.parseJson match {
       case o: JsObject => o.fields.map { case (key, value) => key -> value.toString }
-      case _ => throw new IllegalArgumentException(s"Not a valid JSON map: $text")
+      case _           => throw new IllegalArgumentException(s"Not a valid JSON map: $text")
     }
   }
 
   implicit val SeqFromJSONString: Unmarshaller[String, Seq[String]] = Unmarshaller.strict { text =>
     text.parseJson match {
       case a: JsArray => a.elements.map(_.convertTo[String])
-      case _ => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
+      case _          => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
     }
   }
 
-  val cacheKeyer: PartialFunction[RequestContext, (Uri, Option[HttpHeader])] = {
-    case r: RequestContext if (r.request.method == GET) => (r.request.uri, r.request.headers.find(_.is("accept")))
+  val cacheKeyer: PartialFunction[RequestContext, (Uri, Option[HttpHeader], HttpMethod)] = {
+    case r: RequestContext if (r.request.method == GET || r.request.method == POST) => (r.request.uri, r.request.headers.find(_.is("accept")), r.request.method)
   }
-  val memoryCache = routeCache[(Uri, Option[HttpHeader])]
+  val memoryCache = routeCache[(Uri, Option[HttpHeader], HttpMethod)]
 
   val conf = ConfigFactory.load()
   val serverPort = conf.getInt("kb-services.port")
@@ -127,12 +125,22 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("labels") {
-                parameters('iris.as[Seq[IRI]]) { (iris) =>
-                  complete {
-                    import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-                    Term.labels(iris: _*)
+                get {
+                  parameters('iris.as[Seq[IRI]]) { (iris) =>
+                    complete {
+                      import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+                      Term.labels(iris: _*)
+                    }
                   }
-                }
+                } ~
+                  post {
+                    formFields('iris.as[Seq[IRI]]) { (iris) =>
+                      complete {
+                        import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+                        Term.labels(iris: _*)
+                      }
+                    }
+                  }
               } ~
               path("classification") {
                 parameters('iri.as[IRI], 'definedBy.as[IRI].?) { (iri, source) =>
@@ -149,18 +157,18 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("all_ancestors") {
-                parameters('iri.as[IRI]) { (iri) =>
+                parameters('iri.as[IRI], 'parts.as[Boolean].?(false)) { (iri, includeAsPart) =>
                   complete {
                     import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-                    Term.allAncestors(iri)
+                    Term.allAncestors(iri, includeAsPart)
                   }
                 }
               } ~
               path("all_descendants") {
-                parameters('iri.as[IRI]) { (iri) =>
+                parameters('iri.as[IRI], 'parts.as[Boolean].?(false)) { (iri, includeParts) =>
                   complete {
                     import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-                    Term.allDescendants(iri)
+                    Term.allDescendants(iri, includeParts)
                   }
                 }
               } ~
@@ -187,7 +195,7 @@ object Main extends HttpApp with App {
                   complete {
                     Term.resolveLabelExpression(expression) match {
                       case Success(expression) => expression
-                      case Failure(error) => StatusCodes.UnprocessableEntity -> error
+                      case Failure(error)      => StatusCodes.UnprocessableEntity -> error
                     }
                   }
                 }
@@ -315,6 +323,27 @@ object Main extends HttpApp with App {
                       complete {
                         val iris = iriStrings.map(IRI.create).toSet
                         Graph.ancestorMatrix(iris)
+                      }
+                    }
+                  }
+              } ~
+              path("frequency") {
+                get {
+                  //FIXME not sure IRI for identifying corpus is best approach, particularly when scores are not stored ahead of time in a graph
+                  parameters('terms.as[Seq[String]], 'corpus_graph.as[IRI]) { (iriStrings, corpusIRI) =>
+                    complete {
+                      import Similarity.TermFrequencyTable.TermFrequencyTableCSV
+                      val iris = iriStrings.map(IRI.create).toSet
+                      Similarity.frequency(iris, corpusIRI)
+                    }
+                  }
+                } ~
+                  post {
+                    formFields('terms.as[Seq[String]], 'corpus_graph.as[IRI]) { (iriStrings, corpusIRI) =>
+                      complete {
+                        import Similarity.TermFrequencyTable.TermFrequencyTableCSV
+                        val iris = iriStrings.map(IRI.create).toSet
+                        Similarity.frequency(iris, corpusIRI)
                       }
                     }
                   }
@@ -541,7 +570,15 @@ object Main extends HttpApp with App {
                       AnatomicalEntity.presenceAbsenceDependencyMatrix(iris)
                     }
                   }
-                }
+                } ~
+                  post {
+                    formFields('terms.as[Seq[String]]) { iriStrings =>
+                      complete {
+                        val iris = iriStrings.map(IRI.create).toSet
+                        AnatomicalEntity.presenceAbsenceDependencyMatrix(iris)
+                      }
+                    }
+                  }
               }
           } ~
           pathPrefix("gene") {
@@ -629,7 +666,7 @@ object Main extends HttpApp with App {
                   (entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                     complete {
                       facetBy match {
-                        case "entity" => Gene.facetGenesWithPhenotypeByEntity(entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+                        case "entity"  => Gene.facetGenesWithPhenotypeByEntity(entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                         case "quality" => Gene.facetGenesWithPhenotypeByQuality(qualityOpt, entityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
