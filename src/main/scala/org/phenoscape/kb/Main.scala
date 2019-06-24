@@ -574,7 +574,7 @@ object Main extends HttpApp with App {
                   post {
                     formFields('terms.as[Seq[String]]) { iriStrings =>
                       complete {
-                        val iris = iriStrings.map(IRI.create).toSet
+                        val iris = iriStrings.map(IRI.create).toList
                         AnatomicalEntity.presenceAbsenceDependencyMatrix(iris)
                       }
                     }
