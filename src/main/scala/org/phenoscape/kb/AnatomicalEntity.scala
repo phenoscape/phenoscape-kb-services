@@ -71,21 +71,21 @@ object AnatomicalEntity {
   def matrixRendererFromMapOfMaps[A](dependencyMatrix: DependencyMatrix[A]) = {
 
     val mapOfMaps = dependencyMatrix.map
-    val sortedKeys = mapOfMaps.keys.toList.sortBy(_.toString)
-    val headers = s",${sortedKeys.mkString(",")}" //print column headers
+    val orderedKeys = dependencyMatrix.orderedKeys
+    val headers = s",${orderedKeys.mkString(",")}" //print column headers
 
-    val matrix = for (x <- sortedKeys) yield {
+    val matrix = for (x <- orderedKeys) yield {
       val row = s"$x"
-      val values = for (y <- sortedKeys) yield mapOfMaps(x)(y) match {
+      val values = for (y <- orderedKeys) yield mapOfMaps(x)(y) match {
         case true => 1
         case false => 0
       }
-      s"$row, ${values.mkString(",")}"
+      s"$row,${values.mkString(",")}"
     }
     s"$headers\n${matrix.mkString("\n")}\n"
   }
 
-  def presenceAbsenceDependencyMatrix(iris: Set[IRI]): Future[DependencyMatrix[IRI]] = {
+  def presenceAbsenceDependencyMatrix(iris: List[IRI]): Future[DependencyMatrix[IRI]] = {
     import org.phenoscape.kb.util.Util.TraversableOps
     import org.phenoscape.kb.util.Util.MapOps
     val dependencyTuples = for {
@@ -93,9 +93,9 @@ object AnatomicalEntity {
       y <- iris
     } yield if (x == y) Future.successful(x -> (y -> true)) else presenceImpliesPresenceOf(x, y).map(e => x -> (y -> e))
 
-    //Convert from Set(x, (y, flag)) -> Map[x -> Map[y -> flag]]
+    //Convert from List(x, (y, flag)) -> Map[x -> Map[y -> flag]]
     Future.sequence(dependencyTuples).map { deps =>
-      DependencyMatrix(deps.groupMap(_._1)(_._2).mapVals(_.toMap))
+      DependencyMatrix(deps.groupMap(_._1)(_._2).mapVals(_.toMap), iris)
     }
   }
 
@@ -164,7 +164,7 @@ object HomologyAnnotation {
 
 }
 
-final case class DependencyMatrix[A](map: Map[A, Map[A, Boolean]])
+final case class DependencyMatrix[A](map: Map[A, Map[A, Boolean]], orderedKeys: List[A])
 
 object DependencyMatrix {
 
