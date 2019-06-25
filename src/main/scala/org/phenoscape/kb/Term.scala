@@ -4,6 +4,7 @@ import java.util.regex.Pattern
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.NodeFactory
 import org.apache.jena.query.{Query, QuerySolution}
@@ -456,9 +457,6 @@ object Term {
     query
   }
 
-  implicit val JSONResultItemsMarshaller: ToEntityMarshaller[Seq[JSONResultItem]] = Marshaller.combined(results =>
-    new JsObject(Map("results" -> results.map(_.toJSON).toJson)))
-
   implicit val IRIMarshaller: ToEntityMarshaller[IRI] = Marshaller.combined(iri =>
     new JsObject(Map("@id" -> iri.toString.toJson)))
 
@@ -488,6 +486,22 @@ final case class Term(iri: IRI, label: String, definition: String, synonyms: Seq
 final case class MinimalTerm(iri: IRI, label: String) extends LabeledTerm with JSONResultItem {
 
   def toJSON: JsObject = Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
+
+  def toTSV: String = s"$iri\t$label"
+
+}
+
+object MinimalTerm {
+
+  val tsvMarshaller: ToEntityMarshaller[MinimalTerm] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose(_.toTSV)
+
+
+  val tsvSeqMarshaller: ToEntityMarshaller[Seq[MinimalTerm]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { terms =>
+    val header = "IRI\tlabel"
+    s"$header\n${terms.map(_.toTSV).mkString("\n")}"
+  }
+
+  implicit val comboSeqMarshaller: ToEntityMarshaller[Seq[MinimalTerm]] = Marshaller.oneOf(tsvSeqMarshaller, JSONResultItem.JSONResultItemsMarshaller)
 
 }
 

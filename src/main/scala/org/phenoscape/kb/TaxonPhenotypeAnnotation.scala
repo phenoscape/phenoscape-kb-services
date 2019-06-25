@@ -1,23 +1,27 @@
 package org.phenoscape.kb
 
-import scala.concurrent.Future
-import scala.language.postfixOps
+import akka.NotUsed
+import akka.http.scaladsl.marshalling.{Marshaller, Marshalling, ToEntityMarshaller}
+import akka.http.scaladsl.model.{HttpCharsets, MediaTypes}
+import akka.stream.scaladsl.Source
+import akka.util.ByteString
 import org.apache.jena.query.QuerySolution
 import org.phenoscape.kb.Facets.Facet
-import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.kb.Term.JSONResultItemsMarshaller
-import org.phenoscape.kb.queries.TaxonAnnotations
 import org.phenoscape.kb.KBVocab.KBMainGraph
-import org.phenoscape.owl.Vocab._
-import org.semanticweb.owlapi.model.IRI
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
-import org.phenoscape.sparql.SPARQLInterpolation._
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.MediaTypes
+import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.kb.queries.QueryUtil.{PhenotypicQuality, QualitySpec}
-import spray.json._
+import org.phenoscape.kb.queries.TaxonAnnotations
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.kb.util.StreamingSPARQLResults
+import org.phenoscape.owl.Vocab._
+import org.phenoscape.sparql.SPARQLInterpolation._
+import org.semanticweb.owlapi.model.IRI
 import spray.json.DefaultJsonProtocol._
+import spray.json._
+
+import scala.concurrent.Future
+import scala.language.postfixOps
 
 final case class TaxonPhenotypeAnnotation(taxon: MinimalTerm, phenotype: MinimalTerm) extends JSONResultItem {
 
@@ -27,9 +31,11 @@ final case class TaxonPhenotypeAnnotation(taxon: MinimalTerm, phenotype: Minimal
       "phenotype" -> phenotype.toJSON)).toJson.asJsObject
   }
 
-  override def toString(): String = {
+  override def toString: String = {
     s"${taxon.iri}\t${taxon.label}\t${phenotype.iri}\t${phenotype.label}"
   }
+
+  def toCSV: String = s"${taxon.iri},${taxon.label},${phenotype.iri},${phenotype.label}"
 
 }
 
@@ -39,6 +45,11 @@ object TaxonPhenotypeAnnotation {
     query <- TaxonAnnotations.buildQuery(entity, quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
     annotations <- App.executeSPARQLQueryString(query, fromQueryResult)
   } yield annotations
+
+  def queryAnnotationsStream(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Source[TaxonPhenotypeAnnotation, NotUsed] = {
+    val futQuery = TaxonAnnotations.buildQuery(entity, quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
+    StreamingSPARQLResults.streamSelectQuery(futQuery).map(fromQueryResult)
+  }
 
   def queryAnnotationsTotal(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = for {
     query <- TaxonAnnotations.buildQuery(entity, quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
@@ -72,7 +83,8 @@ object TaxonPhenotypeAnnotation {
   }
 
   def annotationSources(taxon: IRI, phenotype: IRI): Future[Seq[AnnotationSource]] = {
-    val query = sparql"""
+    val query =
+      sparql"""
       SELECT DISTINCT ?pub ?pub_label ?char_num ?char_text ?state_text
       FROM $KBMainGraph
       WHERE {
@@ -93,12 +105,27 @@ object TaxonPhenotypeAnnotation {
 
   private def facetResultToMap(facets: List[(MinimalTerm, Int)]) = Map("facets" -> facets.map { case (term, count) => Map("term" -> term, "count" -> count) })
 
-  val AnnotationTextMarshaller: ToEntityMarshaller[Seq[TaxonPhenotypeAnnotation]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { annotations =>
+  val AnnotationTSVMarshaller: ToEntityMarshaller[TaxonPhenotypeAnnotation] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { annotation =>
+    annotation.toString
+  }
+
+  val AnnotationsTextMarshaller: ToEntityMarshaller[Seq[TaxonPhenotypeAnnotation]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { annotations =>
     val header = "taxon IRI\ttaxon label\tphenotype IRI\tphenotype label"
     s"$header\n${annotations.map(_.toString).mkString("\n")}"
   }
 
-  implicit val ComboTaxonPhenotypeAnnotationsMarshaller = Marshaller.oneOf(AnnotationTextMarshaller, JSONResultItemsMarshaller)
+  /**
+    * Required for streaming TaxonPhenotypeAnnotations to client
+    */
+  val AnnotationByteStringTSVMarshaller = Marshaller.strict[TaxonPhenotypeAnnotation, ByteString] { ann =>
+    Marshalling.WithFixedContentType(MediaTypes.`text/tab-separated-values`.toContentType(HttpCharsets.`UTF-8`), () => {
+      ByteString(ann.toString)
+    })
+  }
+
+  val ComboTaxonPhenotypeAnnotationMarshaller = Marshaller.oneOf(AnnotationTSVMarshaller, JSONResultItem.marshaller)
+
+  implicit val ComboTaxonPhenotypeAnnotationsMarshaller = Marshaller.oneOf(AnnotationsTextMarshaller, JSONResultItemsMarshaller)
 
 }
 
