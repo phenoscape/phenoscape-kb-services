@@ -13,7 +13,7 @@ import org.apache.jena.sparql.syntax.ElementFilter
 import org.phenoscape.kb.Facets.Facet
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.kb.queries.GeneAffectingPhenotype
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owl.{NamedRestrictionGenerator, Vocab}

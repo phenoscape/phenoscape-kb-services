@@ -11,7 +11,7 @@ import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
 import org.apache.jena.sparql.syntax.{ElementFilter, ElementSubQuery}
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._

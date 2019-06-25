@@ -12,7 +12,7 @@ import org.apache.jena.sparql.syntax.ElementFilter
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.TaxonEQAnnotation.{ps_entity_term, ps_related_entity_term}
-import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._

@@ -25,7 +25,7 @@ import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.KBVocab.rdfsLabel
 import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.kb.Term.JSONResultItemsMarshaller
+import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.kb.queries.DirectPhenotypesForTaxon
 import org.phenoscape.kb.queries.TaxaWithPhenotype
 import org.phenoscape.owl.Vocab
