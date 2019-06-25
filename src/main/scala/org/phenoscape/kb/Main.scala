@@ -76,7 +76,7 @@ object Main extends HttpApp with App {
   }
 
   val cacheKeyer: PartialFunction[RequestContext, (Uri, Option[HttpHeader], HttpMethod)] = {
-    case r: RequestContext if (r.request.method == GET || r.request.method == POST) => (r.request.uri, r.request.headers.find(_.is("accept")), r.request.method)
+    case r: RequestContext if (r.request.method == GET) => (r.request.uri, r.request.headers.find(_.is("accept")), r.request.method)
   }
   val memoryCache = routeCache[(Uri, Option[HttpHeader], HttpMethod)]
 
