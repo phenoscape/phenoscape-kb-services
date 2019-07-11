@@ -130,14 +130,14 @@ object Study {
         CharacterDescription(
           IRI.create(result.getResource("state").getURI),
           result.getLiteral("description").getLexicalForm,
-          matrix),
+          matrix, MinimalTerm(IRI.create(result.getResource("character").getURI), result.getLiteral("characterLabel").getLexicalForm)),
         phenotype)
     }
 
   }
 
   private def buildPhenotypesSubQuery(study: IRI): Query =
-    select_distinct('state, 'description, 'phenotype, 'character) where (
+    select_distinct('state, 'description, 'phenotype, 'character, 'characterLabel) where (
       bgp(
         t(study, rdfType, CharacterStateDataMatrix),
         t(study, has_TU / has_external_reference, 'taxon),
