@@ -112,7 +112,7 @@ object Taxon {
             result.getLiteral("description").getLexicalForm,
             CharacterMatrix(
               IRI.create(result.getResource("matrix").getURI),
-              result.getLiteral("matrix_label").getLexicalForm)),
+              result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), result.getLiteral("characterLabel").getLexicalForm)),
           phenotype)
       }
     })
