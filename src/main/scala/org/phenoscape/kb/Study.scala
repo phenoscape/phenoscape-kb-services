@@ -137,11 +137,12 @@ object Study {
   }
 
   private def buildPhenotypesSubQuery(study: IRI): Query =
-    select_distinct('state, 'description, 'phenotype) where (
+    select_distinct('state, 'description, 'phenotype, 'character) where (
       bgp(
         t(study, rdfType, CharacterStateDataMatrix),
         t(study, has_TU / has_external_reference, 'taxon),
         t(study, has_character, 'character),
+        t('character, rdfsLabel, 'characterLabel),
         t('character, may_have_state_value, 'state),
         t('state, dcDescription, 'description),
         t('state, describes_phenotype, 'phenotype)))
