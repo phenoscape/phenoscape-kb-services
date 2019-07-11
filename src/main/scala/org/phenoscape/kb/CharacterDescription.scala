@@ -226,7 +226,7 @@ case class AnnotatedCharacterDescription(characterDescription: CharacterDescript
   def toJSON: JsObject = (characterDescription.toJSON.fields ++ Map("phenotype" -> phenotype.toJSON)).toJson.asJsObject
 
   override def toString: String = {
-    s"${phenotype.iri}\t${phenotype.label}\t${characterDescription.iri}\t${characterDescription.description}\t${characterDescription.matrix.iri}\t${characterDescription.matrix.label}"
+    s"${phenotype.iri}\t${phenotype.label}\t${characterDescription.iri}\t${characterDescription.characterID.iri}\t${characterDescription.characterID.label}\t${characterDescription.description}\t${characterDescription.matrix.iri}\t${characterDescription.matrix.label}"
   }
 
 }
