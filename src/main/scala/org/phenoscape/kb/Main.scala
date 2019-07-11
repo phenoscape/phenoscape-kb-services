@@ -451,7 +451,7 @@ object Main extends HttpApp with App {
                     }
                 }
               } ~
-              path("annotations") { //FIXME needs documentation
+              path("annotations") {
                 parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
                   (entity, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                     complete {
@@ -475,7 +475,7 @@ object Main extends HttpApp with App {
                     }
                 }
               } ~
-              path("annotation" / "sources") { //FIXME needs documentation
+              path("annotation" / "sources") {
                 parameters('taxon.as[IRI], 'phenotype.as[IRI]) {
                   (taxon, phenotype) =>
                     complete {
