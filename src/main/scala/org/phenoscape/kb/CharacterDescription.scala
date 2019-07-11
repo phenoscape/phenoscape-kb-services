@@ -192,12 +192,14 @@ object CharacterDescription {
 
 }
 
-case class CharacterDescription(iri: IRI, description: String, matrix: CharacterMatrix) extends JSONResultItem {
+case class CharacterDescription(iri: IRI, description: String, matrix: CharacterMatrix, characterID: MinimalTerm) extends JSONResultItem {
 
   def toJSON: JsObject = Map(
     "@id" -> iri.toString.toJson,
     "description" -> description.toJson,
-    "matrix" -> matrix.toJSON).toJson.asJsObject
+    "matrix" -> matrix.toJSON,
+    "character id" -> characterID.iri.toString.toJson,
+    "character label" -> characterID.label.toJson).toJson.asJsObject
 
 }
 
