@@ -226,7 +226,7 @@ case class AnnotatedCharacterDescription(characterDescription: CharacterDescript
   def toJSON: JsObject = (characterDescription.toJSON.fields ++ Map("phenotype" -> phenotype.toJSON)).toJson.asJsObject
 
   override def toString: String = {
-    s"${phenotype.iri}\t${phenotype.label}\t${characterDescription.iri}\t${characterDescription.character.iri}\t${characterDescription.character.label}\t${characterDescription.description}\t${characterDescription.matrix.iri}\t${characterDescription.matrix.label}"
+    s"${phenotype.iri}\t${phenotype.label}\t${characterDescription.iri}\t${characterDescription.description}\t${characterDescription.character.iri}\t${characterDescription.character.label}\t${characterDescription.matrix.iri}\t${characterDescription.matrix.label}"
   }
 
 }
@@ -247,7 +247,7 @@ object AnnotatedCharacterDescription { //FIXME
   }
 
   implicit val AnnotatedCharacterDescriptionsTextMarshaller: ToEntityMarshaller[Seq[AnnotatedCharacterDescription]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { annotations =>
-    val header = "phenotype IRI\tphenotype\tcharacter description IRI\tcharacter description\tstudy IRI\tstudy"
+    val header = "phenotype IRI\tphenotype\tcharacter description IRI\tcharacter description\tcharacter IRI\tcharacter\tstudy IRI\tstudy"
     s"$header\n${annotations.map(_.toString).mkString("\n")}"
   }
 
