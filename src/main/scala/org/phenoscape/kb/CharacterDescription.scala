@@ -192,14 +192,14 @@ object CharacterDescription {
 
 }
 
-case class CharacterDescription(iri: IRI, description: String, matrix: CharacterMatrix, characterID: MinimalTerm) extends JSONResultItem {
+case class CharacterDescription(iri: IRI, description: String, matrix: CharacterMatrix, character: MinimalTerm) extends JSONResultItem {
 
   def toJSON: JsObject = Map(
     "@id" -> iri.toString.toJson,
     "description" -> description.toJson,
     "matrix" -> matrix.toJSON,
-    "character id" -> characterID.iri.toString.toJson,
-    "character label" -> characterID.label.toJson).toJson.asJsObject
+    "character id" -> character.iri.toString.toJson,
+    "character label" -> character.label.toJson).toJson.asJsObject
 
 }
 
@@ -226,7 +226,7 @@ case class AnnotatedCharacterDescription(characterDescription: CharacterDescript
   def toJSON: JsObject = (characterDescription.toJSON.fields ++ Map("phenotype" -> phenotype.toJSON)).toJson.asJsObject
 
   override def toString: String = {
-    s"${phenotype.iri}\t${phenotype.label}\t${characterDescription.iri}\t${characterDescription.characterID.iri}\t${characterDescription.characterID.label}\t${characterDescription.description}\t${characterDescription.matrix.iri}\t${characterDescription.matrix.label}"
+    s"${phenotype.iri}\t${phenotype.label}\t${characterDescription.iri}\t${characterDescription.character.iri}\t${characterDescription.character.label}\t${characterDescription.description}\t${characterDescription.matrix.iri}\t${characterDescription.matrix.label}"
   }
 
 }
