@@ -1668,6 +1668,12 @@ paths:
           required: false
           type: string
           format: IRI
+        - name: publication
+          in: query
+          description: A publication IRI to limit the results
+          required: false
+          type: string
+          format: IRI
         - name: parts
           in: query
           description: whether to include parts of the entity in the query
