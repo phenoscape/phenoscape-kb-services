@@ -80,11 +80,14 @@ object Main extends HttpApp with App {
         }
       }.recoverWith {
         case NonFatal(_) =>
+          // must throw this particular exception for the Unmarshaller to fail over to the next
           Try(throw new Unmarshaller.UnsupportedContentTypeException(Set(MediaTypes.`application/json`)))
       }
     }
   )
 
+  // This is present just to support clients that have not been updated to use a JSON array.
+  // However having both will result in less informative error messages.
   val IRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] = {
     Unmarshaller.strict(_.split(",", -1).map(IRI.create))
   }
