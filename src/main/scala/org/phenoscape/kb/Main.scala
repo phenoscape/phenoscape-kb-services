@@ -39,6 +39,10 @@ import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 
+import scala.concurrent.Future
+import scala.util.Try
+import scala.util.control.NonFatal
+
 object Main extends HttpApp with App {
 
   JenaSystem.init()
@@ -55,7 +59,6 @@ object Main extends HttpApp with App {
 
   implicit val QualitySpecUnmarshaller: Unmarshaller[String, QualitySpec] = IRIUnmarshaller.map(QualitySpec.fromIRI)
 
-  implicit val IRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] = Unmarshaller.strict(_.split(",", -1).map(IRI.create)) //FIXME standardize services to use the JSON array unmarshaller, currently Seq[String]
 
   implicit val OWLClassUnmarshaller: Unmarshaller[String, OWLClass] = Unmarshaller.strict(text => factory.getOWLClass(IRI.create(text)))
 
@@ -68,11 +71,26 @@ object Main extends HttpApp with App {
     }
   }
 
-  implicit val SeqFromJSONString: Unmarshaller[String, Seq[String]] = Unmarshaller.strict { text =>
-    text.parseJson match {
-      case a: JsArray => a.elements.map(_.convertTo[String])
-      case _          => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
+  val SeqFromJSONString: Unmarshaller[String, Seq[String]] = Unmarshaller(_ => text =>
+    Future.fromTry {
+      Try {
+        text.parseJson match {
+          case a: JsArray => a.elements.map(_.convertTo[String])
+          case _          => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
+        }
+      }.recoverWith {
+        case NonFatal(_) =>
+          Try(throw new Unmarshaller.UnsupportedContentTypeException(Set(MediaTypes.`application/json`)))
+      }
     }
+  )
+
+  val IRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] = {
+    Unmarshaller.strict(_.split(",", -1).map(IRI.create))
+  }
+
+  implicit val comboIRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] = {
+    Unmarshaller.firstOf(SeqFromJSONString.map(_.map(IRI.create)), IRISeqUnmarshaller)
   }
 
   val cacheKeyer: PartialFunction[RequestContext, (Uri, Option[HttpHeader], HttpMethod)] = {
@@ -105,10 +123,10 @@ object Main extends HttpApp with App {
         } ~
           pathPrefix("term") {
             path("search") {
-              parameters('text, 'type.as[IRI].?(owlClass), 'properties.as[Seq[String]].?, 'definedBy.as[Seq[String]].?, 'includeDeprecated.as[Boolean].?(false), 'limit.as[Int].?(100)) { (text, termType, properties, definedByOpt, includeDeprecated, limit) =>
+              parameters('text, 'type.as[IRI].?(owlClass), 'properties.as[Seq[IRI]].?, 'definedBy.as[Seq[IRI]].?, 'includeDeprecated.as[Boolean].?(false), 'limit.as[Int].?(100)) { (text, termType, properties, definedByOpt, includeDeprecated, limit) =>
                 complete {
-                  val props = properties.map(_.map(IRI.create)).getOrElse(List(rdfsLabel, hasExactSynonym.getIRI, hasNarrowSynonym.getIRI, hasBroadSynonym.getIRI))
-                  val definedBys = definedByOpt.map(_.map(IRI.create)).getOrElse(Nil)
+                  val props = properties.getOrElse(List(rdfsLabel, hasExactSynonym.getIRI, hasNarrowSynonym.getIRI, hasBroadSynonym.getIRI))
+                  val definedBys = definedByOpt.getOrElse(Nil)
                   import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                   Term.search(text, termType, props, definedBys, includeDeprecated, limit)
                 }
@@ -291,19 +309,17 @@ object Main extends HttpApp with App {
               } ~
               path("jaccard") { //FIXME can GET and POST share code better?
                 get {
-                  parameters('iris.as[Seq[String]]) { iriStrings =>
+                  parameters('iris.as[Seq[IRI]]) { iris =>
                     complete {
                       import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                      val iris = iriStrings.map(IRI.create)
                       Similarity.pairwiseJaccardSimilarity(iris.toSet)
                     }
                   }
                 } ~
                   post {
-                    formFields('iris.as[Seq[String]]) { iriStrings =>
+                    formFields('iris.as[Seq[IRI]]) { iris =>
                       complete {
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                        val iris = iriStrings.map(IRI.create)
                         Similarity.pairwiseJaccardSimilarity(iris.toSet)
                       }
                     }
@@ -311,18 +327,16 @@ object Main extends HttpApp with App {
               } ~
               path("matrix") {
                 get {
-                  parameters('terms.as[Seq[String]]) { iriStrings =>
+                  parameters('terms.as[Seq[IRI]]) { iris =>
                     complete {
-                      val iris = iriStrings.map(IRI.create).toSet
-                      Graph.ancestorMatrix(iris)
+                      Graph.ancestorMatrix(iris.toSet)
                     }
                   }
                 } ~
                   post {
-                    formFields('terms.as[Seq[String]]) { iriStrings =>
+                    formFields('terms.as[Seq[IRI]]) { iris =>
                       complete {
-                        val iris = iriStrings.map(IRI.create).toSet
-                        Graph.ancestorMatrix(iris)
+                        Graph.ancestorMatrix(iris.toSet)
                       }
                     }
                   }
@@ -330,20 +344,18 @@ object Main extends HttpApp with App {
               path("frequency") {
                 get {
                   //FIXME not sure IRI for identifying corpus is best approach, particularly when scores are not stored ahead of time in a graph
-                  parameters('terms.as[Seq[String]], 'corpus_graph.as[IRI]) { (iriStrings, corpusIRI) =>
+                  parameters('terms.as[Seq[IRI]], 'corpus_graph.as[IRI]) { (iris, corpusIRI) =>
                     complete {
                       import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                      val iris = iriStrings.map(IRI.create).toSet
-                      Similarity.frequency(iris, corpusIRI)
+                      Similarity.frequency(iris.toSet, corpusIRI)
                     }
                   }
                 } ~
                   post {
-                    formFields('terms.as[Seq[String]], 'corpus_graph.as[IRI]) { (iriStrings, corpusIRI) =>
+                    formFields('terms.as[Seq[IRI]], 'corpus_graph.as[IRI]) { (iris, corpusIRI) =>
                       complete {
                         import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                        val iris = iriStrings.map(IRI.create).toSet
-                        Similarity.frequency(iris, corpusIRI)
+                        Similarity.frequency(iris.toSet, corpusIRI)
                       }
                     }
                   }
@@ -581,18 +593,16 @@ object Main extends HttpApp with App {
               } ~
               path("dependency") {
                 get {
-                  parameters('terms.as[Seq[String]]) { iriStrings =>
+                  parameters('terms.as[Seq[IRI]]) { iris =>
                     complete {
-                      val iris = iriStrings.map(IRI.create).toList
-                      AnatomicalEntity.presenceAbsenceDependencyMatrix(iris)
+                      AnatomicalEntity.presenceAbsenceDependencyMatrix(iris.toList)
                     }
                   }
                 } ~
                   post {
-                    formFields('terms.as[Seq[String]]) { iriStrings =>
+                    formFields('terms.as[Seq[IRI]]) { iris =>
                       complete {
-                        val iris = iriStrings.map(IRI.create).toList
-                        AnatomicalEntity.presenceAbsenceDependencyMatrix(iris)
+                        AnatomicalEntity.presenceAbsenceDependencyMatrix(iris.toList)
                       }
                     }
                   }
