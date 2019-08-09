@@ -24,9 +24,7 @@ import akka.http.scaladsl.model.headers.ContentDispositionTypes
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
 import akka.http.scaladsl.marshalling.{Marshal, Marshaller, ToByteStringMarshaller, ToEntityMarshaller}
-import akka.http.scaladsl.server.HttpApp
-import akka.http.scaladsl.server.RequestContext
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{ContentNegotiator, HttpApp, RequestContext, Route}
 import akka.http.scaladsl.settings.ServerSettings
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.http.scaladsl.server.directives.CachingDirectives._
@@ -71,7 +69,7 @@ object Main extends HttpApp with App {
     }
   }
 
-  val SeqFromJSONString: Unmarshaller[String, Seq[String]] = Unmarshaller(_ => text =>
+  val SeqFromJSONString: Unmarshaller[String, Seq[String]] = Unmarshaller(ec => text =>
     Future.fromTry {
       Try {
         text.parseJson match {
@@ -106,6 +104,15 @@ object Main extends HttpApp with App {
   val serverHost = conf.getString("kb-services.host")
 
   val corsSettings = CorsSettings.defaultSettings.withAllowCredentials(false)
+
+  // this creates a hacky directive used to allow content negotiation with streaming
+  val tsvOrJson = extract { context =>
+    val negotiator = ContentNegotiator(context.request.headers)
+    val validTypes = List(
+      ContentNegotiator.Alternative(MediaTypes.`text/tab-separated-values`),
+      ContentNegotiator.Alternative(MediaTypes.`application/json`))
+    negotiator.pickContentType(validTypes)
+  }
 
   def routes: Route = cors() {
     alwaysCache(memoryCache, cacheKeyer) {
@@ -467,27 +474,37 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("annotations") {
-                parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                  (entity, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
-                    complete {
-                      val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
-                      if (total) {
-                        TaxonPhenotypeAnnotation.queryAnnotationsTotal(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                      } else {
-                        if (limit > 0 && limit < 1000) {
-                          import TaxonPhenotypeAnnotation.ComboTaxonPhenotypeAnnotationsMarshaller
-                          TaxonPhenotypeAnnotation.queryAnnotations(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                tsvOrJson { optAccept =>
+                  parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                    (entity, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+                      complete {
+                        val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
+                        if (total) {
+                          TaxonPhenotypeAnnotation.queryAnnotationsTotal(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
                         } else {
-                          //                          implicit val jsonStreaming = JSONResultItem.jsonStreamingSupport
-                          //                          val jsonMarshaller: ToByteStringMarshaller[JSONResultItem] = Marshaller.withFixedContentType(MediaTypes.`application/json`.toContentType) { j =>
-                          //                            ByteString(j.toJSON.toString)
-                          //                          }
-                          implicit val tsvStreaming = EntityStreamingSupport.csv().withContentType(MediaTypes.`text/tab-separated-values`.toContentType(HttpCharsets.`UTF-8`))
-                          implicit val tsvMarshaller = TaxonPhenotypeAnnotation.AnnotationByteStringTSVMarshaller
-                          TaxonPhenotypeAnnotation.queryAnnotationsStream(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                          if (limit > 0 && limit < 1000) {
+                            // if we use the Future version, we can cache it
+                            import TaxonPhenotypeAnnotation.ComboTaxonPhenotypeAnnotationsMarshaller
+                            TaxonPhenotypeAnnotation.queryAnnotations(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                          } else {
+                            // if we're returning more than 1000 results, use streaming
+                            val contentType = optAccept.getOrElse(MediaTypes.`text/tab-separated-values`.toContentType(HttpCharsets.`UTF-8`))
+                            contentType.mediaType match {
+                              case MediaTypes.`application/json`          =>
+                                implicit val jsonStreaming = JSONResultItem.jsonStreamingSupport
+                                implicit val jsonMarshaller: ToByteStringMarshaller[JSONResultItem] = Marshaller.withFixedContentType(MediaTypes.`application/json`.toContentType) { j =>
+                                  ByteString(j.toJSON.toString)
+                                }
+                                TaxonPhenotypeAnnotation.queryAnnotationsStream(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                              case MediaTypes.`text/tab-separated-values` =>
+                                implicit val tsvStreaming = EntityStreamingSupport.csv().withContentType(contentType)
+                                implicit val tsvMarshaller = TaxonPhenotypeAnnotation.AnnotationByteStringTSVMarshaller
+                                TaxonPhenotypeAnnotation.queryAnnotationsStream(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                            }
+                          }
                         }
                       }
-                    }
+                  }
                 }
               } ~
               path("annotation" / "sources") {
