@@ -19,7 +19,9 @@ object MatrixRendererTest extends TestSuite {
 
     'testDep - {
       val outputString = AnatomicalEntity.matrixRendererFromMapOfMaps(DependencyMatrix(outerMap, List("femur", "hindlimb", "forelimb", "hand", "face", "eye")))
-      println(outputString)
+      val expectedString = ",femur,hindlimb,forelimb,hand,face,eye\nfemur,1,0,0,0,0,0\nhindlimb,1,1,0,0,0,0\nforelimb,0,0,1,0,0,0\nhand,0,0,1,1,0,0\nface,0,0,0,0,1,1\neye,0,0,0,0,0,1\n"
+
+      assert(outputString.contentEquals(expectedString))
     }
   }
 }
