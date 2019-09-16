@@ -24,9 +24,7 @@ import akka.http.scaladsl.model.headers.ContentDispositionTypes
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
 import akka.http.scaladsl.marshalling.{Marshal, Marshaller, ToByteStringMarshaller, ToEntityMarshaller}
-import akka.http.scaladsl.server.HttpApp
-import akka.http.scaladsl.server.RequestContext
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{ContentNegotiator, HttpApp, RequestContext, Route}
 import akka.http.scaladsl.settings.ServerSettings
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.http.scaladsl.server.directives.CachingDirectives._
@@ -38,6 +36,10 @@ import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, P
 import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
+
+import scala.concurrent.Future
+import scala.util.Try
+import scala.util.control.NonFatal
 
 object Main extends HttpApp with App {
 
@@ -55,7 +57,6 @@ object Main extends HttpApp with App {
 
   implicit val QualitySpecUnmarshaller: Unmarshaller[String, QualitySpec] = IRIUnmarshaller.map(QualitySpec.fromIRI)
 
-  implicit val IRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] = Unmarshaller.strict(_.split(",", -1).map(IRI.create)) //FIXME standardize services to use the JSON array unmarshaller, currently Seq[String]
 
   implicit val OWLClassUnmarshaller: Unmarshaller[String, OWLClass] = Unmarshaller.strict(text => factory.getOWLClass(IRI.create(text)))
 
@@ -68,11 +69,29 @@ object Main extends HttpApp with App {
     }
   }
 
-  implicit val SeqFromJSONString: Unmarshaller[String, Seq[String]] = Unmarshaller.strict { text =>
-    text.parseJson match {
-      case a: JsArray => a.elements.map(_.convertTo[String])
-      case _          => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
+  val SeqFromJSONString: Unmarshaller[String, Seq[String]] = Unmarshaller(ec => text =>
+    Future.fromTry {
+      Try {
+        text.parseJson match {
+          case a: JsArray => a.elements.map(_.convertTo[String])
+          case _          => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
+        }
+      }.recoverWith {
+        case NonFatal(_) =>
+          // must throw this particular exception for the Unmarshaller to fail over to the next
+          Try(throw new Unmarshaller.UnsupportedContentTypeException(Set(MediaTypes.`application/json`)))
+      }
     }
+  )
+
+  // This is present just to support clients that have not been updated to use a JSON array.
+  // However having both will result in less informative error messages.
+  val IRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] = {
+    Unmarshaller.strict(_.split(",", -1).map(IRI.create))
+  }
+
+  implicit val comboIRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] = {
+    Unmarshaller.firstOf(SeqFromJSONString.map(_.map(IRI.create)), IRISeqUnmarshaller)
   }
 
   val cacheKeyer: PartialFunction[RequestContext, (Uri, Option[HttpHeader], HttpMethod)] = {
@@ -85,6 +104,15 @@ object Main extends HttpApp with App {
   val serverHost = conf.getString("kb-services.host")
 
   val corsSettings = CorsSettings.defaultSettings.withAllowCredentials(false)
+
+  // this creates a hacky directive used to allow content negotiation with streaming
+  val tsvOrJson = extract { context =>
+    val negotiator = ContentNegotiator(context.request.headers)
+    val validTypes = List(
+      ContentNegotiator.Alternative(MediaTypes.`text/tab-separated-values`),
+      ContentNegotiator.Alternative(MediaTypes.`application/json`))
+    negotiator.pickContentType(validTypes)
+  }
 
   def routes: Route = cors() {
     alwaysCache(memoryCache, cacheKeyer) {
@@ -105,10 +133,10 @@ object Main extends HttpApp with App {
         } ~
           pathPrefix("term") {
             path("search") {
-              parameters('text, 'type.as[IRI].?(owlClass), 'properties.as[Seq[String]].?, 'definedBy.as[Seq[String]].?, 'includeDeprecated.as[Boolean].?(false), 'limit.as[Int].?(100)) { (text, termType, properties, definedByOpt, includeDeprecated, limit) =>
+              parameters('text, 'type.as[IRI].?(owlClass), 'properties.as[Seq[IRI]].?, 'definedBy.as[Seq[IRI]].?, 'includeDeprecated.as[Boolean].?(false), 'limit.as[Int].?(100)) { (text, termType, properties, definedByOpt, includeDeprecated, limit) =>
                 complete {
-                  val props = properties.map(_.map(IRI.create)).getOrElse(List(rdfsLabel, hasExactSynonym.getIRI, hasNarrowSynonym.getIRI, hasBroadSynonym.getIRI))
-                  val definedBys = definedByOpt.map(_.map(IRI.create)).getOrElse(Nil)
+                  val props = properties.getOrElse(List(rdfsLabel, hasExactSynonym.getIRI, hasNarrowSynonym.getIRI, hasBroadSynonym.getIRI))
+                  val definedBys = definedByOpt.getOrElse(Nil)
                   import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                   Term.search(text, termType, props, definedBys, includeDeprecated, limit)
                 }
@@ -291,19 +319,17 @@ object Main extends HttpApp with App {
               } ~
               path("jaccard") { //FIXME can GET and POST share code better?
                 get {
-                  parameters('iris.as[Seq[String]]) { iriStrings =>
+                  parameters('iris.as[Seq[IRI]]) { iris =>
                     complete {
                       import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                      val iris = iriStrings.map(IRI.create)
                       Similarity.pairwiseJaccardSimilarity(iris.toSet)
                     }
                   }
                 } ~
                   post {
-                    formFields('iris.as[Seq[String]]) { iriStrings =>
+                    formFields('iris.as[Seq[IRI]]) { iris =>
                       complete {
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                        val iris = iriStrings.map(IRI.create)
                         Similarity.pairwiseJaccardSimilarity(iris.toSet)
                       }
                     }
@@ -311,18 +337,16 @@ object Main extends HttpApp with App {
               } ~
               path("matrix") {
                 get {
-                  parameters('terms.as[Seq[String]]) { iriStrings =>
+                  parameters('terms.as[Seq[IRI]]) { iris =>
                     complete {
-                      val iris = iriStrings.map(IRI.create).toSet
-                      Graph.ancestorMatrix(iris)
+                      Graph.ancestorMatrix(iris.toSet)
                     }
                   }
                 } ~
                   post {
-                    formFields('terms.as[Seq[String]]) { iriStrings =>
+                    formFields('terms.as[Seq[IRI]]) { iris =>
                       complete {
-                        val iris = iriStrings.map(IRI.create).toSet
-                        Graph.ancestorMatrix(iris)
+                        Graph.ancestorMatrix(iris.toSet)
                       }
                     }
                   }
@@ -330,20 +354,18 @@ object Main extends HttpApp with App {
               path("frequency") {
                 get {
                   //FIXME not sure IRI for identifying corpus is best approach, particularly when scores are not stored ahead of time in a graph
-                  parameters('terms.as[Seq[String]], 'corpus_graph.as[IRI]) { (iriStrings, corpusIRI) =>
+                  parameters('terms.as[Seq[IRI]], 'corpus_graph.as[IRI]) { (iris, corpusIRI) =>
                     complete {
                       import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                      val iris = iriStrings.map(IRI.create).toSet
-                      Similarity.frequency(iris, corpusIRI)
+                      Similarity.frequency(iris.toSet, corpusIRI)
                     }
                   }
                 } ~
                   post {
-                    formFields('terms.as[Seq[String]], 'corpus_graph.as[IRI]) { (iriStrings, corpusIRI) =>
+                    formFields('terms.as[Seq[IRI]], 'corpus_graph.as[IRI]) { (iris, corpusIRI) =>
                       complete {
                         import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                        val iris = iriStrings.map(IRI.create).toSet
-                        Similarity.frequency(iris, corpusIRI)
+                        Similarity.frequency(iris.toSet, corpusIRI)
                       }
                     }
                   }
@@ -451,31 +473,41 @@ object Main extends HttpApp with App {
                     }
                 }
               } ~
-              path("annotations") { //FIXME needs documentation
-                parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                  (entity, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
-                    complete {
-                      val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
-                      if (total) {
-                        TaxonPhenotypeAnnotation.queryAnnotationsTotal(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                      } else {
-                        if (limit > 0 && limit < 1000) {
-                          import TaxonPhenotypeAnnotation.ComboTaxonPhenotypeAnnotationsMarshaller
-                          TaxonPhenotypeAnnotation.queryAnnotations(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+              path("annotations") {
+                tsvOrJson { optAccept =>
+                  parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                    (entity, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+                      complete {
+                        val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
+                        if (total) {
+                          TaxonPhenotypeAnnotation.queryAnnotationsTotal(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
                         } else {
-                          //                          implicit val jsonStreaming = JSONResultItem.jsonStreamingSupport
-                          //                          val jsonMarshaller: ToByteStringMarshaller[JSONResultItem] = Marshaller.withFixedContentType(MediaTypes.`application/json`.toContentType) { j =>
-                          //                            ByteString(j.toJSON.toString)
-                          //                          }
-                          implicit val tsvStreaming = EntityStreamingSupport.csv().withContentType(MediaTypes.`text/tab-separated-values`.toContentType(HttpCharsets.`UTF-8`))
-                          implicit val tsvMarshaller = TaxonPhenotypeAnnotation.AnnotationByteStringTSVMarshaller
-                          TaxonPhenotypeAnnotation.queryAnnotationsStream(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                          if (limit > 0 && limit < 1000) {
+                            // if we use the Future version, we can cache it
+                            import TaxonPhenotypeAnnotation.ComboTaxonPhenotypeAnnotationsMarshaller
+                            TaxonPhenotypeAnnotation.queryAnnotations(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                          } else {
+                            // if we're returning more than 1000 results, use streaming
+                            val contentType = optAccept.getOrElse(MediaTypes.`text/tab-separated-values`.toContentType(HttpCharsets.`UTF-8`))
+                            contentType.mediaType match {
+                              case MediaTypes.`application/json`          =>
+                                implicit val jsonStreaming = JSONResultItem.jsonStreamingSupport
+                                implicit val jsonMarshaller: ToByteStringMarshaller[JSONResultItem] = Marshaller.withFixedContentType(MediaTypes.`application/json`.toContentType) { j =>
+                                  ByteString(j.toJSON.toString)
+                                }
+                                TaxonPhenotypeAnnotation.queryAnnotationsStream(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                              case MediaTypes.`text/tab-separated-values` =>
+                                implicit val tsvStreaming = EntityStreamingSupport.csv().withContentType(contentType)
+                                implicit val tsvMarshaller = TaxonPhenotypeAnnotation.AnnotationByteStringTSVMarshaller
+                                TaxonPhenotypeAnnotation.queryAnnotationsStream(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                            }
+                          }
                         }
                       }
-                    }
+                  }
                 }
               } ~
-              path("annotation" / "sources") { //FIXME needs documentation
+              path("annotation" / "sources") {
                 parameters('taxon.as[IRI], 'phenotype.as[IRI]) {
                   (taxon, phenotype) =>
                     complete {
@@ -581,18 +613,16 @@ object Main extends HttpApp with App {
               } ~
               path("dependency") {
                 get {
-                  parameters('terms.as[Seq[String]]) { iriStrings =>
+                  parameters('terms.as[Seq[IRI]]) { iris =>
                     complete {
-                      val iris = iriStrings.map(IRI.create).toList
-                      AnatomicalEntity.presenceAbsenceDependencyMatrix(iris)
+                      AnatomicalEntity.presenceAbsenceDependencyMatrix(iris.toList)
                     }
                   }
                 } ~
                   post {
-                    formFields('terms.as[Seq[String]]) { iriStrings =>
+                    formFields('terms.as[Seq[IRI]]) { iris =>
                       complete {
-                        val iris = iriStrings.map(IRI.create).toList
-                        AnatomicalEntity.presenceAbsenceDependencyMatrix(iris)
+                        AnatomicalEntity.presenceAbsenceDependencyMatrix(iris.toList)
                       }
                     }
                   }

@@ -66,7 +66,7 @@ object CharacterDescription {
             result.getLiteral("description").getLexicalForm,
             CharacterMatrix(
               IRI.create(result.getResource("matrix").getURI),
-              result.getLiteral("matrix_label").getLexicalForm)),
+              result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), result.getLiteral("characterLabel").getLexicalForm)),
           phenotype)
       }
     })
@@ -170,13 +170,13 @@ object CharacterDescription {
     result.getLiteral("state_desc").getLexicalForm,
     CharacterMatrix(
       IRI.create(result.getResource("matrix").getURI),
-      result.getLiteral("matrix_label").getLexicalForm))
+      result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), result.getLiteral("characterLabel").getLexicalForm))
 
   def fromQuerySolution(iri: IRI)(result: QuerySolution): CharacterDescription = CharacterDescription(iri,
     result.getLiteral("state_desc").getLexicalForm,
     CharacterMatrix(
       IRI.create(result.getResource("matrix").getURI),
-      result.getLiteral("matrix_label").getLexicalForm))
+      result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), result.getLiteral("characterLabel").getLexicalForm))
 
   def eqAnnotationsForPhenotype(iri: IRI): Future[Seq[MinimalTerm]] = {
     val query = select_distinct('eq) from "http://kb.phenoscape.org/" where bgp(
@@ -192,12 +192,14 @@ object CharacterDescription {
 
 }
 
-case class CharacterDescription(iri: IRI, description: String, matrix: CharacterMatrix) extends JSONResultItem {
+case class CharacterDescription(iri: IRI, description: String, matrix: CharacterMatrix, character: MinimalTerm) extends JSONResultItem {
 
   def toJSON: JsObject = Map(
     "@id" -> iri.toString.toJson,
     "description" -> description.toJson,
-    "matrix" -> matrix.toJSON).toJson.asJsObject
+    "matrix" -> matrix.toJSON,
+    "character id" -> character.iri.toString.toJson,
+    "character label" -> character.label.toJson).toJson.asJsObject
 
 }
 
@@ -224,7 +226,7 @@ case class AnnotatedCharacterDescription(characterDescription: CharacterDescript
   def toJSON: JsObject = (characterDescription.toJSON.fields ++ Map("phenotype" -> phenotype.toJSON)).toJson.asJsObject
 
   override def toString: String = {
-    s"${phenotype.iri}\t${phenotype.label}\t${characterDescription.iri}\t${characterDescription.description}\t${characterDescription.matrix.iri}\t${characterDescription.matrix.label}"
+    s"${phenotype.iri}\t${phenotype.label}\t${characterDescription.iri}\t${characterDescription.description}\t${characterDescription.character.iri}\t${characterDescription.character.label}\t${characterDescription.matrix.iri}\t${characterDescription.matrix.label}"
   }
 
 }
@@ -239,13 +241,13 @@ object AnnotatedCharacterDescription { //FIXME
           result.getLiteral("description").getLexicalForm,
           CharacterMatrix(
             IRI.create(result.getResource("matrix").getURI),
-            result.getLiteral("matrix_label").getLexicalForm)),
+            result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), result.getLiteral("characterLabel").getLexicalForm)),
         phenotype)
     }
   }
 
   implicit val AnnotatedCharacterDescriptionsTextMarshaller: ToEntityMarshaller[Seq[AnnotatedCharacterDescription]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { annotations =>
-    val header = "phenotype IRI\tphenotype\tcharacter description IRI\tcharacter description\tstudy IRI\tstudy"
+    val header = "phenotype IRI\tphenotype\tcharacter description IRI\tcharacter description\tcharacter IRI\tcharacter\tstudy IRI\tstudy"
     s"$header\n${annotations.map(_.toString).mkString("\n")}"
   }
 
