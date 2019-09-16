@@ -5,7 +5,7 @@ import utest._
 
 object MatrixRendererTest extends TestSuite {
 
-  val tests = Tests{
+  val tests = Tests {
 
     val innerMap1: Map[Any, Boolean] = Map("femur" -> true, "hindlimb" -> false, "forelimb" -> false, "hand" -> false, "face" -> false, "eye" -> false) //("y3" -> true, "y2" -> false, "y1" -> true)
     val innerMap2: Map[Any, Boolean] = Map("femur" -> true, "hindlimb" -> true, "forelimb" -> false, "hand" -> false, "face" -> false, "eye" -> false)
