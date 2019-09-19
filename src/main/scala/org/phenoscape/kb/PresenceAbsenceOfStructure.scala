@@ -122,7 +122,7 @@ object PresenceAbsenceOfStructure {
         dataset.setStateForTaxon(matrixTaxon, character, stateToAssign)
       }
       val date = new SimpleDateFormat("y-M-d").format(Calendar.getInstance.getTime)
-      dataset.setPublicationNotes(s"Generated from the Phenoscape Knowledgebase on $date by Ontotrace query:\n* taxa: ${taxonClass.asOMN.getLiteralLexicalForm}\n* entities: ${entityClass.asOMN.getLiteralLexicalForm}\n* variable Only: ${variableOnly}")
+      dataset.setPublicationNotes(s"Generated from the Phenoscape Knowledgebase on $date by Ontotrace query:\n* taxa: ${taxonClass.asOMN.getLiteralLexicalForm}\n* entities: ${entityClass.asOMN.getLiteralLexicalForm}\n* variable only: ${variableOnly}")
       dataset
     }
   }
