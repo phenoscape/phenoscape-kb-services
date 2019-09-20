@@ -49,8 +49,7 @@ object Term {
     def resultFromQuerySolution(qs: QuerySolution): DefinedMinimalTerm = DefinedMinimalTerm(MinimalTerm(
       IRI.create(qs.getResource("term").getURI),
       qs.getLiteral("term_label").getLexicalForm), Option(qs.getResource("ont")).map(o => IRI.create(o.getURI)))
-
-    App.executeSPARQLQueryString(buildTermSearchQuery(text, termType, properties.toList, definedBys, includeDeprecated, limit).text, resultFromQuerySolution).map(orderBySearchedText(_, text).distinct)
+    App.executeSPARQLQueryString(buildTermSearchQuery(text, termType, properties.toList, definedBys, includeDeprecated, limit).text, resultFromQuerySolution).map(categorizeSearchedText(_, text).distinct)
   }
 
   def searchOntologyTerms(text: String, definedBy: IRI, limit: Int): Future[Seq[MatchedTerm[MinimalTerm]]] = {
@@ -132,6 +131,18 @@ object Term {
       termOpt.map {
         case (label, definition) => Term(iri, label, definition, synonyms, relationships)
       }
+    }
+  }
+
+  private[this] def categorizeSearchedText[T <: LabeledTerm](terms: Seq[T], text: String): Seq[MatchedTerm[T]] = {
+    terms.map { term =>
+      val lowerLabel = term.label.toLowerCase
+      val lowerText = text.toLowerCase
+      val location = lowerLabel.indexOf(lowerText)
+      if (lowerLabel == lowerText) MatchedTerm(term, ExactMatch)
+      else if (location == 0) MatchedTerm(term, PartialMatch)
+      else if (location > 0) MatchedTerm(term, PartialMatch)
+      else MatchedTerm(term, BroadMatch)
     }
   }
 
@@ -396,7 +407,7 @@ object Term {
     } else sparql""
     val termToTextRel = (if (properties.nonEmpty) properties else List(RDFSLabel.getIRI)).map(p => sparql"$p").intersperse(sparql" | ").reduce(_ |+| _)
     sparql"""
-            SELECT DISTINCT ?term ?term_label ?ont ?boosted_rank
+            SELECT DISTINCT ?term ?term_label ?ont
             FROM $KBMainGraph
             WHERE {
               ?matched_label $BDSearch $searchText .
