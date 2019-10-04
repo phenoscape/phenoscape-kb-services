@@ -177,31 +177,31 @@ paths:
                 type: array
                 items:
                   $ref: '#/definitions/inline_response_200_2_results'
+#  /term/label:
+#    get:
+#      tags:
+#        - Terms
+#      summary: Term label
+#      description: Retrieve a label for a given term IRI.
+#      produces:
+#        - application/json
+#      parameters:
+#        - name: iri
+#          in: query
+#          description: the term IRI
+#          required: true
+#          type: string
+#          format: IRI
+#      responses:
+#        200:
+#          description: Term label
+#          schema:
+#            $ref: '#/definitions/TermWithLabel'
   /term/label:
     get:
       tags:
         - Terms
       summary: Term label
-      description: Retrieve a label for a given term IRI.
-      produces:
-        - application/json
-      parameters:
-        - name: iri
-          in: query
-          description: the term IRI
-          required: true
-          type: string
-          format: IRI
-      responses:
-        200:
-          description: Term label
-          schema:
-            $ref: '#/definitions/TermWithLabel'
-  /term/labels:
-    get:
-      tags:
-        - Terms
-      summary: Term labels
       description: Retrieve a label for each term IRI in a list
       produces:
         - application/json
@@ -224,7 +224,7 @@ paths:
     post:
       tags:
         - Terms
-      summary: Term labels
+      summary: Term label
       description: Retrieve a label for each term IRI in a list
       consumes:
         - application/x-www-form-urlencoded
