@@ -37,7 +37,7 @@ object DirectPhenotypesForTaxon {
       """
       else
         sparql"""
-      SELECT DISTINCT ?state ?description ?matrix ?matrix_label ?phenotype
+      SELECT DISTINCT ?state ?description ?matrix ?matrix_label ?phenotype ?character ?character_label
       FROM $KBMainGraph
       FROM $KBClosureGraph
       $namedQueriesBlock
@@ -114,7 +114,9 @@ object DirectPhenotypesForTaxon {
       $taxon $exhibits_state ?state .
       ?state $describes_phenotype ?phenotype .
       ?state $dcDescription ?description .
-      ?matrix $has_character/$may_have_state_value ?state .
+      ?matrix $has_character ?character .
+      ?character $may_have_state_value ?state .
+      ?character $rdfsLabel ?character_label .
       ?matrix $rdfsLabel ?matrix_label .
       $taxonConstraints
       $subQueryRefs
