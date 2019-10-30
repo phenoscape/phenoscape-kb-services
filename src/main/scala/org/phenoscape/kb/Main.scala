@@ -150,13 +150,13 @@ object Main extends HttpApp with App {
                   }
                 }
               } ~
-//              path("label") {
-//                parameters('iri.as[IRI]) { (iri) =>
-//                  complete {
-//                    Term.computedLabel(iri)
-//                  }
-//                }
-//              } ~
+              path("label") {
+                parameters('iris.as[Seq[IRI]]) { (iris) =>
+                  complete {
+                    Term.labels(iris: _*)
+                  }
+                }
+              } ~
               path("label") {
                 get {
                   parameters('iris.as[Seq[IRI]]) { (iris) =>
