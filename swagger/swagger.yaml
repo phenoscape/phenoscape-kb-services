@@ -197,10 +197,34 @@ paths:
           description: Term label
           schema:
             $ref: '#/definitions/TermWithLabel'
+  /term/labels:
+    get:
+      tags:
+        - Terms
+      summary: Term labels
+      description: Retrieve a label for each term IRI in a list
+      produces:
+        - application/json
+      parameters:
+        - name: iris
+          in: query
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/UBERON_0000981", "http://purl.obolibrary.org/obo/UBERON_0002103", "http://purl.obolibrary.org/obo/UBERON_0000976", "http://purl.obolibrary.org/obo/UBERON_0002102"]
+          required: true
+          type: string
+      responses:
+        200:
+          description: Terms and labels
+          schema:
+            type: object
+            properties:
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/TermWithLabel'
     post:
       tags:
         - Terms
-      summary: Term label
+      summary: Term labels
       description: Retrieve a label for each term IRI in a list
       consumes:
         - application/x-www-form-urlencoded
@@ -209,7 +233,7 @@ paths:
       parameters:
         - name: iris
           in: formData
-          description: comma-separated term IRIs
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/UBERON_0000981", "http://purl.obolibrary.org/obo/UBERON_0002103", "http://purl.obolibrary.org/obo/UBERON_0000976", "http://purl.obolibrary.org/obo/UBERON_0002102"]
           required: true
           type: string
       responses:
