@@ -177,50 +177,26 @@ paths:
                 type: array
                 items:
                   $ref: '#/definitions/inline_response_200_2_results'
-#  /term/label:
-#    get:
-#      tags:
-#        - Terms
-#      summary: Term label
-#      description: Retrieve a label for a given term IRI.
-#      produces:
-#        - application/json
-#      parameters:
-#        - name: iri
-#          in: query
-#          description: the term IRI
-#          required: true
-#          type: string
-#          format: IRI
-#      responses:
-#        200:
-#          description: Term label
-#          schema:
-#            $ref: '#/definitions/TermWithLabel'
   /term/label:
     get:
       tags:
         - Terms
       summary: Term label
-      description: Retrieve a label for each term IRI in a list
+      description: Retrieve a label for a given term IRI.
       produces:
         - application/json
       parameters:
-        - name: iris
+        - name: iri
           in: query
-          description: comma-separated term IRIs
+          description: the term IRI
           required: true
           type: string
+          format: IRI
       responses:
         200:
-          description: Terms and labels
+          description: Term label
           schema:
-            type: object
-            properties:
-              results:
-                type: array
-                items:
-                  $ref: '#/definitions/TermWithLabel'
+            $ref: '#/definitions/TermWithLabel'
     post:
       tags:
         - Terms
