@@ -151,13 +151,14 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("label") {
-                parameters('iris.as[Seq[IRI]]) { (iris) =>
+                parameters('iri.as[Seq[IRI]]) { (iri) =>
                   complete {
-                    Term.labels(iris: _*)
+                    val res = Term.labels(iri: _*)
+                    res.map(_.apply(0))
                   }
                 }
               } ~
-              path("label") {
+              path("labels") {
                 get {
                   parameters('iris.as[Seq[IRI]]) { (iris) =>
                     complete {
