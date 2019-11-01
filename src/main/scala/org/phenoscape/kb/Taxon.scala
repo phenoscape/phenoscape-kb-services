@@ -186,7 +186,9 @@ object Taxon {
         t(taxon, exhibits_state, 'state) ::
           t('state, describes_phenotype, 'phenotype) ::
           t('state, dcDescription, 'description) ::
-          t('matrix, has_character / may_have_state_value, 'state) ::
+          t('matrix, has_character, 'character) ::
+          t('character, may_have_state_value, 'state) ::
+          t('character, rdfsLabel, 'character_label) ::
           t('matrix, rdfsLabel, 'matrix_label) ::
           phenotypePattern: _*))
     App.expandWithOwlet(query)

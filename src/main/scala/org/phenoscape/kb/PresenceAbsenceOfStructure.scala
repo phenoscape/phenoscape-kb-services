@@ -166,15 +166,16 @@ object PresenceAbsenceOfStructure {
   }
 
   def buildAbsenceStatesQueryBase(taxonIRI: IRI, entityIRI: IRI): Query = {
-    select_distinct('phenotype, 'state, 'description, 'matrix, 'matrix_label) where (
+    select_distinct('phenotype, 'state, 'description, 'matrix, 'matrix_label, 'character, 'character_label) where (
       bgp(
         t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
         t('phenotype, rdfsSubClassOf / ABSENCE_OF, entityIRI), //FIXME needs to inhere in organism
         t('state, dcDescription, 'description),
-        t('matrix, has_character, 'matrix_char),
+        t('matrix, has_character, 'character),
+        t('character, rdfsLabel, 'character_label),
         t('matrix, rdfsLabel, 'matrix_label),
-        t('matrix_char, may_have_state_value, 'state)))
+        t('character, may_have_state_value, 'state)))
   }
 
   def buildPresenceStatesQuery(taxonIRI: IRI, entityIRI: IRI, limit: Int, offset: Int): Query = {
@@ -195,15 +196,16 @@ object PresenceAbsenceOfStructure {
   }
 
   def buildPresenceStatesQueryBase(taxonIRI: IRI, entityIRI: IRI): Query = {
-    select_distinct('phenotype, 'state, 'description, 'matrix, 'matrix_label) where (
+    select_distinct('phenotype, 'state, 'description, 'matrix, 'matrix_label, 'character, 'character_label) where (
       bgp(
         t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
         t('phenotype, rdfsSubClassOf / implies_presence_of_some, entityIRI),
         t('state, dcDescription, 'description),
-        t('matrix, has_character, 'matrix_char),
+        t('matrix, has_character, 'character),
+        t('character, rdfsLabel, 'character_label),
         t('matrix, rdfsLabel, 'matrix_label),
-        t('matrix_char, may_have_state_value, 'state)))
+        t('character, may_have_state_value, 'state)))
   }
 
   def buildExhibitingAbsenceBasicQuery(entityIRI: IRI, taxonFilter: Option[IRI]): Query = {
