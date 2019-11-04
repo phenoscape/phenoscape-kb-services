@@ -151,10 +151,10 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("label") {
-                parameters('iri.as[Seq[IRI]]) { (iri) =>
+                parameters('iri.as[IRI]) { (iri) =>
                   complete {
-                    val res = Term.labels(iri: _*)
-                    res.map(_.apply(0))
+                    val iri_label = Term.labels(iri)
+                    iri_label.map(_.headOption.getOrElse(new MinimalTerm(iri, "")))
                   }
                 }
               } ~
