@@ -198,8 +198,7 @@ case class CharacterDescription(iri: IRI, description: String, matrix: Character
     "@id" -> iri.toString.toJson,
     "description" -> description.toJson,
     "matrix" -> matrix.toJSON,
-    "character" -> Map("@id" -> character.iri.toString.toJson,
-      "label" -> character.label.toJson).toJson.asJsObject
+    "character" -> character.toJSON
     ).toJson.asJsObject
 
 }
