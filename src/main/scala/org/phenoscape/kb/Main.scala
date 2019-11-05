@@ -153,7 +153,7 @@ object Main extends HttpApp with App {
               path("label") {
                 parameters('iri.as[IRI]) { (iri) =>
                   complete {
-                    Term.labels(iri)
+                    Term.labels(iri).map(_.head)
                   }
                 }
               } ~
