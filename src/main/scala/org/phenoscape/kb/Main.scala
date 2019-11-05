@@ -153,8 +153,7 @@ object Main extends HttpApp with App {
               path("label") {
                 parameters('iri.as[IRI]) { (iri) =>
                   complete {
-                    val iri_label = Term.labels(iri)
-                    iri_label.map(_.headOption.getOrElse(new MinimalTerm(iri, "")))
+                    Term.labels(iri)
                   }
                 }
               } ~
