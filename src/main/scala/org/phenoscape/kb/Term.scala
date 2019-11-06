@@ -7,7 +7,7 @@ import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.NodeFactory
-import org.apache.jena.query.{Query, QuerySolution}
+import org.apache.jena.query.{Query, QueryFactory, QuerySolution}
 import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.expr._
 import org.apache.jena.sparql.expr.aggregate.AggMin
@@ -62,8 +62,8 @@ object Term {
     App.executeSPARQLQuery(buildLabelQuery(iri), convert).map(_.headOption)
   }
 
-  def labels(iris: IRI*): Future[Seq[MinimalTerm]] = {
-    App.executeSPARQLQuery(buildLabelsQuery(iris: _*), Term.fromMinimalQuerySolution)
+  def labels(iris: IRI*): Future[Seq[OptionallyLabeledTerm]] = {
+    App.executeSPARQLQuery(buildLabelsQuery(iris: _*), OptionallyLabeledTerm.fromQuerySolution)
   }
 
   def computedLabel(iri: IRI): Future[MinimalTerm] = (for {
@@ -460,12 +460,20 @@ object Term {
   }
 
   def buildLabelsQuery(iris: IRI*): Query = {
-    val nodes: Seq[Expr] = iris.map(iri => new NodeValueNode(NodeFactory.createURI(iri.toString)))
-    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where(
-      bgp(
-        t('term, rdfsLabel, 'term_label)),
-      new ElementFilter(new E_OneOf(new ExprVar('term), ExprList.create(nodes.asJava))))
-    query
+    import scalaz.Scalaz._
+    import scalaz._
+    val terms = iris.map(iri => sparql" $iri ").fold(sparql"")(_ |+| _)
+    val queryText: QueryText = sparql"""
+    SELECT DISTINCT ?term ?term_label
+    FROM $KBMainGraph
+    WHERE {
+      VALUES ?term { $terms }
+      OPTIONAL {
+        ?term $rdfsLabel ?term_label .
+      }
+    }
+    """
+    QueryFactory.create(queryText.text)
   }
 
   implicit val IRIMarshaller: ToEntityMarshaller[IRI] = Marshaller.combined(iri =>
@@ -479,6 +487,7 @@ object Term {
     result.getLiteral("term_label").getLexicalForm)
 
 }
+
 
 final case class Term(iri: IRI, label: String, definition: String, synonyms: Seq[(IRI, String)], relationships: Seq[TermRelationship]) extends LabeledTerm with JSONResultItem {
 
@@ -514,6 +523,17 @@ object MinimalTerm {
 
   implicit val comboSeqMarshaller: ToEntityMarshaller[Seq[MinimalTerm]] = Marshaller.oneOf(tsvSeqMarshaller, JSONResultItem.JSONResultItemsMarshaller)
 
+}
+
+final case class OptionallyLabeledTerm(iri: IRI, label: Option[String]) extends JSONResultItem {
+
+  def toJSON: JsObject = Map("@id" -> iri.toString.toJson, "label" -> label.map(_.toJson).getOrElse(JsNull)).toJson.asJsObject
+
+}
+
+object OptionallyLabeledTerm {
+
+  def fromQuerySolution(result: QuerySolution): OptionallyLabeledTerm = OptionallyLabeledTerm(IRI.create(result.getResource("term").getURI), Option(result.getLiteral("term_label")).map(_.getLexicalForm))
 }
 
 final case class SourcedMinimalTerm(term: MinimalTerm, sources: Set[IRI]) extends JSONResultItem {
