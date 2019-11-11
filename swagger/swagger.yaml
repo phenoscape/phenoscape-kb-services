@@ -1340,6 +1340,12 @@ paths:
           required: false
           type: string
           format: IRI
+        - name: phenotype
+          in: query
+          description: A phenotype term which must subsume the matched annotations
+          required: false
+          type: string
+          format: IRI
         - name: publication
           in: query
           description: A publication IRI to limit the results
@@ -1419,6 +1425,12 @@ paths:
         - name: in_taxon
           in: query
           description: A taxon group to limit the results
+          required: false
+          type: string
+          format: IRI
+        - name: phenotype
+          in: query
+          description: A phenotype term which must subsume the matched annotations
           required: false
           type: string
           format: IRI
@@ -1565,6 +1577,12 @@ paths:
           description: Quality class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
           required: false
           type: string
+        - name: phenotype
+          in: query
+          description: A phenotype term which must subsume the matched annotations
+          required: false
+          type: string
+          format: IRI
         - name: parts
           in: query
           description: whether to include parts of the entity in the query
@@ -1665,6 +1683,12 @@ paths:
         - name: in_taxon
           in: query
           description: A taxon group IRI to limit the results
+          required: false
+          type: string
+          format: IRI
+        - name: phenotype
+          in: query
+          description: A phenotype term which must subsume the matched annotations
           required: false
           type: string
           format: IRI
@@ -2074,6 +2098,12 @@ paths:
         - name: in_taxon
           in: query
           description: A taxon group to limit the results
+          required: false
+          type: string
+          format: IRI
+        - name: phenotype
+          in: query
+          description: A phenotype term which must subsume the matched annotations
           required: false
           type: string
           format: IRI

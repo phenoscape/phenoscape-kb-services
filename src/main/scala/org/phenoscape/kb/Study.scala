@@ -51,30 +51,30 @@ object Study {
     result.getLiteral("label").getLexicalForm,
     result.getLiteral("citation").getLexicalForm)
 
-  def queryStudies(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[MinimalTerm]] = for {
-    query <- StudiesRelevantToPhenotype.buildQuery(entity, quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
+  def queryStudies(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], phenotypeOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[MinimalTerm]] = for {
+    query <- StudiesRelevantToPhenotype.buildQuery(entity, quality, inTaxonOpt, phenotypeOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
     studies <- App.executeSPARQLQueryString(query, queryToTerm)
   } yield studies
 
-  def queryStudiesTotal(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = for {
-    query <- StudiesRelevantToPhenotype.buildQuery(entity, quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
+  def queryStudiesTotal(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], phenotypeOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = for {
+    query <- StudiesRelevantToPhenotype.buildQuery(entity, quality, inTaxonOpt, phenotypeOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
     result <- App.executeSPARQLQuery(query)
   } yield ResultCount.count(result)
 
   def facetStudiesByEntity(focalEntity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => queryStudiesTotal(Some(iri), quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val query = (iri: IRI) => queryStudiesTotal(Some(iri), quality, inTaxonOpt, None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.queryAnatomySubClasses(iri, KBVocab.Uberon, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(_.toSet)
     Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine, false)
   }
 
   def facetStudiesByQuality(focalQuality: Option[IRI], entity: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => queryStudiesTotal(entity, PhenotypicQuality(Some(iri)), inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val query = (iri: IRI) => queryStudiesTotal(entity, PhenotypicQuality(Some(iri)), inTaxonOpt, None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
     Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine, false)
   }
 
   def facetStudiesByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: QualitySpec, publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => queryStudiesTotal(entity, quality, Some(iri), publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val query = (iri: IRI) => queryStudiesTotal(entity, quality, Some(iri), None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
     Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine, true)
   }
