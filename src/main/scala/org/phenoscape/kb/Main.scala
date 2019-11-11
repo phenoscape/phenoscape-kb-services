@@ -399,8 +399,8 @@ object Main extends HttpApp with App {
           } ~
           pathPrefix("taxon") {
             path("phenotypes") {
-              parameters('taxon.as[IRI], 'entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                (taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+              parameters('taxon.as[IRI], 'entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?,  'phenotype.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                (taxon, entityOpt, qualityOpt, phenotypeOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                   complete {
                     import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                     val entityIsNamed = entityOpt.forall(!_.isAnonymous)
@@ -408,8 +408,8 @@ object Main extends HttpApp with App {
                     if (entityIsNamed && qualityIsNamed) {
                       val entityIRI = entityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
                       val qualitySpec = qualityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI).map(QualitySpec.fromIRI).getOrElse(PhenotypicQuality(None))
-                      if (total) Taxon.directPhenotypesTotalFor(taxon, entityIRI, qualitySpec, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                      else Taxon.directPhenotypesFor(taxon, entityIRI, qualitySpec, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                      if (total) Taxon.directPhenotypesTotalFor(taxon, entityIRI, qualitySpec, phenotypeOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                      else Taxon.directPhenotypesFor(taxon, entityIRI, qualitySpec, phenotypeOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                     } else {
                       if (total) Taxon.directPhenotypesTotalForExpression(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
                       else Taxon.directPhenotypesForExpression(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
@@ -427,8 +427,8 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("with_phenotype") {
-                parameters('entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                  (entityOpt, qualityOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+                parameters('entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'in_taxon.as[IRI].?, 'phenotype.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                  (entityOpt, qualityOpt, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                     complete {
                       implicit val marshaller = Taxon.ComboTaxaMarshaller
                       val entityIsNamed = entityOpt.forall(!_.isAnonymous)
@@ -436,8 +436,8 @@ object Main extends HttpApp with App {
                       if (entityIsNamed && qualityIsNamed) {
                         val entityIRI = entityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
                         val qualitySpec = qualityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI).map(QualitySpec.fromIRI).getOrElse(PhenotypicQuality(None))
-                        if (total) Taxon.withPhenotypeTotal(entityIRI, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                        else Taxon.withPhenotype(entityIRI, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                        if (total) Taxon.withPhenotypeTotal(entityIRI, qualitySpec, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_)) //FIXME add phenotype
+                        else Taxon.withPhenotype(entityIRI, qualitySpec, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                       } else {
                         if (total) Taxon.withPhenotypeExpressionTotal(entityOpt.getOrElse(owlThing), qualityOpt.getOrElse(owlThing), taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
                         else Taxon.withPhenotypeExpression(entityOpt.getOrElse(owlThing), qualityOpt.getOrElse(owlThing), taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
@@ -475,17 +475,17 @@ object Main extends HttpApp with App {
               } ~
               path("annotations") {
                 tsvOrJson { optAccept =>
-                  parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                    (entity, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+                  parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?,  'phenotype.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                    (entity, qualitySpecOpt, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                       complete {
                         val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
                         if (total) {
-                          TaxonPhenotypeAnnotation.queryAnnotationsTotal(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                          TaxonPhenotypeAnnotation.queryAnnotationsTotal(entity, qualitySpec, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
                         } else {
                           if (limit > 0 && limit < 1000) {
                             // if we use the Future version, we can cache it
                             import TaxonPhenotypeAnnotation.ComboTaxonPhenotypeAnnotationsMarshaller
-                            TaxonPhenotypeAnnotation.queryAnnotations(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                            TaxonPhenotypeAnnotation.queryAnnotations(entity, qualitySpec, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                           } else {
                             // if we're returning more than 1000 results, use streaming
                             val contentType = optAccept.getOrElse(MediaTypes.`text/tab-separated-values`.toContentType(HttpCharsets.`UTF-8`))
@@ -495,11 +495,11 @@ object Main extends HttpApp with App {
                                 implicit val jsonMarshaller: ToByteStringMarshaller[JSONResultItem] = Marshaller.withFixedContentType(MediaTypes.`application/json`.toContentType) { j =>
                                   ByteString(j.toJSON.toString)
                                 }
-                                TaxonPhenotypeAnnotation.queryAnnotationsStream(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                                TaxonPhenotypeAnnotation.queryAnnotationsStream(entity, qualitySpec, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                               case MediaTypes.`text/tab-separated-values` =>
                                 implicit val tsvStreaming = EntityStreamingSupport.csv().withContentType(contentType)
                                 implicit val tsvMarshaller = TaxonPhenotypeAnnotation.AnnotationByteStringTSVMarshaller
-                                TaxonPhenotypeAnnotation.queryAnnotationsStream(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                                TaxonPhenotypeAnnotation.queryAnnotationsStream(entity, qualitySpec, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                             }
                           }
                         }
@@ -731,12 +731,12 @@ object Main extends HttpApp with App {
           } ~
           pathPrefix("study") {
             path("query") { //FIXME doc out of date
-              parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                (entity, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+              parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?,  'phenotype.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                (entity, qualitySpecOpt, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                   complete {
                     val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
-                    if (total) Study.queryStudiesTotal(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                    else Study.queryStudies(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                    if (total) Study.queryStudiesTotal(entity, qualitySpec, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                    else Study.queryStudies(entity, qualitySpec, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                   }
               }
             } ~
@@ -789,13 +789,13 @@ object Main extends HttpApp with App {
           } ~
           pathPrefix("phenotype") {
             path("query") {
-              parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                (entity, qualitySpecOpt, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
+              parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?,  'phenotype.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                (entity, qualitySpecOpt, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                   complete {
                     //                    import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                     val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
-                    if (total) Phenotype.queryTaxonPhenotypesTotal(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
-                    else Phenotype.queryTaxonPhenotypes(entity, qualitySpec, taxonOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+                    if (total) Phenotype.queryTaxonPhenotypesTotal(entity, qualitySpec, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(ResultCount(_))
+                    else Phenotype.queryTaxonPhenotypes(entity, qualitySpec, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
                   }
               }
             } ~

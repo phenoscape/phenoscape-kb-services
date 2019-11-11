@@ -59,11 +59,11 @@ object Taxon {
     } yield taxa
   }
 
-  def withPhenotype(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = {
+  def withPhenotype(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], phenotypeOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = {
     val entityOpt = entity.filterNot(_ == OWLThing.getIRI) //FIXME do this filter in caller
     //val qualityIRI = Option(quality).filterNot(_ == OWLThing.getIRI)
     for {
-      query <- TaxaWithPhenotype.buildQuery(entityOpt, quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
+      query <- TaxaWithPhenotype.buildQuery(entityOpt, quality, inTaxonOpt, phenotypeOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
       taxa <- App.executeSPARQLQueryString(query, Taxon(_))
     } yield taxa
   }
@@ -75,28 +75,28 @@ object Taxon {
     } yield ResultCount.count(result)
   }
 
-  def withPhenotypeTotal(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = {
+  def withPhenotypeTotal(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], phenotypeOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = {
     val entityOpt = entity.filterNot(_ == OWLThing.getIRI) //FIXME do this filter in caller
     for {
-      query <- TaxaWithPhenotype.buildQuery(entityOpt, quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
+      query <- TaxaWithPhenotype.buildQuery(entityOpt, quality, inTaxonOpt, phenotypeOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
       result <- App.executeSPARQLQuery(query)
     } yield ResultCount.count(result)
   }
 
   def facetTaxaWithPhenotypeByEntity(focalEntity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => withPhenotypeTotal(Some(iri), quality, inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val query = (iri: IRI) => withPhenotypeTotal(Some(iri), quality, inTaxonOpt, None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.queryAnatomySubClasses(iri, KBVocab.Uberon, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(_.toSet)
     Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine, false)
   }
 
   def facetTaxaWithPhenotypeByQuality(focalQuality: Option[IRI], entity: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => withPhenotypeTotal(entity, PhenotypicQuality(Some(iri)), inTaxonOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val query = (iri: IRI) => withPhenotypeTotal(entity, PhenotypicQuality(Some(iri)), inTaxonOpt, None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
     Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine, false)
   }
 
   def facetTaxaWithPhenotypeByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: QualitySpec, publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => withPhenotypeTotal(entity, quality, Some(iri), publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+    val query = (iri: IRI) => withPhenotypeTotal(entity, quality, Some(iri), None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
     Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine, true)
   }
@@ -146,9 +146,9 @@ object Taxon {
     results.flatMap(Future.sequence(_))
   }
 
-  def directPhenotypesFor(taxon: IRI, entityOpt: Option[IRI], quality: QualitySpec, includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
+  def directPhenotypesFor(taxon: IRI, entityOpt: Option[IRI], quality: QualitySpec, phenotypeOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
     val results = for {
-      query <- DirectPhenotypesForTaxon.buildQuery(taxon, entityOpt, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
+      query <- DirectPhenotypesForTaxon.buildQuery(taxon, entityOpt, quality, phenotypeOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
       result <- App.executeSPARQLQueryString(query, AnnotatedCharacterDescription.fromQuerySolution)
     } yield result
     results.flatMap(Future.sequence(_))
@@ -162,9 +162,9 @@ object Taxon {
       result <- App.executeSPARQLQuery(query).map(ResultCount.count)
     } yield result
 
-  def directPhenotypesTotalFor(taxon: IRI, entityOpt: Option[IRI], quality: QualitySpec, includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] =
+  def directPhenotypesTotalFor(taxon: IRI, entityOpt: Option[IRI], quality: QualitySpec, phenotypeOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] =
     for {
-      query <- DirectPhenotypesForTaxon.buildQuery(taxon, entityOpt, quality, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
+      query <- DirectPhenotypesForTaxon.buildQuery(taxon, entityOpt, quality, phenotypeOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
       result <- App.executeSPARQLQuery(query).map(ResultCount.count)
     } yield result
 
