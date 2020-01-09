@@ -161,16 +161,17 @@ object Gene {
 
   def phenotypicProfile(iri: IRI): Future[Seq[SourcedMinimalTerm]] = {
     val query = construct(
-      t(iri, hasAnnotation.asNode, 'annotation),
-      t('annotation, dcSource, 'source)) from "http://kb.phenoscape.org/" where(
+      t(iri, hasAnnotation.asNode, 'phenotype),
+      t('phenotype, dcSource, 'source)) from "http://kb.phenoscape.org" where(
       bgp(
-        t('pheno_instance, rdfType, AnnotatedPhenotype),
-        t('pheno_instance, associated_with_gene, iri),
-        t('pheno_instance, rdfType, 'annotation)),
-      optional(bgp(t('pheno_instance, dcSource, 'source))),
-      new ElementFilter(new E_NotOneOf(new ExprVar('annotation), new ExprList(List[Expr](
-        new NodeValueNode(AnnotatedPhenotype),
+        t('association, rdfType, association),
+        t('association, associationHasSubject, iri),
+        t('association, associationHasObject, 'phenotype),
+        t('association, associationHasPredicate, has_phenotype)),
+      optional(bgp(t('association, dcSource, 'source))),
+      new ElementFilter(new E_NotOneOf(new ExprVar('phenotype), new ExprList(List[Expr](
         new NodeValueNode(owlNamedIndividual)).asJava))))
+
     for {
       annotationsData <- App.executeSPARQLConstructQuery(query)
       phenotypesWithSources = processProfileResultToAnnotationsAndSources(annotationsData)

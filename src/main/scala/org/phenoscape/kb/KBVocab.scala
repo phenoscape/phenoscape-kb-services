@@ -46,10 +46,13 @@ object KBVocab {
   val serially_homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000027")
 
   val oban = "http://purl.org/oban/"
+  val association = IRI.create("http://purl.org/oban/association")
   val associationHasSubject = ObjectProperty(s"${oban}association_has_subject")
   val associationHasPredicate = ObjectProperty(s"${oban}association_has_predicate")
   val associationHasObject = ObjectProperty(s"${oban}association_has_object")
   val associationIsNegated = IRI.create("http://purl.org/phenoscape/oban/is_negated")
+
+  val has_phenotype = IRI.create("http://purl.obolibrary.org/obo/RO_0002200")
 
   val KBMainGraph = IRI.create("http://kb.phenoscape.org/")
   val KBClosureGraph = IRI.create("http://kb.phenoscape.org/closure")
