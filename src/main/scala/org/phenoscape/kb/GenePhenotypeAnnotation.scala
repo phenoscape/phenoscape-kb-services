@@ -79,7 +79,6 @@ object GenePhenotypeAnnotation {
             taxonPatterns: _*),
       optional(bgp(t('association, dcSource, 'source))),
       new ElementFilter(new E_NotOneOf(new ExprVar('phenotype), new ExprList(List[Expr](
-        new NodeValueNode(AnnotatedPhenotype),
         new NodeValueNode(owlNamedIndividual)).asJava))))
     App.expandWithOwlet(query)
 

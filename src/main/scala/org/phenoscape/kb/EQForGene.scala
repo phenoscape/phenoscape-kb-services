@@ -9,6 +9,7 @@ import scala.language.postfixOps
 import org.apache.jena.query.Query
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owl.Vocab
+import org.phenoscape.kb.KBVocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.semanticweb.owlapi.apibinding.OWLManager
@@ -56,9 +57,9 @@ object EQForGene {
   }
 
   def annotationsQuery(geneIRI: IRI): Query = {
-    select_distinct('annotation) from "http://kb.phenoscape.org/" where bgp(
-      t('annotation, rdfType, Vocab.AnnotatedPhenotype),
-      t('annotation, Vocab.associated_with_gene, geneIRI))
+    select_distinct('association) from "http://kb.phenoscape.org/" where bgp(
+      t('association, rdfType, association),
+      t('association, associationHasSubject, geneIRI))
   }
 
   def qualitiesForAnnotation(annotationID: String): Future[Iterable[String]] = {
