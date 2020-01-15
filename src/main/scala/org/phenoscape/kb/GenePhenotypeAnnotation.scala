@@ -68,19 +68,22 @@ object GenePhenotypeAnnotation {
     val query = select_distinct('gene, 'gene_label, 'phenotype, 'phenotype_label, 'source) where(
       bgp(
         App.BigdataAnalyticQuery ::
-          t('annotation, rdfType, AnnotatedPhenotype) ::
-          t('annotation, associated_with_gene, 'gene) ::
+          t('association, rdfType, association) ::
+          t('association, associationHasPredicate, has_phenotype) ::
+          t('association, associationHasSubject, 'gene) ::
+          t('association, associationHasObject, 'phenotype) ::
           t('gene, rdfsLabel, 'gene_label) ::
-          t('annotation, rdfType, 'phenotype) ::
           t('phenotype, rdfsLabel, 'phenotype_label) ::
-          t('annotation, associated_with_taxon, 'taxon) ::
+          t('association, in_taxon, 'taxon) ::
           phenotypeTriple ++
             taxonPatterns: _*),
-      optional(bgp(t('annotation, dcSource, 'source))),
+      optional(bgp(t('association, dcSource, 'source))),
       new ElementFilter(new E_NotOneOf(new ExprVar('phenotype), new ExprList(List[Expr](
         new NodeValueNode(AnnotatedPhenotype),
         new NodeValueNode(owlNamedIndividual)).asJava))))
     App.expandWithOwlet(query)
+
+
   }
 
   def buildGenePhenotypeAnnotationsQuery(entity: Option[OWLClassExpression], quality: Option[OWLClassExpression], inTaxonOpt: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Query] = {
