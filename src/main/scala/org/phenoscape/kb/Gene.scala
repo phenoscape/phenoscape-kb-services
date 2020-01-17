@@ -168,9 +168,7 @@ object Gene {
         t('association, associationHasSubject, iri),
         t('association, associationHasObject, 'phenotype),
         t('association, associationHasPredicate, has_phenotype)),
-      optional(bgp(t('association, dcSource, 'source))),
-      new ElementFilter(new E_NotOneOf(new ExprVar('phenotype), new ExprList(List[Expr](
-        new NodeValueNode(owlNamedIndividual)).asJava))))
+      optional(bgp(t('association, dcSource, 'source))))
 
     for {
       annotationsData <- App.executeSPARQLConstructQuery(query)

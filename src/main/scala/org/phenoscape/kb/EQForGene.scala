@@ -59,6 +59,7 @@ object EQForGene {
   def annotationsQuery(geneIRI: IRI): Query = {
     select_distinct('association) from "http://kb.phenoscape.org/" where bgp(
       t('association, rdfType, association),
+      t('association, associationHasPredicate, has_phenotype),
       t('association, associationHasSubject, geneIRI))
   }
 

@@ -74,12 +74,10 @@ object GenePhenotypeAnnotation {
           t('association, associationHasObject, 'phenotype) ::
           t('gene, rdfsLabel, 'gene_label) ::
           t('phenotype, rdfsLabel, 'phenotype_label) ::
-          t('association, in_taxon, 'taxon) ::
+          t('gene, in_taxon, 'taxon) ::
           phenotypeTriple ++
             taxonPatterns: _*),
-      optional(bgp(t('association, dcSource, 'source))),
-      new ElementFilter(new E_NotOneOf(new ExprVar('phenotype), new ExprList(List[Expr](
-        new NodeValueNode(owlNamedIndividual)).asJava))))
+      optional(bgp(t('association, dcSource, 'source))))
     App.expandWithOwlet(query)
 
 
