@@ -199,7 +199,7 @@ case class CharacterDescription(iri: IRI, description: String, matrix: Character
     "description" -> description.toJson,
     "matrix" -> matrix.toJSON,
     "character" -> character.toJSON
-    ).toJson.asJsObject
+  ).toJson.asJsObject
 
 }
 
@@ -255,10 +255,19 @@ object AnnotatedCharacterDescription { //FIXME
 
 }
 
-case class CharacterMatrix(iri: IRI, label: String) {
+case class CharacterMatrix(iri: IRI, label: String) extends JSONResultItem {
 
-  def toJSON: JsValue = {
-    Map("@id" -> iri.toString, "label" -> label).toJson
-  }
+  override def toJSON: JsObject = Map("@id" -> iri.toString, "label" -> label).toJson.asJsObject
+
+}
+
+case class CharacterState(iri: IRI, label: String, character: MinimalTerm, matrix: MinimalTerm) extends JSONResultItem {
+
+  override def toJSON: JsObject =
+    Map("@id" -> iri.toString.toJson,
+      "label" -> label.toJson,
+      "character" -> character.toJSON,
+      "matrix" -> matrix.toJSON
+    ).toJson.asJsObject
 
 }
