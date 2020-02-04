@@ -12,6 +12,9 @@ import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.queries.TaxonPhenotypes
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owl.Vocab
+import org.phenoscape.owl.Vocab._
+import org.phenoscape.kb.KBVocab.rdfsLabel
+import org.phenoscape.kb.KBVocab.rdfsSubClassOf
 import org.phenoscape.owlet.SPARQLComposer._
 import org.semanticweb.owlapi.model.IRI
 import com.google.common.collect.HashMultiset
@@ -19,6 +22,8 @@ import akka.util.Timeout
 import org.phenoscape.kb.queries.QueryUtil.{PhenotypicQuality, QualitySpec}
 import spray.json._
 import spray.json.DefaultJsonProtocol._
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
 
 object Phenotype {
 
@@ -27,15 +32,52 @@ object Phenotype {
   private val has_part_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
   private val phenotype_of_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.phenotype_of.getIRI)
 
-  def eqForPhenotype(phenotype: IRI): Future[JsObject] = {
+  def info(phenotype: IRI): Future[Phenotype] = {
+    val eqsFuture = eqForPhenotype(phenotype)
+    val statesFuture = characterStatesForPhenotype(phenotype)
+    val labelFuture = Term.label(phenotype)
+    for {
+      eqs <- eqsFuture
+      states <- statesFuture
+      labelOpt <- labelFuture
+    } yield Phenotype(phenotype, labelOpt.map(_.label).getOrElse(""), states, eqs)
+  }
+
+  def characterStatesForPhenotype(phenotype: IRI): Future[Set[CharacterState]] = {
+    val query: QueryText =
+      sparql"""
+       SELECT DISTINCT ?character ?character_label ?state ?state_label ?matrix ?matrix_label
+       FROM $KBMainGraph
+       WHERE {
+          ?state $describes_phenotype $phenotype .
+          ?character $may_have_state_value ?state .
+          ?matrix $has_character ?character .
+          ?state $rdfsLabel ?state_label .
+          ?character $rdfsLabel ?character_label .
+          ?matrix $rdfsLabel ?matrix_label .
+       }
+            """
+    App.executeSPARQLQueryString(query.text, solution => CharacterState(
+      IRI.create(solution.getResource("state").getURI),
+      solution.getLiteral("state_label").getLexicalForm,
+      MinimalTerm(
+        IRI.create(solution.getResource("character").getURI),
+        solution.getLiteral("character_label").getLexicalForm,
+      ),
+      MinimalTerm(
+        IRI.create(solution.getResource("matrix").getURI),
+        solution.getLiteral("matrix_label").getLexicalForm
+      )
+    )).map(_.toSet)
+  }
+
+  def eqForPhenotype(phenotype: IRI): Future[NearestEQSet] = {
     val entitiesFuture = entitiesForPhenotype(phenotype)
     val qualitiesFuture = qualitiesForPhenotype(phenotype)
     for {
       entities <- entitiesFuture
       qualities <- qualitiesFuture
-    } yield Map(
-      "entity" -> entities.map(_.toString).toSeq.sorted.toJson,
-      "quality" -> qualities.map(_.toString).toSeq.sorted.toJson).toJson.asJsObject
+    } yield NearestEQSet(entities, qualities)
   }
 
   def entitiesForPhenotype(phenotype: IRI): Future[Set[IRI]] = {
@@ -134,5 +176,26 @@ object Phenotype {
         t(phenotype, rdfsSubClassOf, 'description),
         t('description, has_part_some, 'quality),
         t('quality, rdfsIsDefinedBy, PATO)))
+
+}
+
+final case class Phenotype(iri: IRI, label: String, states: Set[CharacterState], eqs: NearestEQSet) extends JSONResultItem {
+
+  override def toJSON: JsObject =
+    Map(
+      "@id" -> iri.toString.toJson,
+      "label" -> label.toJson,
+      "states" -> states.map(_.toJSON).toJson,
+      "eqs" -> eqs.toJSON
+    ).toJson.asJsObject
+
+}
+
+final case class NearestEQSet(entities: Set[IRI], qualities: Set[IRI]) extends JSONResultItem {
+
+  override def toJSON: JsObject =
+    Map(
+      "entities" -> entities.map(_.toString).toSeq.sorted.toJson,
+      "qualities" -> qualities.map(_.toString).toSeq.sorted.toJson).toJson.asJsObject
 
 }

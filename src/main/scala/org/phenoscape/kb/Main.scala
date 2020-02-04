@@ -399,7 +399,7 @@ object Main extends HttpApp with App {
           } ~
           pathPrefix("taxon") {
             path("phenotypes") {
-              parameters('taxon.as[IRI], 'entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?,  'phenotype.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+              parameters('taxon.as[IRI], 'entity.as[OWLClassExpression].?, 'quality.as[OWLClassExpression].?, 'phenotype.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
                 (taxon, entityOpt, qualityOpt, phenotypeOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                   complete {
                     import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
@@ -475,7 +475,7 @@ object Main extends HttpApp with App {
               } ~
               path("annotations") {
                 tsvOrJson { optAccept =>
-                  parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?,  'phenotype.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+                  parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'phenotype.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
                     (entity, qualitySpecOpt, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                       complete {
                         val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
@@ -731,7 +731,7 @@ object Main extends HttpApp with App {
           } ~
           pathPrefix("study") {
             path("query") { //FIXME doc out of date
-              parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?,  'phenotype.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+              parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'phenotype.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
                 (entity, qualitySpecOpt, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                   complete {
                     val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
@@ -789,7 +789,7 @@ object Main extends HttpApp with App {
           } ~
           pathPrefix("phenotype") {
             path("query") {
-              parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?,  'phenotype.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
+              parameters('entity.as[IRI].?, 'quality.as[QualitySpec].?, 'in_taxon.as[IRI].?, 'phenotype.as[IRI].?, 'publication.as[IRI].?, 'parts.as[Boolean].?(false), 'historical_homologs.as[Boolean].?(false), 'serial_homologs.as[Boolean].?(false), 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
                 (entity, qualitySpecOpt, taxonOpt, phenotypeOpt, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset, total) =>
                   complete {
                     //                    import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
@@ -811,6 +811,13 @@ object Main extends HttpApp with App {
                         case "taxon"   => Phenotype.facetPhenotypeByTaxon(taxonOpt, entityOpt, qualitySpec, pubOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
                       }
                     }
+                }
+              } ~
+              path("info") {
+                parameters('iri.as[IRI]) { (iri) =>
+                  complete {
+                    Phenotype.info(iri)
+                  }
                 }
               } ~
               path("direct_annotations") { // undocumented and not currently used //FIXME actually this is used in a popup in web UI
