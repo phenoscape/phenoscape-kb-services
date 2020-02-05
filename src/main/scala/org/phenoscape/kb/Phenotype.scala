@@ -30,7 +30,8 @@ object Phenotype {
   implicit val timeout = Timeout(10 minutes)
 
   private val has_part_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
-  private val phenotype_of_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.phenotype_of.getIRI)
+  private val phenotype_of_some: IRI = NamedRestrictionGenerator.getClassRelationIRI(Vocab.phenotype_of.getIRI)
+  private val has_part_inhering_in_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part_inhering_in.getIRI)
 
   def info(phenotype: IRI): Future[Phenotype] = {
     val eqsFuture = eqForPhenotype(phenotype)
@@ -72,18 +73,21 @@ object Phenotype {
   }
 
   def eqForPhenotype(phenotype: IRI): Future[NearestEQSet] = {
-    val entitiesFuture = entitiesForPhenotype(phenotype)
+    val entitiesFuture = entitiesForPhenotype(phenotype, has_part_inhering_in_some)
+    val generalEntitiesFuture = entitiesForPhenotype(phenotype, phenotype_of_some) //FIXME need to change to relatedEntities using has_part_towards_some; this must be added to the KB build
+    //val relatedEntitiesFuture = ???
     val qualitiesFuture = qualitiesForPhenotype(phenotype)
     for {
       entities <- entitiesFuture
+      generalEntities <- generalEntitiesFuture
       qualities <- qualitiesFuture
-    } yield NearestEQSet(entities, qualities)
+    } yield NearestEQSet(entities, qualities, generalEntities -- entities) //FIXME this is an approximation for using towards
   }
 
-  def entitiesForPhenotype(phenotype: IRI): Future[Set[IRI]] = {
+  def entitiesForPhenotype(phenotype: IRI, relation: IRI): Future[Set[IRI]] = {
     for {
-      entityTypesResult <- App.executeSPARQLQuery(entitySuperClassesQuery(phenotype), result => IRI.create(result.getResource("description").getURI))
-      entitySuperClasses <- superClassesForEntityTypes(entityTypesResult)
+      entityTypesResult <- App.executeSPARQLQuery(entitySuperClassesQuery(phenotype, relation), result => IRI.create(result.getResource("description").getURI))
+      entitySuperClasses <- superClassesForEntityTypes(entityTypesResult, relation)
     } yield {
       val superclasses = HashMultiset.create[IRI]
       entitySuperClasses.foreach(superclasses.add)
@@ -135,23 +139,23 @@ object Phenotype {
     IRI.create(result.getResource("phenotype").getURI),
     result.getLiteral("phenotype_label").getLexicalForm)
 
-  private def entitySuperClassesQuery(phenotype: IRI): Query =
+  private def entitySuperClassesQuery(phenotype: IRI, relation: IRI): Query =
     select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
       bgp(
         t(phenotype, rdfsSubClassOf, 'description),
-        t('description, phenotype_of_some, 'entity),
+        t('description, relation, 'entity),
         t('entity, rdfsIsDefinedBy, Uberon)))
 
-  private def entityEntitySuperClassesQuery(phenotype: IRI): Query =
+  private def entityEntitySuperClassesQuery(phenotype: IRI, relation: IRI): Query =
     select_distinct('entity) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
       bgp(
         t(phenotype, rdfsSubClassOf, 'description),
-        t('description, phenotype_of_some, 'entity),
+        t('description, relation, 'entity),
         t('entity, rdfsIsDefinedBy, Uberon)))
 
-  private def superClassesForEntityTypes(entityTypes: Iterable[IRI]): Future[Iterable[IRI]] = {
+  private def superClassesForEntityTypes(entityTypes: Iterable[IRI], relation: IRI): Future[Iterable[IRI]] = {
     val futureSuperclasses = Future.sequence(entityTypes.map { entityType =>
-      App.executeSPARQLQuery(entityEntitySuperClassesQuery(entityType), result => IRI.create(result.getResource("entity").getURI))
+      App.executeSPARQLQuery(entityEntitySuperClassesQuery(entityType, relation), result => IRI.create(result.getResource("entity").getURI))
     })
     futureSuperclasses.map(_.flatten)
   }
@@ -191,11 +195,13 @@ final case class Phenotype(iri: IRI, label: String, states: Set[CharacterState],
 
 }
 
-final case class NearestEQSet(entities: Set[IRI], qualities: Set[IRI]) extends JSONResultItem {
+final case class NearestEQSet(entities: Set[IRI], qualities: Set[IRI], relatedEntities: Set[IRI]) extends JSONResultItem {
 
   override def toJSON: JsObject =
     Map(
       "entities" -> entities.map(_.toString).toSeq.sorted.toJson,
-      "qualities" -> qualities.map(_.toString).toSeq.sorted.toJson).toJson.asJsObject
+      "qualities" -> qualities.map(_.toString).toSeq.sorted.toJson,
+      "related_entities" -> relatedEntities.map(_.toString).toSeq.sorted.toJson
+    ).toJson.asJsObject
 
 }
