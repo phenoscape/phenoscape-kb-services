@@ -267,7 +267,7 @@ case class CharacterState(iri: IRI, label: String, character: MinimalTerm, matri
     Map("@id" -> iri.toString.toJson,
       "label" -> label.toJson,
       "character" -> character.toJSON,
-      "matrix" -> matrix.toJSON
+      "study" -> matrix.toJSON
     ).toJson.asJsObject
 
 }
