@@ -1312,6 +1312,69 @@ paths:
                   label: Dactylopteriformes
           schema:
             $ref: '#/definitions/LabelledTermListResult'
+  /phenotype/info:
+    get:
+      tags:
+        - Phenotypes
+      summary: Retrieve detailed info about a phenotype
+      description: Retrieve info including any annotated character states and most specific related entities and qualities
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: IRI of phenotype
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: Phenotype label, annotated character states, and EQ info.
+          examples:
+            application/json:
+              results:
+                '@id': 'http://purl.org/phenoscape/expression?value=%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%0A++++%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0002000%3E%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FRO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0000468%3E%29%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FRO_0002503%3E+value+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2002023%3E%29%29%29%0A+and+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2002023%3E%29'
+                label: second preethmoid absent
+                states:
+                  - '@id': 'http://purl.org/phenoscape/uuid/0af4c283-4d5b-43a9-b221-837b9dfe02f3'
+                    label: absent
+                    character:
+                      '@id': 'http://purl.org/phenoscape/uuid/112207e8-bd19-4b3b-b49e-cb18802196c2'
+                      label: 2nd pre-ethmoid
+                    study:
+                      '@id': 'http://www.worldcat.org/oclc/612613233'
+                      label: Siebert (1987)
+                  - '@id': 'http://purl.org/phenoscape/uuid/1109bb4b-5bc8-4277-9b14-7074ab1dd4fa'
+                    label: absent
+                    character:
+                      '@id': 'http://purl.org/phenoscape/uuid/2867e037-8450-4a8a-aa80-9f24f1de8284'
+                      label: Ossified palatomaxillary elements
+                    study:
+                      '@id': 'http://www.worldcat.org/oclc/612613233'
+                      label: Siebert (1987)
+                  - '@id': 'http://purl.org/phenoscape/uuid/cad22494-d599-4680-a315-d03bb0890f5b'
+                    label: absent
+                    character:
+                      '@id': 'http://purl.org/phenoscape/uuid/91e54d27-4602-4204-8bb5-70ff4142e29c'
+                      label: Ossified second preethmoid
+                    study:
+                      '@id': 'http://eprints.lib.hokudai.ac.jp/dspace/handle/2115/21871'
+                      label: Sawada (1982)
+                  - '@id': 'http://purl.org/phenoscape/uuid/5d0a5f05-e6b8-4a20-a833-f5371f77d756'
+                    label: ausente
+                    character:
+                      '@id': 'http://purl.org/phenoscape/uuid/99c91e75-d3bc-4b82-ae8a-593e4cca47a2'
+                      label: Segundo pré-etmoide
+                    study:
+                      '@id': 'https://scholar.google.com/scholar?q=Relações+filogenéticas+entre+os+grandes+grupos+de+Clupeomorpha+e+suas+poss%C3%ADveis+relações+com+Ostariophysi&btnG=&hl=en&as_sdt=0%2C42'
+                      label: Di Dario (2004)
+                eqs:
+                  entities:
+                    - 'http://purl.obolibrary.org/obo/UBERON_0000468'
+                  qualities:
+                    - 'http://purl.obolibrary.org/obo/PATO_0002000'
+                  related_entities:
+                    - 'http://purl.obolibrary.org/obo/UBERON_2002023'
   /phenotype/query:
     get:
       tags:
