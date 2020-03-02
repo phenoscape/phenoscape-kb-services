@@ -67,6 +67,9 @@ object PresenceAbsenceOfStructure {
       model <- App.executeSPARQLConstructQuery(query)
     } yield {
       val dataset = new DataSet()
+      KB.buildDate.map {
+        date => dataset.setCurators("The author of this ontotrace matrix is Phenoscape KB built on " + date.toString)
+      }
       val characters: mutable.Map[String, Character] = mutable.Map()
       val states: mutable.Map[String, State] = mutable.Map()
       val taxa: mutable.Map[String, MatrixTaxon] = mutable.Map()
