@@ -62,11 +62,14 @@ object PresenceAbsenceOfStructure {
 
   def presenceAbsenceMatrix(mainEntityClass: OWLClassExpression, taxonClass: OWLClassExpression, variableOnly: Boolean, includeParts: Boolean): Future[DataSet] = {
     val entityClass = if (includeParts) mainEntityClass or (part_of some mainEntityClass) else mainEntityClass
+    val buildDateFut = KB.buildDate
     for {
       query <- App.expandWithOwlet(buildMatrixQuery(entityClass, taxonClass))
       model <- App.executeSPARQLConstructQuery(query)
+      buildDate <- buildDateFut
     } yield {
       val dataset = new DataSet()
+      dataset.setCurators("Phenoscape KB built on " + buildDate.toString)
       val characters: mutable.Map[String, Character] = mutable.Map()
       val states: mutable.Map[String, State] = mutable.Map()
       val taxa: mutable.Map[String, MatrixTaxon] = mutable.Map()
