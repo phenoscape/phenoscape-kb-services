@@ -69,7 +69,7 @@ object PresenceAbsenceOfStructure {
       buildDate <- buildDateFut
     } yield {
       val dataset = new DataSet()
-      dataset.setCurators("Ontotrace matrix generated from Phenoscape KB built on " + buildDate.toString)
+      dataset.setCurators("Phenoscape KB built on " + buildDate.toString)
       val characters: mutable.Map[String, Character] = mutable.Map()
       val states: mutable.Map[String, State] = mutable.Map()
       val taxa: mutable.Map[String, MatrixTaxon] = mutable.Map()
