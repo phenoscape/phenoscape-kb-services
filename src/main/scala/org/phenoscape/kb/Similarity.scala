@@ -271,12 +271,10 @@ object Similarity {
 
   def frequency(terms: Set[IRI], corpus: IRI): Future[TermFrequencyTable] = {
     import scalaz.Scalaz._
-    corpus match {
-      case TaxaCorpus =>
-        val values = if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ |+| _) else sparql""
-        val query: QueryText =
-          sparql"""
-              PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    val values = if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ |+| _) else sparql""
+    val query: QueryText = corpus match {
+      case TaxaCorpus  =>
+        sparql"""
               SELECT ?term (COUNT(DISTINCT ?profile) AS ?count)
               FROM $KBMainGraph
               WHERE {
@@ -288,15 +286,8 @@ object Similarity {
               }
               GROUP BY ?term
             """
-
-        App.executeSPARQLQueryString(query.text, qs =>
-          IRI.create(qs.getResource("term").getURI) ->
-            qs.getLiteral("count").getInt).map(_.toMap)
-      case GenesCorpus          =>
-        val values = if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ |+| _) else sparql""
-        val query: QueryText =
-          sparql"""
-              PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      case GenesCorpus =>
+        sparql"""
               SELECT ?term (COUNT(DISTINCT ?profile) AS ?count)
               FROM $KBMainGraph
               WHERE {
@@ -309,10 +300,10 @@ object Similarity {
               }
               GROUP BY ?term
             """
-        App.executeSPARQLQueryString(query.text, qs =>
-          IRI.create(qs.getResource("term").getURI) ->
-            qs.getLiteral("count").getInt).map(_.toMap)
     }
+    App.executeSPARQLQueryString(query.text, qs =>
+      IRI.create(qs.getResource("term").getURI) ->
+        qs.getLiteral("count").getInt).map(_.toMap)
   }
 
   type TermFrequencyTable = Map[IRI, Int]
