@@ -288,10 +288,30 @@ object Similarity {
               }
               GROUP BY ?term
             """
+
         App.executeSPARQLQueryString(query.text, qs =>
           IRI.create(qs.getResource("term").getURI) ->
             qs.getLiteral("count").getInt).map(_.toMap)
-      case _          => Future.successful(Map.empty)
+      case GenesCorpus          =>
+        val values = if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ |+| _) else sparql""
+        val query: QueryText =
+          sparql"""
+              PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+              SELECT ?term (COUNT(DISTINCT ?profile) AS ?count)
+              FROM $KBMainGraph
+              WHERE {
+                VALUES ?term { $values }
+                ?profile ^$has_phenotypic_profile ?obj .
+                FILTER NOT EXISTS { ?obj  $rdfsIsDefinedBy $VTO . }
+                GRAPH $KBClosureGraph {
+                  ?profile $rdfType ?term .
+                }
+              }
+              GROUP BY ?term
+            """
+        App.executeSPARQLQueryString(query.text, qs =>
+          IRI.create(qs.getResource("term").getURI) ->
+            qs.getLiteral("count").getInt).map(_.toMap)
     }
   }
 
