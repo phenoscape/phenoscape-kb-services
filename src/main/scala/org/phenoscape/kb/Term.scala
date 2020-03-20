@@ -63,7 +63,7 @@ object Term {
   }
 
   def labels(iris: IRI*): Future[Seq[OptionallyLabeledTerm]] = {
-    App.executeSPARQLQuery(buildLabelsQuery(iris: _*), OptionallyLabeledTerm.fromQuerySolution)
+    App.executeSPARQLQuery(buildLabelsQuery(iris: _*), OptionallyLabeledTermImpl.fromQuerySolution)
   }
 
   def computedLabel(iri: IRI): Future[MinimalTerm] = (for {
@@ -117,7 +117,7 @@ object Term {
 
   def withIRI(iri: IRI): Future[Option[Term]] = {
     def termResult(result: QuerySolution) = (
-      result.getLiteral("label").getLexicalForm,
+      Option(result.getLiteral("label")).map(_.getLexicalForm),
       Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""))
 
     val termFuture = App.executeSPARQLQuery(buildTermQuery(iri), termResult).map(_.headOption)
@@ -343,8 +343,8 @@ object Term {
 
   def buildTermQuery(iri: IRI): Query =
     select_distinct('label, 'definition) from "http://kb.phenoscape.org/" where(
-      bgp(
-        t(iri, rdfsLabel, 'label)),
+      optional(bgp(
+        t(iri, rdfsLabel, 'label))),
       optional(bgp(
         t(iri, definition, 'definition))))
 
@@ -489,11 +489,11 @@ object Term {
 }
 
 
-final case class Term(iri: IRI, label: String, definition: String, synonyms: Seq[(IRI, String)], relationships: Seq[TermRelationship]) extends LabeledTerm with JSONResultItem {
+final case class Term(iri: IRI, label: Option[String], definition: String, synonyms: Seq[(IRI, String)], relationships: Seq[TermRelationship]) extends OptionallyLabeledTerm with JSONResultItem {
 
   def toJSON: JsObject = Map(
     "@id" -> iri.toString.toJson,
-    "label" -> label.toJson,
+    "label" -> label.map(_.toJson).getOrElse(JsNull),
     "definition" -> definition.toJson,
     "synonyms" -> synonyms.map {
       case (iri, value) => JsObject(
@@ -525,15 +525,15 @@ object MinimalTerm {
 
 }
 
-final case class OptionallyLabeledTerm(iri: IRI, label: Option[String]) extends JSONResultItem {
+final case class OptionallyLabeledTermImpl(iri: IRI, label: Option[String]) extends OptionallyLabeledTerm with JSONResultItem {
 
   def toJSON: JsObject = Map("@id" -> iri.toString.toJson, "label" -> label.map(_.toJson).getOrElse(JsNull)).toJson.asJsObject
 
 }
 
-object OptionallyLabeledTerm {
+object OptionallyLabeledTermImpl {
 
-  def fromQuerySolution(result: QuerySolution): OptionallyLabeledTerm = OptionallyLabeledTerm(IRI.create(result.getResource("term").getURI), Option(result.getLiteral("term_label")).map(_.getLexicalForm))
+  def fromQuerySolution(result: QuerySolution): OptionallyLabeledTerm = OptionallyLabeledTermImpl(IRI.create(result.getResource("term").getURI), Option(result.getLiteral("term_label")).map(_.getLexicalForm))
 }
 
 final case class SourcedMinimalTerm(term: MinimalTerm, sources: Set[IRI]) extends JSONResultItem {
@@ -615,5 +615,13 @@ trait LabeledTerm extends JSONResultItem {
   def iri: IRI
 
   def label: String
+
+}
+
+trait OptionallyLabeledTerm extends JSONResultItem {
+
+  def iri: IRI
+
+  def label: Option[String]
 
 }
