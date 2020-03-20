@@ -1327,6 +1327,12 @@ paths:
           required: true
           type: string
           format: IRI
+        - name: annotated_states_only
+          in: query
+          description: include in the response only those states which are annotated to a taxon in a matrix
+          required: false
+          type: boolean
+          default: false
       responses:
         200:
           description: Phenotype label, annotated character states, and EQ info.
