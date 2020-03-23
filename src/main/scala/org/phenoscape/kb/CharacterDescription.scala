@@ -59,7 +59,7 @@ object CharacterDescription {
       t('matrix, has_character / may_have_state_value, 'state),
       t('matrix, rdfsLabel, 'matrix_label))
     val result = App.executeSPARQLQuery(query, result => {
-      Term.computedLabel(iri).map { phenotype =>
+      TermDetails.computedLabel(iri).map { phenotype =>
         AnnotatedCharacterDescription(
           CharacterDescription(
             IRI.create(result.getResource("state").getURI),
@@ -183,7 +183,7 @@ object CharacterDescription {
       t(iri, rdfsSubClassOf, 'eq))
     for {
       eqs <- App.executeSPARQLQuery(query, result => IRI.create(result.getResource("eq").getURI))
-      labeledEQs <- Future.sequence(eqs.map(Term.computedLabel))
+      labeledEQs <- Future.sequence(eqs.map(TermDetails.computedLabel))
     } yield labeledEQs.groupBy(_.label).map {
       case (label, terms) => //FIXME this groupBy is to work around extra inferred identical EQs; need to fix in Phenex translation
         terms.head
@@ -234,7 +234,7 @@ case class AnnotatedCharacterDescription(characterDescription: CharacterDescript
 object AnnotatedCharacterDescription { //FIXME
 
   def fromQuerySolution(result: QuerySolution): Future[AnnotatedCharacterDescription] = {
-    Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
+    TermDetails.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
       AnnotatedCharacterDescription(
         CharacterDescription(
           IRI.create(result.getResource("state").getURI),

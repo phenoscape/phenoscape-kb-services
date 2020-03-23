@@ -18,10 +18,10 @@ import scala.language.postfixOps
 object Graph {
 
   def propertyNeighborsForObject(term: IRI, property: IRI): Future[Seq[MinimalTerm]] =
-    App.executeSPARQLQuery(buildPropertyNeighborsQueryObject(term, property), Term.fromMinimalQuerySolution)
+    App.executeSPARQLQuery(buildPropertyNeighborsQueryObject(term, property), TermDetails.fromMinimalQuerySolution)
 
   def propertyNeighborsForSubject(term: IRI, property: IRI): Future[Seq[MinimalTerm]] =
-    App.executeSPARQLQuery(buildPropertyNeighborsQuerySubject(term, property), Term.fromMinimalQuerySolution)
+    App.executeSPARQLQuery(buildPropertyNeighborsQuerySubject(term, property), TermDetails.fromMinimalQuerySolution)
 
   private def buildPropertyNeighborsQueryObject(focalTerm: IRI, property: IRI): Query = {
     val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)

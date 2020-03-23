@@ -46,7 +46,7 @@ object Gene {
   def search(text: String, taxonOpt: Option[IRI]): Future[Seq[MatchedTerm[Gene]]] = {
     val taxonFilter = taxonOpt.map(taxonIRI =>
       (gene: Gene) => gene.taxon.iri == taxonIRI).getOrElse((_: Gene) => true)
-    App.executeSPARQLQuery(buildSearchQuery(text), Gene(_)).map(genes => Term.orderBySearchedText(genes.filter(taxonFilter), text))
+    App.executeSPARQLQuery(buildSearchQuery(text), Gene(_)).map(genes => TermDetails.orderBySearchedText(genes.filter(taxonFilter), text))
   }
 
   def query(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, limit: Int = 20, offset: Int = 0): Future[Seq[Gene]] = for {
@@ -130,13 +130,13 @@ object Gene {
 
   def facetGenesWithPhenotypeByEntity(focalEntity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => affectingPhenotypeOfEntityTotal(Some(iri), quality, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    val refine = (iri: IRI) => Term.queryAnatomySubClasses(iri, KBVocab.Uberon, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(_.toSet)
+    val refine = (iri: IRI) => TermDetails.queryAnatomySubClasses(iri, KBVocab.Uberon, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(_.toSet)
     Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine, false)
   }
 
   def facetGenesWithPhenotypeByQuality(focalQuality: Option[IRI], entity: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => affectingPhenotypeOfEntityTotal(entity, Some(iri), includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
+    val refine = (iri: IRI) => TermDetails.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
     Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine, false)
   }
 
@@ -175,7 +175,7 @@ object Gene {
       annotationsData <- App.executeSPARQLConstructQuery(query)
       phenotypesWithSources = processProfileResultToAnnotationsAndSources(annotationsData)
       labelledPhenotypes <- Future.sequence(phenotypesWithSources.map {
-        case (phenotype, sources) => Term.computedLabel(phenotype).map(SourcedMinimalTerm(_, sources))
+        case (phenotype, sources) => TermDetails.computedLabel(phenotype).map(SourcedMinimalTerm(_, sources))
       })
     } yield labelledPhenotypes.toSeq.sortBy(_.term.label.toLowerCase)
   }
@@ -211,7 +211,7 @@ object Gene {
       annotationsData <- App.executeSPARQLConstructQuery(query)
       entitiesWithSources = processProfileResultToAnnotationsAndSources(annotationsData)
       labelledEntities <- Future.sequence(entitiesWithSources.map {
-        case (entity, sources) => Term.computedLabel(entity).map(SourcedMinimalTerm(_, sources))
+        case (entity, sources) => TermDetails.computedLabel(entity).map(SourcedMinimalTerm(_, sources))
       })
     } yield labelledEntities.toSeq.sortBy(_.term.label.toLowerCase)
   }
@@ -256,7 +256,7 @@ object Gene {
 
 }
 
-case class Gene(iri: IRI, label: String, taxon: Taxon) extends LabeledTerm with JSONResultItem {
+case class Gene(iri: IRI, label: String, taxon: Taxon) extends Term with JSONResultItem {
 
   def toJSON: JsObject = {
     Map("@id" -> iri.toString.toJson, "label" -> label.toJson, "taxon" -> taxon.toJSON).toJson.asJsObject

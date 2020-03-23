@@ -63,19 +63,19 @@ object Study {
 
   def facetStudiesByEntity(focalEntity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => queryStudiesTotal(Some(iri), quality, inTaxonOpt, None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    val refine = (iri: IRI) => Term.queryAnatomySubClasses(iri, KBVocab.Uberon, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(_.toSet)
+    val refine = (iri: IRI) => TermDetails.queryAnatomySubClasses(iri, KBVocab.Uberon, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(_.toSet)
     Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine, false)
   }
 
   def facetStudiesByQuality(focalQuality: Option[IRI], entity: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => queryStudiesTotal(entity, PhenotypicQuality(Some(iri)), inTaxonOpt, None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
+    val refine = (iri: IRI) => TermDetails.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
     Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine, false)
   }
 
   def facetStudiesByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: QualitySpec, publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => queryStudiesTotal(entity, quality, Some(iri), None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
+    val refine = (iri: IRI) => TermDetails.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
     Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine, true)
   }
 
@@ -86,7 +86,7 @@ object Study {
     App.executeSPARQLQuery(buildAnnotatedTaxaTotalQuery(study)).map(ResultCount.count)
 
   def annotatedPhenotypes(study: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
-    val futureDescriptions = Term.label(study).map { studyTermOpt =>
+    val futureDescriptions = TermDetails.label(study).map { studyTermOpt =>
       studyTermOpt.map { studyTerm =>
         val matrix = CharacterMatrix(studyTerm.iri, studyTerm.label)
         App.executeSPARQLQuery(buildPhenotypesQuery(study, limit, offset), annotationFromQueryResult(matrix))
@@ -125,7 +125,7 @@ object Study {
   }
 
   private def annotationFromQueryResult(matrix: CharacterMatrix)(result: QuerySolution): Future[AnnotatedCharacterDescription] = {
-    Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
+    TermDetails.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
       AnnotatedCharacterDescription(
         CharacterDescription(
           IRI.create(result.getResource("state").getURI),

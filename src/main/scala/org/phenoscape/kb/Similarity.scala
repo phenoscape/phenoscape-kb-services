@@ -92,8 +92,8 @@ object Similarity {
       (for {
         (labelMap, pairs) <- accFuture
       } yield {
-        val queryAnnotationLabelFuture = labelMap.get(pair.queryAnnotation).map(Future.successful).getOrElse(Term.computedLabel(pair.queryAnnotation).map(_.label))
-        val corpusAnnotationLabelFuture = labelMap.get(pair.corpusAnnotation).map(Future.successful).getOrElse(Term.computedLabel(pair.corpusAnnotation).map(_.label))
+        val queryAnnotationLabelFuture = labelMap.get(pair.queryAnnotation).map(Future.successful).getOrElse(TermDetails.computedLabel(pair.queryAnnotation).map(_.label))
+        val corpusAnnotationLabelFuture = labelMap.get(pair.corpusAnnotation).map(Future.successful).getOrElse(TermDetails.computedLabel(pair.corpusAnnotation).map(_.label))
         for {
           queryAnnotationLabel <- queryAnnotationLabelFuture
           corpusAnnotationLabel <- corpusAnnotationLabelFuture
@@ -119,7 +119,7 @@ object Similarity {
 
   def subsumedAnnotations(instance: OWLNamedIndividual, subsumer: OWLClass): Future[Seq[MinimalTerm]] = for {
     irisFuture <- subsumedAnnotationIRIs(instance, subsumer)
-    labelledTerms <- Future.sequence(irisFuture.map(Term.computedLabel(_)))
+    labelledTerms <- Future.sequence(irisFuture.map(TermDetails.computedLabel(_)))
   } yield labelledTerms
 
   def profileSize(profileSubject: IRI): Future[Int] = {
@@ -406,7 +406,7 @@ object Subsumer {
 
   def fromQuery(result: QuerySolution): Future[Subsumer] = {
     val iri = IRI.create(result.getResource("subsumer").getURI)
-    Term.computedLabel(iri).map(term => Subsumer(term, result.getLiteral("ic").getDouble))
+    TermDetails.computedLabel(iri).map(term => Subsumer(term, result.getLiteral("ic").getDouble))
   }
 
 }

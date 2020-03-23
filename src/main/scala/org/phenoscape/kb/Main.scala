@@ -5,7 +5,7 @@ import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.OWLFormats.ManchesterSyntaxClassExpressionUnmarshaller
 import org.phenoscape.kb.OWLFormats.OWLClassExpressionMarshaller
 import org.phenoscape.kb.PhenexDataSet.DataSetMarshaller
-import org.phenoscape.kb.Term.IRIsMarshaller
+import org.phenoscape.kb.TermDetails.IRIsMarshaller
 import org.phenoscape.kb.MinimalTerm.comboSeqMarshaller
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
@@ -138,7 +138,7 @@ object Main extends HttpApp with App {
                   val props = properties.getOrElse(List(rdfsLabel, hasExactSynonym.getIRI, hasNarrowSynonym.getIRI, hasBroadSynonym.getIRI))
                   val definedBys = definedByOpt.getOrElse(Nil)
                   import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                  Term.search(text, termType, props, definedBys, includeDeprecated, limit)
+                  TermDetails.search(text, termType, props, definedBys, includeDeprecated, limit)
                 }
               }
             } ~
@@ -146,14 +146,14 @@ object Main extends HttpApp with App {
                 parameters('text, 'definedBy.as[IRI], 'limit.as[Int].?(0)) { (text, definedBy, limit) =>
                   complete {
                     import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                    Term.searchOntologyTerms(text, definedBy, limit)
+                    TermDetails.searchOntologyTerms(text, definedBy, limit)
                   }
                 }
               } ~
               path("label") {
                 parameters('iri.as[IRI]) { (iri) =>
                   complete {
-                    Term.labels(iri).map(_.head)
+                    TermDetails.labels(iri).map(_.head)
                   }
                 }
               } ~
@@ -162,7 +162,7 @@ object Main extends HttpApp with App {
                   parameters('iris.as[Seq[IRI]]) { (iris) =>
                     complete {
                       import org.phenoscape.kb.MinimalTerm.comboSeqMarshaller
-                      Term.labels(iris: _*)
+                      TermDetails.labels(iris: _*)
                     }
                   }
                 } ~
@@ -170,7 +170,7 @@ object Main extends HttpApp with App {
                     formFields('iris.as[Seq[IRI]]) { (iris) =>
                       complete {
                         import org.phenoscape.kb.MinimalTerm.comboSeqMarshaller
-                        Term.labels(iris: _*)
+                        TermDetails.labels(iris: _*)
                       }
                     }
                   }
@@ -178,28 +178,28 @@ object Main extends HttpApp with App {
               path("classification") {
                 parameters('iri.as[IRI], 'definedBy.as[IRI].?) { (iri, source) =>
                   complete {
-                    Term.classification(iri, source)
+                    TermDetails.classification(iri, source)
                   }
                 }
               } ~
               path("least_common_subsumers") {
                 parameters('iris.as[Seq[IRI]], 'definedBy.as[IRI].?) { (iris, source) =>
                   complete {
-                    Term.leastCommonSubsumers(iris, source)
+                    TermDetails.leastCommonSubsumers(iris, source)
                   }
                 }
               } ~
               path("all_ancestors") {
                 parameters('iri.as[IRI], 'parts.as[Boolean].?(false)) { (iri, includeAsPart) =>
                   complete {
-                    Term.allAncestors(iri, includeAsPart)
+                    TermDetails.allAncestors(iri, includeAsPart)
                   }
                 }
               } ~
               path("all_descendants") {
                 parameters('iri.as[IRI], 'parts.as[Boolean].?(false)) { (iri, includeParts) =>
                   complete {
-                    Term.allDescendants(iri, includeParts)
+                    TermDetails.allDescendants(iri, includeParts)
                   }
                 }
               } ~
@@ -222,7 +222,7 @@ object Main extends HttpApp with App {
               path("resolve_label_expression") {
                 parameters('expression) { (expression) =>
                   complete {
-                    Term.resolveLabelExpression(expression) match {
+                    TermDetails.resolveLabelExpression(expression) match {
                       case Success(expression) => expression
                       case Failure(error)      => StatusCodes.UnprocessableEntity -> error
                     }
@@ -232,7 +232,7 @@ object Main extends HttpApp with App {
               pathEnd {
                 parameters('iri.as[IRI]) { iri =>
                   complete {
-                    Term.withIRI(iri)
+                    TermDetails.withIRI(iri)
                   }
                 }
               }
@@ -558,7 +558,7 @@ object Main extends HttpApp with App {
               parameters('text, 'limit.as[Int].?(20)) { (text, limit) =>
                 complete {
                   import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                  Term.searchOntologyTerms(text, Uberon, limit)
+                  TermDetails.searchOntologyTerms(text, Uberon, limit)
                 }
               }
             } ~
