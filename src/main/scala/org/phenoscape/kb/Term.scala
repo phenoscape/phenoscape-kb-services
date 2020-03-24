@@ -464,14 +464,14 @@ object Term {
     import scalaz._
     val terms = iris.map(iri => sparql" $iri ").fold(sparql"")(_ |+| _)
     val queryText: QueryText = sparql"""
-    SELECT DISTINCT ?term ?term_label
+    SELECT ?term (SAMPLE(?term_lbl) AS ?term_label)
     FROM $KBMainGraph
     WHERE {
       VALUES ?term { $terms }
       OPTIONAL {
-        ?term $rdfsLabel ?term_label .
+        ?term $rdfsLabel ?term_lbl .
       }
-    }
+    } GROUP BY ?term
     """
     QueryFactory.create(queryText.text)
   }
