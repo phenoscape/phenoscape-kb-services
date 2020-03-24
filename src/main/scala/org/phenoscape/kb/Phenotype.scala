@@ -33,9 +33,9 @@ object Phenotype {
   private val phenotype_of_some: IRI = NamedRestrictionGenerator.getClassRelationIRI(Vocab.phenotype_of.getIRI)
   private val has_part_inhering_in_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part_inhering_in.getIRI)
 
-  def info(phenotype: IRI): Future[Phenotype] = {
+  def info(phenotype: IRI, annotatedStatesOnly: Boolean): Future[Phenotype] = {
     val eqsFuture = eqForPhenotype(phenotype)
-    val statesFuture = characterStatesForPhenotype(phenotype)
+    val statesFuture = characterStatesForPhenotype(phenotype, annotatedStatesOnly)
     val labelFuture = Term.label(phenotype)
     for {
       eqs <- eqsFuture
@@ -44,13 +44,15 @@ object Phenotype {
     } yield Phenotype(phenotype, labelOpt.map(_.label).getOrElse(""), states, eqs)
   }
 
-  def characterStatesForPhenotype(phenotype: IRI): Future[Set[CharacterState]] = {
+  def characterStatesForPhenotype(phenotype: IRI, annotatedStatesOnly: Boolean): Future[Set[CharacterState]] = {
+    val taxonConstraint = if (annotatedStatesOnly) sparql"?taxon $exhibits_state ?state ." else sparql""
     val query: QueryText =
       sparql"""
        SELECT DISTINCT ?character ?character_label ?state ?state_label ?matrix ?matrix_label
        FROM $KBMainGraph
        WHERE {
           ?state $describes_phenotype $phenotype .
+          $taxonConstraint
           ?character $may_have_state_value ?state .
           ?matrix $has_character ?character .
           ?state $rdfsLabel ?state_label .

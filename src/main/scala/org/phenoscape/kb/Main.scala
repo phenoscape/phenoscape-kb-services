@@ -814,9 +814,9 @@ object Main extends HttpApp with App {
                 }
               } ~
               path("info") {
-                parameters('iri.as[IRI]) { (iri) =>
+                parameters('iri.as[IRI], 'annotated_states_only.as[Boolean].?(false)) { (iri, annotatedStatesOnly) =>
                   complete {
-                    Phenotype.info(iri)
+                    Phenotype.info(iri, annotatedStatesOnly)
                   }
                 }
               } ~
