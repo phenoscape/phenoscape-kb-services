@@ -88,7 +88,7 @@ object Study {
   def annotatedPhenotypes(study: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
     val futureDescriptions = TermDetails.label(study).map { studyTermOpt =>
       studyTermOpt.map { studyTerm =>
-        val matrix = CharacterMatrix(studyTerm.iri, studyTerm.label)
+        val matrix = CharacterMatrix(studyTerm.iri, studyTerm.label.getOrElse(""))
         App.executeSPARQLQuery(buildPhenotypesQuery(study, limit, offset), annotationFromQueryResult(matrix))
       }
     }
@@ -130,7 +130,7 @@ object Study {
         CharacterDescription(
           IRI.create(result.getResource("state").getURI),
           result.getLiteral("description").getLexicalForm,
-          matrix, MinimalTerm(IRI.create(result.getResource("character").getURI), result.getLiteral("characterLabel").getLexicalForm)),
+          matrix, MinimalTerm(IRI.create(result.getResource("character").getURI), Option(result.getLiteral("characterLabel").getLexicalForm))),
         phenotype)
     }
 
@@ -291,7 +291,7 @@ object Study {
   private def queryToTerm(result: QuerySolution): MinimalTerm =
     MinimalTerm(
       IRI.create(result.getResource("matrix").getURI),
-      result.getLiteral("matrix_label").getLexicalForm)
+      Option(result.getLiteral("matrix_label").getLexicalForm))
 
 }
 

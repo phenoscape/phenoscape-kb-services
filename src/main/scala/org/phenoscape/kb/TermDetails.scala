@@ -134,15 +134,15 @@ object TermDetails {
     }
   }
 
-  private[this] def categorizeSearchedText[T <: IRIwithLabel](terms: Seq[T], text: String): Seq[MatchedTerm[T]] = {
+  private[this] def categorizeSearchedText[T <: IRIwithLabel](terms: Seq[T], text: String): Seq[MatchedTerm[MinimalTerm]] = {
     terms.map { term =>
       val lowerLabel = term.label.toLowerCase
       val lowerText = text.toLowerCase
       val location = lowerLabel.indexOf(lowerText)
-      if (lowerLabel == lowerText) MatchedTerm(term, ExactMatch)
-      else if (location == 0) MatchedTerm(term, PartialMatch)
-      else if (location > 0) MatchedTerm(term, PartialMatch)
-      else MatchedTerm(term, BroadMatch)
+      if (lowerLabel == lowerText) MatchedTerm(new MinimalTerm(term.iri, Option(term.label)), ExactMatch)
+      else if (location == 0) MatchedTerm(new MinimalTerm(term.iri, Option(term.label)), PartialMatch)
+      else if (location > 0) MatchedTerm(new MinimalTerm(term.iri, Option(term.label)), PartialMatch)
+      else MatchedTerm(new MinimalTerm(term.iri, Option(term.label)), BroadMatch)
     }
   }
 
@@ -515,9 +515,9 @@ case object BroadMatch extends MatchType {
 
 }
 
-class LabelMapProvider(labels: Map[IRI, String]) extends ShortFormProvider {
+class LabelMapProvider(labels: Map[IRI, Option[String]]) extends ShortFormProvider {
 
-  def getShortForm(entity: OWLEntity): String = labels.getOrElse(entity.getIRI, entity.getIRI.toString)
+  def getShortForm(entity: OWLEntity): Option[String] = labels.getOrElse(entity.getIRI, Option(entity.getIRI.toString))
 
   def dispose(): Unit = Unit
 

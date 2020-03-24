@@ -115,7 +115,7 @@ object Gene {
 
   def fromIRIQuery(iri: IRI)(result: QuerySolution): Gene = Gene(
     iri,
-    result.getLiteral("gene_label").getLexicalForm,
+    Option(result.getLiteral("gene_label").getLexicalForm),
     taxonForGeneIRI(iri))
 
   def affectingPhenotypeOfEntity(entity: Option[IRI], quality: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int, offset: Int): Future[Seq[Gene]] = for {
@@ -177,7 +177,7 @@ object Gene {
       labelledPhenotypes <- Future.sequence(phenotypesWithSources.map {
         case (phenotype, sources) => TermDetails.computedLabel(phenotype).map(SourcedMinimalTerm(_, sources))
       })
-    } yield labelledPhenotypes.toSeq.sortBy(_.term.label.toLowerCase)
+    } yield labelledPhenotypes.toSeq.sortBy(_.term.label.map(_.toLowerCase))
   }
 
   private val hasAnnotation = ResourceFactory.createProperty("http://example.org/hasAnnotation")
@@ -213,7 +213,7 @@ object Gene {
       labelledEntities <- Future.sequence(entitiesWithSources.map {
         case (entity, sources) => TermDetails.computedLabel(entity).map(SourcedMinimalTerm(_, sources))
       })
-    } yield labelledEntities.toSeq.sortBy(_.term.label.toLowerCase)
+    } yield labelledEntities.toSeq.sortBy(_.term.label.map(_.toLowerCase))
   }
 
   case class Phenotype(iri: IRI)
@@ -243,7 +243,7 @@ object Gene {
     val geneURI = result.getResource("gene").getURI
     Gene(
       IRI.create(geneURI),
-      result.getLiteral("gene_label").getLexicalForm,
+      Option(result.getLiteral("gene_label").getLexicalForm),
       taxonForGeneIRI(IRI.create(geneURI)))
   }
 
@@ -256,10 +256,10 @@ object Gene {
 
 }
 
-case class Gene(iri: IRI, label: String, taxon: Taxon) extends Term with JSONResultItem {
+case class Gene(iri: IRI, label: Option[String], taxon: Taxon) extends Term with JSONResultItem {
 
   def toJSON: JsObject = {
-    Map("@id" -> iri.toString.toJson, "label" -> label.toJson, "taxon" -> taxon.toJSON).toJson.asJsObject
+    Map("@id" -> iri.toString.toJson, "label" -> label.map(_.toJson).getOrElse(JsNull), "taxon" -> taxon.toJSON).toJson.asJsObject
   }
 
   override def toString: String = {

@@ -112,7 +112,7 @@ object Taxon {
             result.getLiteral("description").getLexicalForm,
             CharacterMatrix(
               IRI.create(result.getResource("matrix").getURI),
-              result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), result.getLiteral("characterLabel").getLexicalForm)),
+              result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), Option(result.getLiteral("characterLabel").getLexicalForm))),
           phenotype)
       }
     })
@@ -374,7 +374,7 @@ object Taxon {
   def fromIRIQuery(iri: IRI)(result: QuerySolution): TaxonInfo = TaxonInfo(
     iri,
     result.getLiteral("label").getLexicalForm,
-    Option(result.getLiteral("rank_label")).map(label => MinimalTerm(IRI.create(result.getResource("rank").getURI), label.getLexicalForm)),
+    Option(result.getLiteral("rank_label")).map(label => MinimalTerm(IRI.create(result.getResource("rank").getURI), Option(label.getLexicalForm))),
     Option(result.getLiteral("common_name")).map(_.getString),
     Option(result.getLiteral("is_extinct")).map(_.getBoolean).getOrElse(false))
 
@@ -394,7 +394,7 @@ object Taxon {
       taxon <- TermDetails.computedLabel(iri)
     } yield {
       val taxonResource = ResourceFactory.createResource(iri.toString)
-      model.add(taxonResource, RDFS.label, taxon.label)
+      model.add(taxonResource, RDFS.label, taxon.label.getOrElse(""))
       s"${newickFor(taxonResource, model)};"
     }
   }

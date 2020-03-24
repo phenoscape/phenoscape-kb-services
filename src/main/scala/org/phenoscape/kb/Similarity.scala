@@ -100,8 +100,8 @@ object Similarity {
         } yield {
           (labelMap + (pair.queryAnnotation -> queryAnnotationLabel) + (pair.corpusAnnotation -> corpusAnnotationLabel),
             pairs :+ AnnotationPair(
-              MinimalTerm(pair.queryAnnotation, queryAnnotationLabel),
-              MinimalTerm(pair.corpusAnnotation, corpusAnnotationLabel),
+              MinimalTerm(pair.queryAnnotation, Option(queryAnnotationLabel)),
+              MinimalTerm(pair.corpusAnnotation, Option(corpusAnnotationLabel)),
               pair.bestSubsumer))
         }
       }).flatMap(identity)
@@ -208,7 +208,7 @@ object Similarity {
 
   def constructMatchFor(queryItem: IRI): QuerySolution => SimilarityMatch =
     (result: QuerySolution) => SimilarityMatch(
-      MinimalTerm(IRI.create(result.getResource("corpus_item").getURI), result.getLiteral("corpus_item_label").getLexicalForm),
+      MinimalTerm(IRI.create(result.getResource("corpus_item").getURI), Option(result.getLiteral("corpus_item_label").getLexicalForm)),
       result.getLiteral("median_score").getDouble,
       result.getLiteral("expect_score").getDouble)
 
