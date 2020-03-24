@@ -1256,13 +1256,13 @@ paths:
       tags:
         - Taxa
       summary: Taxon info
-      description: Return detail info for a given taxon. Currently this is the label, extinction status, and an optional rank.
+      description: Return detail info for a given taxon from the Vertebrate Taxonomy Ontology. Currently this is the label, extinction status, and an optional rank.
       produces:
         - application/json
       parameters:
         - name: iri
           in: query
-          description: the taxon IRI
+          description: the VTO taxon IRI
           required: true
           type: string
           format: IRI
