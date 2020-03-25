@@ -66,7 +66,7 @@ object CharacterDescription {
             result.getLiteral("description").getLexicalForm,
             CharacterMatrix(
               IRI.create(result.getResource("matrix").getURI),
-              result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), result.getLiteral("characterLabel").getLexicalForm)),
+              result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), Some(result.getLiteral("characterLabel").getLexicalForm))),
           phenotype)
       }
     })
@@ -170,13 +170,13 @@ object CharacterDescription {
     result.getLiteral("state_desc").getLexicalForm,
     CharacterMatrix(
       IRI.create(result.getResource("matrix").getURI),
-      result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), result.getLiteral("characterLabel").getLexicalForm))
+      result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), Some(result.getLiteral("characterLabel").getLexicalForm)))
 
   def fromQuerySolution(iri: IRI)(result: QuerySolution): CharacterDescription = CharacterDescription(iri,
     result.getLiteral("state_desc").getLexicalForm,
     CharacterMatrix(
       IRI.create(result.getResource("matrix").getURI),
-      result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), result.getLiteral("characterLabel").getLexicalForm))
+      result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), Some(result.getLiteral("characterLabel").getLexicalForm)))
 
   def eqAnnotationsForPhenotype(iri: IRI): Future[Seq[MinimalTerm]] = {
     val query = select_distinct('eq) from "http://kb.phenoscape.org/" where bgp(
@@ -241,7 +241,7 @@ object AnnotatedCharacterDescription { //FIXME
           result.getLiteral("description").getLexicalForm,
           CharacterMatrix(
             IRI.create(result.getResource("matrix").getURI),
-            result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), result.getLiteral("character_label").getLexicalForm)),
+            result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), Some(result.getLiteral("character_label").getLexicalForm))),
         phenotype)
     }
   }

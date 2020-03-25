@@ -59,10 +59,10 @@ object TaxonPhenotypeAnnotation {
   def fromQueryResult(result: QuerySolution): TaxonPhenotypeAnnotation = TaxonPhenotypeAnnotation(
     MinimalTerm(
       IRI.create(result.getResource("taxon").getURI),
-      result.getLiteral("taxon_label").getLexicalForm),
+      Some(result.getLiteral("taxon_label").getLexicalForm)),
     MinimalTerm(
       IRI.create(result.getResource("phenotype").getURI),
-      result.getLiteral("phenotype_label").getLexicalForm))
+      Some(result.getLiteral("phenotype_label").getLexicalForm)))
 
   def facetTaxonAnnotationsByEntity(focalEntity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
     val query = (iri: IRI) => queryAnnotationsTotal(Some(iri), quality, inTaxonOpt, None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
@@ -99,7 +99,7 @@ object TaxonPhenotypeAnnotation {
       }
       """
     App.executeSPARQLQueryString(query.text, res => {
-      AnnotationSource(MinimalTerm(IRI.create(res.getResource("pub").getURI), res.getLiteral("pub_label").getLexicalForm), res.getLiteral("char_num").getInt, res.getLiteral("char_text").getLexicalForm, res.getLiteral("state_text").getLexicalForm)
+      AnnotationSource(MinimalTerm(IRI.create(res.getResource("pub").getURI), Some(res.getLiteral("pub_label").getLexicalForm)), res.getLiteral("char_num").getInt, res.getLiteral("char_text").getLexicalForm, res.getLiteral("state_text").getLexicalForm)
     })
   }
 

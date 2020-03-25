@@ -92,16 +92,16 @@ object Similarity {
       (for {
         (labelMap, pairs) <- accFuture
       } yield {
-        val queryAnnotationLabelFuture = labelMap.get(pair.queryAnnotation).map(Future.successful).getOrElse(Term.computedLabel(pair.queryAnnotation).map(_.label))
-        val corpusAnnotationLabelFuture = labelMap.get(pair.corpusAnnotation).map(Future.successful).getOrElse(Term.computedLabel(pair.corpusAnnotation).map(_.label))
+        val queryAnnotationLabelFuture = labelMap.get(pair.queryAnnotation).map(Future.successful).getOrElse(Term.computedLabel(pair.queryAnnotation).map(_.label.getOrElse(pair.queryAnnotation.toString)))
+        val corpusAnnotationLabelFuture = labelMap.get(pair.corpusAnnotation).map(Future.successful).getOrElse(Term.computedLabel(pair.corpusAnnotation).map(_.label.getOrElse(pair.corpusAnnotation.toString)))
         for {
           queryAnnotationLabel <- queryAnnotationLabelFuture
           corpusAnnotationLabel <- corpusAnnotationLabelFuture
         } yield {
           (labelMap + (pair.queryAnnotation -> queryAnnotationLabel) + (pair.corpusAnnotation -> corpusAnnotationLabel),
             pairs :+ AnnotationPair(
-              MinimalTerm(pair.queryAnnotation, queryAnnotationLabel),
-              MinimalTerm(pair.corpusAnnotation, corpusAnnotationLabel),
+              MinimalTerm(pair.queryAnnotation, Some(queryAnnotationLabel)),
+              MinimalTerm(pair.corpusAnnotation, Some(corpusAnnotationLabel)),
               pair.bestSubsumer))
         }
       }).flatMap(identity)
@@ -208,7 +208,7 @@ object Similarity {
 
   def constructMatchFor(queryItem: IRI): QuerySolution => SimilarityMatch =
     (result: QuerySolution) => SimilarityMatch(
-      MinimalTerm(IRI.create(result.getResource("corpus_item").getURI), result.getLiteral("corpus_item_label").getLexicalForm),
+      MinimalTerm(IRI.create(result.getResource("corpus_item").getURI), Some(result.getLiteral("corpus_item_label").getLexicalForm)),
       result.getLiteral("median_score").getDouble,
       result.getLiteral("expect_score").getDouble)
 
