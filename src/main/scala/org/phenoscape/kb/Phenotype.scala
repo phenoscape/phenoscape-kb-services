@@ -41,7 +41,7 @@ object Phenotype {
       eqs <- eqsFuture
       states <- statesFuture
       labelOpt <- labelFuture
-    } yield Phenotype(phenotype, labelOpt.map(_.label).getOrElse(""), states, eqs)
+    } yield Phenotype(phenotype, labelOpt.flatMap(_.label).getOrElse(""), states, eqs)
   }
 
   def characterStatesForPhenotype(phenotype: IRI, annotatedStatesOnly: Boolean): Future[Set[CharacterState]] = {
@@ -65,11 +65,11 @@ object Phenotype {
       solution.getLiteral("state_label").getLexicalForm,
       MinimalTerm(
         IRI.create(solution.getResource("character").getURI),
-        solution.getLiteral("character_label").getLexicalForm,
+        Some(solution.getLiteral("character_label").getLexicalForm),
       ),
       MinimalTerm(
         IRI.create(solution.getResource("matrix").getURI),
-        solution.getLiteral("matrix_label").getLexicalForm
+        Some(solution.getLiteral("matrix_label").getLexicalForm)
       )
     )).map(_.toSet)
   }
@@ -139,7 +139,7 @@ object Phenotype {
 
   private def fromQueryResult(result: QuerySolution): MinimalTerm = MinimalTerm(
     IRI.create(result.getResource("phenotype").getURI),
-    result.getLiteral("phenotype_label").getLexicalForm)
+    Some(result.getLiteral("phenotype_label").getLexicalForm))
 
   private def entitySuperClassesQuery(phenotype: IRI, relation: IRI): Query =
     select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (

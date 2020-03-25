@@ -54,9 +54,9 @@ object GeneExpressionAnnotation {
 
   def fromQueryResult(result: QuerySolution): GeneExpressionAnnotation = GeneExpressionAnnotation(
     MinimalTerm(IRI.create(result.getResource("gene").getURI),
-      result.getLiteral("gene_label").getLexicalForm),
+      Some(result.getLiteral("gene_label").getLexicalForm)),
     MinimalTerm(IRI.create(result.getResource("location").getURI),
-      Option(result.getLiteral("location_label")).map(v => v.getLexicalForm).getOrElse("")),
+      Option(result.getLiteral("location_label")).map(v => v.getLexicalForm)),
     Option(result.getResource("source")).map(v => IRI.create(v.getURI)))
 
   private def buildBasicGeneExpressionAnnotationsQuery(entity: Option[OWLClassExpression], inTaxonOpt: Option[IRI]): Future[Query] = {

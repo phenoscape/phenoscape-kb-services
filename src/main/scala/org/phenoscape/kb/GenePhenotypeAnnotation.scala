@@ -51,9 +51,9 @@ object GenePhenotypeAnnotation {
 
   def fromQueryResult(result: QuerySolution): GenePhenotypeAnnotation = GenePhenotypeAnnotation(
     MinimalTerm(IRI.create(result.getResource("gene").getURI),
-      result.getLiteral("gene_label").getLexicalForm),
+      Some(result.getLiteral("gene_label").getLexicalForm)),
     MinimalTerm(IRI.create(result.getResource("phenotype").getURI),
-      result.getLiteral("phenotype_label").getLexicalForm),
+      Some(result.getLiteral("phenotype_label").getLexicalForm)),
     Option(result.getResource("source")).map(v => IRI.create(v.getURI)))
 
   private def buildBasicGenePhenotypeAnnotationsQuery(entity: Option[OWLClassExpression], quality: Option[OWLClassExpression], inTaxonOpt: Option[IRI]): Future[Query] = {
