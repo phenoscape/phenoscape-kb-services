@@ -265,7 +265,7 @@ object Term {
     val all = if (includePartOf) sparql" { $superclasses } UNION { $partOfs } " else superclasses
     val query =
       sparql"""
-            SELECT ?term (SAMPLE(?term_label_n) AS ?term_label)
+            SELECT ?term (MIN(?term_label_n) AS ?term_label)
             FROM $KBMainGraph
             WHERE {
               $all
@@ -295,7 +295,7 @@ object Term {
     val all = if (includeParts) sparql" { $subclasses } UNION { $parts } " else subclasses
     val query =
       sparql"""
-            SELECT ?term (SAMPLE(?term_label_n) AS ?term_label)
+            SELECT ?term (MIN(?term_label_n) AS ?term_label)
             FROM $KBMainGraph
             WHERE {
               $all
@@ -464,14 +464,14 @@ object Term {
     import scalaz._
     val terms = iris.map(iri => sparql" $iri ").fold(sparql"")(_ |+| _)
     val queryText: QueryText = sparql"""
-    SELECT DISTINCT ?term ?term_label
+    SELECT ?term (MIN(?term_lbl) AS ?term_label)
     FROM $KBMainGraph
     WHERE {
       VALUES ?term { $terms }
       OPTIONAL {
-        ?term $rdfsLabel ?term_label .
+        ?term $rdfsLabel ?term_lbl .
       }
-    }
+    } GROUP BY ?term
     """
     QueryFactory.create(queryText.text)
   }
