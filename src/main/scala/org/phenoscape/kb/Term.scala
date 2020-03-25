@@ -455,11 +455,17 @@ object Term {
   }
 
   def buildLabelQuery(iri: IRI): Query = {
-    val query = select('term_label) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t(iri, rdfsLabel, 'term_label)))
-    query.setLimit(1)
-    query
+    val query =
+      sparql"""
+        SELECT ?term ?term_label
+        FROM $KBMainGraph
+        WHERE {
+          VALUES ?term { $iri }
+          ?term $rdfsLabel ?term_label .
+        }
+        LIMIT 1
+       """
+    query.toQuery
   }
   
   def buildLabelsQuery(iris: IRI*): Query = {
