@@ -41,7 +41,7 @@ libraryDependencies ++= {
     "io.spray"               %% "spray-json"              % "1.3.3",
     "net.sourceforge.owlapi" %  "owlapi-distribution"     % "4.2.8",
     "org.phenoscape"         %% "owlet"                   % "1.6" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
-    "org.phenoscape"         %% "scowl"                   % "1.3",
+    "org.phenoscape"         %% "scowl"                   % "1.3.4",
     "org.phenoscape"         %% "kb-owl-tools"            % "1.5.1" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
     "org.phenoscape"         %% "phenoscape-kb-ingest"    % "1.5.1",
     "org.phenoscape"         %  "phenex"                  % "1.17.2" exclude("org.slf4j", "slf4j-log4j12") exclude("net.sourceforge.owlapi", "owlapi-apibinding"),
