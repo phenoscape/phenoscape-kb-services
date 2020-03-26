@@ -53,7 +53,7 @@ libraryDependencies ++= {
     "ch.qos.logback"         %  "logback-classic"         % "1.1.7",
     "org.codehaus.groovy"    %  "groovy-all"              % "2.4.6",
     "org.phenoscape"         %% "sparql-interpolator"     % "1.1",
-    "com.lihaoyi"            %% "utest"                   % "0.6.9" % Test
+    "com.lihaoyi"            %% "utest"                   % "0.7.4" % Test
   )
 }
 
