@@ -114,7 +114,8 @@ object Term {
   def withIRI(iri: IRI): Future[Option[Term]] = {
     def termResult(result: QuerySolution) = (
       Option(result.getLiteral("label")).map(_.getLexicalForm),
-      Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""))
+      Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""),
+      Option(result.getResource("ontology")).map(_.getURI))
 
     val termFuture = App.executeSPARQLQuery(buildTermQuery(iri), termResult).map(_.headOption)
     val synonymsFuture = termSynonyms(iri)
@@ -125,7 +126,7 @@ object Term {
       relationships <- relsFuture
     } yield {
       termOpt.map {
-        case (label, definition) => Term(iri, label, definition, synonyms, relationships)
+        case (label, definition, ontology) => Term(iri, label, definition, ontology, synonyms, relationships)
       }
     }
   }
@@ -345,11 +346,13 @@ object Term {
   }
 
   def buildTermQuery(iri: IRI): Query =
-    select_distinct('label, 'definition) from "http://kb.phenoscape.org/" where(
+    select_distinct('label, 'definition, 'ontology) from "http://kb.phenoscape.org/" where(
       optional(bgp(
         t(iri, rdfsLabel, 'label))),
       optional(bgp(
-        t(iri, definition, 'definition))))
+        t(iri, definition, 'definition))),
+      optional(bgp(
+        t(iri, rdfsIsDefinedBy, 'ontology))))
 
   def termRelationships(iri: IRI): Future[Seq[TermRelationship]] =
     App.executeSPARQLQuery(buildRelationsQuery(iri), (result) => TermRelationship(
@@ -495,12 +498,13 @@ object Term {
 }
 
 
-final case class Term(iri: IRI, label: Option[String], definition: String, synonyms: Seq[(IRI, String)], relationships: Seq[TermRelationship]) extends LabeledTerm with JSONResultItem {
+final case class Term(iri: IRI, label: Option[String], definition: String, sourceOntology: Option[String], synonyms: Seq[(IRI, String)], relationships: Seq[TermRelationship]) extends LabeledTerm with JSONResultItem {
 
   def toJSON: JsObject = Map(
     "@id" -> iri.toString.toJson,
     "label" -> label.map(_.toJson).getOrElse(JsNull),
     "definition" -> definition.toJson,
+    "source ontology" -> sourceOntology.map(_.toJson).getOrElse(JsNull),
     "synonyms" -> synonyms.map {
       case (iri, value) => JsObject(
         "property" -> iri.toString.toJson,
