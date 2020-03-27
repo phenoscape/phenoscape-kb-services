@@ -50,7 +50,7 @@ libraryDependencies ++= {
     "org.scalaz"             %% "scalaz-core"             % "7.2.30",
     "org.bbop"               %  "oboformat"               % "0.5.5" exclude("net.sourceforge.owlapi", "owlapi-apibinding"), // exclude("log4j", "log4j"),
     "ch.qos.logback"         %  "logback-classic"         % "1.1.7",
-    "org.codehaus.groovy"    %  "groovy-all"              % "2.5.10",
+    "org.codehaus.groovy"    %  "groovy-all"              % "3.0.2",
     "org.phenoscape"         %% "sparql-interpolator"     % "1.1",
     "com.lihaoyi"            %% "utest"                   % "0.7.4" % Test
   )
