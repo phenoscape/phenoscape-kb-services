@@ -685,8 +685,7 @@ paths:
           description: profile size
           examples:
             application/json:
-              results:
-                total: 5
+              total: 5
   /similarity/corpus_size:
     get:
       tags:
@@ -707,8 +706,7 @@ paths:
           description: corpus size
           examples:
             application/json:
-              results:
-                total: 659
+              total: 659
   /similarity/ic_disparity:
     get:
       tags:
