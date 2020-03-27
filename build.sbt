@@ -39,7 +39,7 @@ libraryDependencies ++= {
     "ch.megard"              %% "akka-http-cors"          % "0.3.0",
     "com.lightbend.akka"     %% "akka-stream-alpakka-xml" % "1.1.2",
     "io.spray"               %% "spray-json"              % "1.3.3",
-    "net.sourceforge.owlapi" %  "owlapi-distribution"     % "4.5.15",
+    "net.sourceforge.owlapi" %  "owlapi-distribution"     % "5.1.13",
     "org.phenoscape"         %% "owlet"                   % "1.6" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
     "org.phenoscape"         %% "scowl"                   % "1.3.4",
     "org.phenoscape"         %% "kb-owl-tools"            % "1.5.1" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
