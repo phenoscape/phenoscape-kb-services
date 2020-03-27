@@ -30,13 +30,13 @@ resolvers += "BBOP repository" at "http://code.berkeleybop.org/maven/repository"
 
 libraryDependencies ++= {
   Seq(
-    "com.typesafe.akka"      %% "akka-stream"             % "2.5.30",
-    "com.typesafe.akka"      %% "akka-actor"              % "2.5.30",
-    "com.typesafe.akka"      %% "akka-slf4j"              % "2.5.30",
+    "com.typesafe.akka"      %% "akka-stream"             % "2.6.4",
+    "com.typesafe.akka"      %% "akka-actor"              % "2.6.4",
+    "com.typesafe.akka"      %% "akka-slf4j"              % "2.6.4",
     "com.typesafe.akka"      %% "akka-http"               % "10.1.8",
     "com.typesafe.akka"      %% "akka-http-caching"       % "10.1.8",
     "com.typesafe.akka"      %% "akka-http-spray-json"    % "10.1.8",
-    "ch.megard"              %% "akka-http-cors"          % "0.3.4",
+    "ch.megard"              %% "akka-http-cors"          % "0.4.2",
     "com.lightbend.akka"     %% "akka-stream-alpakka-xml" % "1.1.2",
     "io.spray"               %% "spray-json"              % "1.3.5",
     "net.sourceforge.owlapi" %  "owlapi-distribution"     % "4.5.15",
@@ -49,8 +49,8 @@ libraryDependencies ++= {
     "org.apache.jena"        %  "apache-jena-libs"        % "3.14.0" exclude("org.slf4j", "slf4j-log4j12"),
     "org.scalaz"             %% "scalaz-core"             % "7.2.30",
     "org.bbop"               %  "oboformat"               % "0.5.5" exclude("net.sourceforge.owlapi", "owlapi-apibinding"), // exclude("log4j", "log4j"),
-    "ch.qos.logback"         %  "logback-classic"         % "1.1.11",
-    "org.codehaus.groovy"    %  "groovy-all"              % "3.0.2",
+    "ch.qos.logback"         %  "logback-classic"         % "1.2.3",
+    "org.codehaus.groovy"    %  "groovy-all"              % "2.5.10",
     "org.phenoscape"         %% "sparql-interpolator"     % "1.1",
     "com.lihaoyi"            %% "utest"                   % "0.7.4" % Test
   )
