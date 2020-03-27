@@ -5,7 +5,7 @@ import java.util.UUID
 import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.language.implicitConversions
 import scala.xml.Elem
@@ -204,7 +204,7 @@ object Study {
   def matrix(study: IRI, model: Model): Elem = { //FIXME add about=#
     val otusID = s"otus_${UUID.randomUUID.toString}"
     val otuToID = (for {
-      otu <- model.listObjectsOfProperty(has_TU)
+      otu <- model.listObjectsOfProperty(has_TU).asScala
     } yield otu.asResource.getURI -> s"otu_${UUID.randomUUID.toString}").toMap
 
     def idForStateGroup(states: Set[String]): String =
@@ -212,19 +212,19 @@ object Study {
       else states.map(state => idForStateGroup(Set(state))).toSeq.sorted.mkString("_")
 
     val characterToIDSuffix = (for {
-      character <- model.listObjectsOfProperty(has_character)
+      character <- model.listObjectsOfProperty(has_character).asScala
     } yield character.asResource.getURI -> UUID.randomUUID.toString).toMap
     val neededStateGroups = (for {
-      character <- model.listObjectsOfProperty(has_character)
-      stateGroup <- model.listSubjectsWithProperty(belongs_to_character, character)
-        .map(cell => model.listObjectsOfProperty(cell.asResource, has_state).map(_.asResource.getURI))
+      character <- model.listObjectsOfProperty(has_character).asScala
+      stateGroup <- model.listSubjectsWithProperty(belongs_to_character, character).asScala
+        .map(cell => model.listObjectsOfProperty(cell.asResource, has_state).asScala.map(_.asResource.getURI))
     } yield character.asResource.getURI -> stateGroup.toSet).toSet[(String, Set[String])].groupBy(_._1).mapValues(_.map(_._2))
     val allIndividualStatesAsSets = neededStateGroups.values.flatten.flatten.map(Set(_))
     val stateGroupIDs = (for {
       (character, stateGroups) <- neededStateGroups
       stateGroup <- stateGroups
     } yield stateGroup -> idForStateGroup(stateGroup)) ++ allIndividualStatesAsSets.map(group => group -> idForStateGroup(group))
-    val orderedCharacters = model.listObjectsOfProperty(has_character).toSeq.sortBy(character => model.getProperty(character.asResource, list_index).getInt).map(_.asResource.getURI)
+    val orderedCharacters = model.listObjectsOfProperty(has_character).asScala.toSeq.sortBy(character => model.getProperty(character.asResource, list_index).getInt).map(_.asResource.getURI)
 
     def label(uri: String): String = model.getProperty(ResourceFactory.createResource(uri), rdfsLabel).getString
 
@@ -238,7 +238,7 @@ object Study {
       <meta xsi:type="LiteralMeta" property="rdfs:label" content={label(study.toString)}/>
     </meta>}<otus id={otusID}>
       {for {
-        otu <- model.listObjectsOfProperty(has_TU)
+        otu <- model.listObjectsOfProperty(has_TU).asScala
         taxon = model.listObjectsOfProperty(otu.asResource, has_external_reference).next.asResource
         label = model.listObjectsOfProperty(taxon, rdfsLabel).next.asLiteral.getLexicalForm
         otuID = otuToID(otu.asResource.getURI)
@@ -274,12 +274,12 @@ object Study {
         </format>
         <matrix>
           {for {
-          otu <- model.listObjectsOfProperty(has_TU)
+          otu <- model.listObjectsOfProperty(has_TU).asScala
           otuURI = otu.asResource.getURI
         } yield <row id={s"row_${otuToID(otuURI)}"} otu={otuToID(otuURI)}>
           {for {
-            cell <- model.listSubjectsWithProperty(belongs_to_TU, otu)
-          } yield <cell char={s"character_${characterToIDSuffix(model.getProperty(cell, belongs_to_character).getResource.getURI)}"} state={stateGroupIDs(model.listObjectsOfProperty(cell, has_state).map(_.asResource.getURI).toSet)}/>}
+            cell <- model.listSubjectsWithProperty(belongs_to_TU, otu).asScala
+          } yield <cell char={s"character_${characterToIDSuffix(model.getProperty(cell, belongs_to_character).getResource.getURI)}"} state={stateGroupIDs(model.listObjectsOfProperty(cell, has_state).asScala.map(_.asResource.getURI).toSet)}/>}
         </row>}
         </matrix>
       </characters>

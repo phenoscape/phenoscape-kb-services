@@ -1,6 +1,6 @@
 package org.phenoscape.kb
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.language.postfixOps
 import org.apache.jena.graph.NodeFactory
@@ -10,9 +10,7 @@ import org.apache.jena.rdf.model.Model
 import org.apache.jena.rdf.model.Resource
 import org.apache.jena.rdf.model.ResourceFactory
 import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.E_Coalesce
-import org.apache.jena.sparql.expr.ExprList
-import org.apache.jena.sparql.expr.ExprVar
+import org.apache.jena.sparql.expr.{E_Coalesce, Expr, ExprList, ExprVar}
 import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueString
@@ -359,7 +357,7 @@ object Taxon {
       optional(
         bgp(
           t('super, phylopic, 'pic))),
-      new ElementBind('picOpt, new E_Coalesce(new ExprList(Seq(new ExprVar("pic"), new NodeValueString("")))))) order_by desc('level) limit 1
+      new ElementBind('picOpt, new E_Coalesce(new ExprList(Seq[Expr](new ExprVar("pic"), new NodeValueString("")).asJava)))) order_by desc('level) limit 1
     query.addGroupBy('super)
     query.addGroupBy('label)
     query.addGroupBy('picOpt)
@@ -406,9 +404,9 @@ object Taxon {
     val parentLabel = model.getProperty(parent, RDFS.label).getLiteral.getLexicalForm
     //val escapedLabel = if (parentLabel.exists(reserved)) s"'$parentLabel'" else parentLabel
     val escapedLabel = s"'${parentLabel.replaceAllLiterally("'", "\"")}'"
-    val parentCount = model.listObjectsOfProperty(parent, RDFS.subClassOf).size
+    val parentCount = model.listObjectsOfProperty(parent, RDFS.subClassOf).asScala.size
     if (parentCount > 1) println(s"WARNING: $parentCount parents for $parent")
-    val children = model.listResourcesWithProperty(RDFS.subClassOf, parent).toSeq
+    val children = model.listResourcesWithProperty(RDFS.subClassOf, parent).asScala.toSeq
     val childList = children.map(newickFor(_, model)).mkString(", ")
     val subtree = if (children.isEmpty) "" else s"($childList)"
     s"$subtree$escapedLabel"
