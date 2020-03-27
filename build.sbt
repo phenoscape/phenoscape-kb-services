@@ -20,7 +20,7 @@ daemonUser in Linux := "phenoscape" // user which will execute the application
 
 daemonGroup in Linux := "phenoscape"    // group which will execute the application
 
-scalaVersion  := "2.12.8"
+scalaVersion  := "2.12.11"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
 
@@ -39,21 +39,20 @@ libraryDependencies ++= {
     "ch.megard"              %% "akka-http-cors"          % "0.3.0",
     "com.lightbend.akka"     %% "akka-stream-alpakka-xml" % "1.0.2",
     "io.spray"               %% "spray-json"              % "1.3.3",
-    "net.sourceforge.owlapi" %  "owlapi-distribution"     % "4.2.8",
+    "net.sourceforge.owlapi" %  "owlapi-distribution"     % "4.2.9",
     "org.phenoscape"         %% "owlet"                   % "1.6" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
-    "org.phenoscape"         %% "scowl"                   % "1.3",
+    "org.phenoscape"         %% "scowl"                   % "1.3.4",
     "org.phenoscape"         %% "kb-owl-tools"            % "1.5.1" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
-    "org.phenoscape"         %% "phenoscape-kb-ingest"    % "1.5.1",
+    "org.phenoscape"         %% "phenoscape-kb-ingest"    % "1.6.2",
     "org.phenoscape"         %  "phenex"                  % "1.17.2" exclude("org.slf4j", "slf4j-log4j12") exclude("net.sourceforge.owlapi", "owlapi-apibinding"),
     "commons-io"             %  "commons-io"              % "2.4", // exclude("log4j", "log4j"),
-    "org.apache.jena"        %  "apache-jena-libs"        % "3.2.0" exclude("org.slf4j", "slf4j-log4j12"),
-    "com.google.guava"       %  "guava"                   % "16.0.1",
-    "org.scalaz"             %% "scalaz-core"             % "7.2.16",
+    "org.apache.jena"        %  "apache-jena-libs"        % "3.14.0" exclude("org.slf4j", "slf4j-log4j12"),
+    "org.scalaz"             %% "scalaz-core"             % "7.2.30",
     "org.bbop"               %  "oboformat"               % "0.5.5" exclude("net.sourceforge.owlapi", "owlapi-apibinding"), // exclude("log4j", "log4j"),
-    "ch.qos.logback"         %  "logback-classic"         % "1.1.11",
-    "org.codehaus.groovy"    %  "groovy-all"              % "2.4.6",
+    "ch.qos.logback"         %  "logback-classic"         % "1.1.7",
+    "org.codehaus.groovy"    %  "groovy-all"              % "2.4.19",
     "org.phenoscape"         %% "sparql-interpolator"     % "1.1",
-    "com.lihaoyi"            %% "utest"                   % "0.6.9" % Test
+    "com.lihaoyi"            %% "utest"                   % "0.7.4" % Test
   )
 }
 
