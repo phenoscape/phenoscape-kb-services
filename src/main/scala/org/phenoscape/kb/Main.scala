@@ -1,6 +1,6 @@
 package org.phenoscape.kb
 
-import org.apache.jena.system.JenaSystem
+import org.apache.jena.sys.JenaSystem
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.OWLFormats.ManchesterSyntaxClassExpressionUnmarshaller
 import org.phenoscape.kb.OWLFormats.OWLClassExpressionMarshaller
