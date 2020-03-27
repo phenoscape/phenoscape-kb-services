@@ -1,6 +1,6 @@
 package org.phenoscape.kb
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -93,7 +93,7 @@ object Phenotype {
     } yield {
       val superclasses = HashMultiset.create[IRI]
       entitySuperClasses.foreach(superclasses.add)
-      superclasses.entrySet.filter(_.getCount == 1).map(_.getElement).toSet
+      superclasses.entrySet.asScala.filter(_.getCount == 1).map(_.getElement).toSet
     }
   }
 
@@ -104,7 +104,7 @@ object Phenotype {
     } yield {
       val superclasses = HashMultiset.create[IRI]
       superSuperQualities.foreach(superclasses.add)
-      superclasses.entrySet.filter(_.getCount == 1).map(_.getElement).toSet
+      superclasses.entrySet.asScala.filter(_.getCount == 1).map(_.getElement).toSet
     }
   }
 
