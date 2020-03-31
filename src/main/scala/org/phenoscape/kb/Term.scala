@@ -504,7 +504,7 @@ final case class Term(iri: IRI, label: Option[String], definition: String, sourc
     "@id" -> iri.toString.toJson,
     "label" -> label.map(_.toJson).getOrElse(JsNull),
     "definition" -> definition.toJson,
-    "source ontology" -> sourceOntology.map(_.toJson).getOrElse(JsNull),
+    "isDefinedBy" -> sourceOntology.map(_.toJson).getOrElse(JsNull),
     "synonyms" -> synonyms.map {
       case (iri, value) => JsObject(
         "property" -> iri.toString.toJson,
