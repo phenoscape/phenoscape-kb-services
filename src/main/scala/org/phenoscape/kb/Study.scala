@@ -259,8 +259,8 @@ object Study {
               {val phenotypeURI = model.getProperty(ResourceFactory.createResource(stateGroup.head), describes_phenotype).getResource.getURI
             // FIXME need to add labels to phenotypes in KB, then move this inside phenotype meta
             //<meta xsi:type="LiteralMeta" property="rdfs:label" content={ label(phenotypeURI) }/>
-            <meta xsi:type="ResourceMeta" rel="ps:describes_phenotype" href={phenotypeURI}>
-            </meta>}
+              <meta xsi:type="ResourceMeta" rel="ps:describes_phenotype" href={phenotypeURI}/>}
+              <meta xsi:type="ResourceMeta" rel="obo:IAO_0000219" href={stateGroup.head}/>
             </state>
           else
             <polymorphic_state_set id={stateGroupID} symbol={symbol(stateGroup)}>
@@ -270,7 +270,9 @@ object Study {
             </polymorphic_state_set>}
         </states>}{for {
           character <- orderedCharacters
-        } yield <char id={s"character_${characterToIDSuffix(character)}"} label={label(character)} states={s"states_${characterToIDSuffix(character)}"}/>}
+        } yield <char id={s"character_${characterToIDSuffix(character)}"} label={label(character)} states={s"states_${characterToIDSuffix(character)}"}>
+          <meta xsi:type="ResourceMeta" rel="obo:IAO_0000219" href={character}/>
+        </char>}
         </format>
         <matrix>
           {for {
@@ -279,7 +281,9 @@ object Study {
         } yield <row id={s"row_${otuToID(otuURI)}"} otu={otuToID(otuURI)}>
           {for {
             cell <- model.listSubjectsWithProperty(belongs_to_TU, otu).asScala
-          } yield <cell char={s"character_${characterToIDSuffix(model.getProperty(cell, belongs_to_character).getResource.getURI)}"} state={stateGroupIDs(model.listObjectsOfProperty(cell, has_state).asScala.map(_.asResource.getURI).toSet)}/>}
+          } yield <cell char={s"character_${characterToIDSuffix(model.getProperty(cell, belongs_to_character).getResource.getURI)}"} state={stateGroupIDs(model.listObjectsOfProperty(cell, has_state).asScala.map(_.asResource.getURI).toSet)}>
+            <meta xsi:type="ResourceMeta" rel="obo:IAO_0000219" href={cell.getURI}/>
+          </cell>}
         </row>}
         </matrix>
       </characters>
