@@ -303,7 +303,11 @@ object Similarity {
     }
     App.executeSPARQLQueryString(query.text, qs =>
       IRI.create(qs.getResource("term").getURI) ->
-        qs.getLiteral("count").getInt).map(_.toMap)
+        qs.getLiteral("count").getInt).map(_.toMap).map { result =>
+      val foundTerms = result.keySet
+      // add in 0 counts for terms not returned by the query
+      result ++ (terms -- foundTerms).map(_ -> 0)
+    }
   }
 
   type TermFrequencyTable = Map[IRI, Int]
