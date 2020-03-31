@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.graph.{NodeFactory, Node_Variable}
 import org.apache.jena.query.{Query, QueryFactory, QuerySolution}
 import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.{E_NotOneOf, ExprList, ExprVar}
+import org.apache.jena.sparql.expr.{E_NotOneOf, Expr, ExprList, ExprVar}
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
 import org.apache.jena.sparql.syntax._
@@ -23,7 +23,7 @@ import org.semanticweb.owlapi.model.{IRI, OWLClass, OWLNamedIndividual}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -119,16 +119,16 @@ object Similarity {
 
   def subsumedAnnotations(instance: OWLNamedIndividual, subsumer: OWLClass): Future[Seq[MinimalTerm]] = for {
     irisFuture <- subsumedAnnotationIRIs(instance, subsumer)
-    labelledTerms <- Future.sequence(irisFuture.map(Term.computedLabel(_)))
+    labelledTerms <- Future.sequence(irisFuture.map(Term.computedLabel))
   } yield labelledTerms
 
   def profileSize(profileSubject: IRI): Future[Int] = {
     val query = select() from "http://kb.phenoscape.org/" where(
       bgp(
         t(profileSubject, has_phenotypic_profile / rdfType, 'annotation)),
-      new ElementFilter(new E_NotOneOf(new ExprVar('annotation), new ExprList(List(
+      new ElementFilter(new E_NotOneOf(new ExprVar('annotation), new ExprList(List[Expr](
         new NodeValueNode(AnnotatedPhenotype),
-        new NodeValueNode(owlNamedIndividual))))))
+        new NodeValueNode(owlNamedIndividual)).asJava))))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("annotation"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
@@ -303,7 +303,11 @@ object Similarity {
     }
     App.executeSPARQLQueryString(query.text, qs =>
       IRI.create(qs.getResource("term").getURI) ->
-        qs.getLiteral("count").getInt).map(_.toMap)
+        qs.getLiteral("count").getInt).map(_.toMap).map { result =>
+      val foundTerms = result.keySet
+      // add in 0 counts for terms not returned by the query
+      result ++ (terms -- foundTerms).map(_ -> 0)
+    }
   }
 
   type TermFrequencyTable = Map[IRI, Int]
