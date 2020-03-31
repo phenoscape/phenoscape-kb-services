@@ -272,7 +272,7 @@ object Term {
             FROM $KBMainGraph
             WHERE {
               $all
-              ?term $rdfsLabel ?term_label_n .
+              OPTIONAL { ?term $rdfsLabel ?term_label_n . }
             }
             GROUP BY ?term
             """
@@ -302,7 +302,7 @@ object Term {
             FROM $KBMainGraph
             WHERE {
               $all
-              ?term $rdfsLabel ?term_label_n .
+              OPTIONAL { ?term $rdfsLabel ?term_label_n . }
             }
             GROUP BY ?term
             """
