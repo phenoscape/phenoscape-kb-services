@@ -86,6 +86,19 @@ paths:
       responses:
         200:
           description: term detail
+          examples:
+            application/json:
+              synonyms:
+                - {'property': http://www.geneontology.org/formats/oboInOwl#hasExactSynonym, 'value': basihyoid}
+                - {'property': http://www.geneontology.org/formats/oboInOwl#hasExactSynonym, 'value': glossohyal}
+              isDefinedBy: http://purl.obolibrary.org/obo/uberon.owl
+              label: basihyal bone
+              relationships:
+                - {'property': {'@id': http://purl.obolibrary.org/obo/RO_0002202, 'label': develops from}, 'value': {'@id': http://purl.obolibrary.org/obo/UBERON_0011615, 'label': basihyal cartilage}}
+              definition: Replacement bone that is median and is the anterior-most bone of the ventral hyoid arch.
+              '@id': http://purl.obolibrary.org/obo/UBERON_0011618
+
+
   /term/search:
     get:
       tags:
