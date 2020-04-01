@@ -50,6 +50,8 @@ paths:
               annotated_states:
                 type: integer
                 example: 21182
+              build_time:
+                example: "2020-03-06T17:40:11.150Z"
   /kb/annotation_report:
     get:
       tags:
