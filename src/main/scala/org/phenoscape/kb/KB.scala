@@ -218,7 +218,7 @@ case class KBMetadata(built: Instant, ontologies: Seq[IRI]) {
 
   def toJSON: JsObject = Map(
     "build_time" -> built.toString.toJson,
-    "kb ontologies" -> ontologies.map(_.toString.toJson).toJson.asJsObject
+    "kb ontologies" -> ontologies.map(_.toString.toJson).toJson
   ).toJson.asJsObject
 }
 
