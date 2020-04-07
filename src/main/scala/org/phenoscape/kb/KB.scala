@@ -28,6 +28,7 @@ import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolation.QueryText
 import org.openrdf.model.vocabulary.DCTERMS
 import org.apache.jena.vocabulary.DCTerms
+import org.semanticweb.owlapi.model.IRI
 import java.time.Instant
 
 object KB {
@@ -189,6 +190,41 @@ OPTIONAL {
     App.executeSPARQLQueryString(query.text, res => Instant.parse(res.getLiteral("date").getLexicalForm)).map(_.head)
   }
 
+  def getKBMetadata = {
+    val builtFut = buildDate
+    val ontologiesFut = kbOntologies
+    for {
+      built <- builtFut
+      ontologies <- ontologiesFut
+    } yield KBMetadata(built, ontologies)
+  }
+
+  def kbOntologies = {
+    val query = sparql"""
+    PREFIX owl: <http://www.w3.org/2002/07/owl#>
+    SELECT ?version
+    FROM $KBMainGraph
+    WHERE {
+      ?ont $rdfType owl:Ontology .
+  	  ?ont owl:versionIRI ?version
+    }
+  """
+
+    App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("version").getURI))
+  }
+}
+
+case class KBMetadata(built: Instant, ontologies: Seq[IRI]) {
+
+  def toJSON: JsObject = Map(
+    "build_time" -> built.toString.toJson,
+    "kb ontologies" -> ontologies.map(_.toString.toJsongit status).toJson.asJsObject
+  ).toJson.asJsObject
+}
+
+object KBMetadata {
+
+  implicit val KBMetadataMarshaller: ToEntityMarshaller[KBMetadata] = Marshaller.combined((result => result.toJSON))
 }
 
 case class KBAnnotationSummary(built: Instant, annotatedMatrices: Int, annotatedTaxa: Int, annotatedCharacters: Int, annotatedStates: Int) {
