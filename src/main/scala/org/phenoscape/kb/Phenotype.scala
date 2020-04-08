@@ -110,7 +110,6 @@ object Phenotype {
 
   def queryTaxonPhenotypes(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], phenotypeOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[MinimalTerm]] = for {
     query <- TaxonPhenotypes.buildQuery(entity, quality, inTaxonOpt, phenotypeOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
-    _ = println(query)
     phenotypes <- App.executeSPARQLQueryString(query, fromQueryResult)
   } yield phenotypes
 
