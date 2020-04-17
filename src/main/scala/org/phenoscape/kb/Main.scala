@@ -121,7 +121,7 @@ object Main extends HttpApp with App {
           pathSingleSlash {
             redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
           } ~ pathPrefix("kb") {
-            path("kb_metadata") {
+            path("metadata") {
               complete {
                 import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                 KB.getKBMetadata

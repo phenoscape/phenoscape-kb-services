@@ -202,7 +202,7 @@ OPTIONAL {
   def kbOntologies = {
     val query = sparql"""
     PREFIX owl: <http://www.w3.org/2002/07/owl#>
-    SELECT ?version
+    SELECT ?ont ?version
     FROM $KBMainGraph
     WHERE {
       ?ont $rdfType owl:Ontology .
@@ -210,22 +210,23 @@ OPTIONAL {
     }
   """
 
-    App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("version").getURI))
+    App.executeSPARQLQueryString(query.text, qs => (IRI.create(qs.getResource("ont").getURI), IRI.create(qs.getResource("version").getURI)))
   }
 }
 
-case class KBMetadata(built: Instant, ontologies: Seq[IRI]) {
+case class KBMetadata(built: Instant, ontologies: Seq[(IRI, IRI)]) extends JSONResultItem {
 
   def toJSON: JsObject = Map(
     "build_time" -> built.toString.toJson,
-    "kb ontologies" -> ontologies.map(_.toString.toJson).toJson
+    "ontologies" -> ontologies.map{
+      case(ont, version) => JsObject(
+        "ontololgy" -> ont.toString.toJson,
+        "version" -> version.toString.toJson
+      ).toJson
+    }.toJson
   ).toJson.asJsObject
 }
 
-object KBMetadata {
-
-  implicit val KBMetadataMarshaller: ToEntityMarshaller[KBMetadata] = Marshaller.combined((result => result.toJSON))
-}
 
 case class KBAnnotationSummary(built: Instant, annotatedMatrices: Int, annotatedTaxa: Int, annotatedCharacters: Int, annotatedStates: Int) {
 
