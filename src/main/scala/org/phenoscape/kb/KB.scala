@@ -190,7 +190,7 @@ OPTIONAL {
     App.executeSPARQLQueryString(query.text, res => Instant.parse(res.getLiteral("date").getLexicalForm)).map(_.head)
   }
 
-  def getKBMetadata = {
+  def getKBMetadata: Future[KBMetadata]= {
     val builtFut = buildDate
     val ontologiesFut = kbOntologies
     for {
@@ -199,7 +199,7 @@ OPTIONAL {
     } yield KBMetadata(built, ontologies)
   }
 
-  def kbOntologies = {
+  def kbOntologies: Future[Seq[(IRI, IRI)]] = {
     val query = sparql"""
     PREFIX owl: <http://www.w3.org/2002/07/owl#>
     SELECT ?ont ?version
@@ -220,7 +220,7 @@ case class KBMetadata(built: Instant, ontologies: Seq[(IRI, IRI)]) extends JSONR
     "build_time" -> built.toString.toJson,
     "ontologies" -> ontologies.map{
       case(ont, version) => JsObject(
-        "ontololgy" -> ont.toString.toJson,
+        "@id" -> ont.toString.toJson,
         "version" -> version.toString.toJson
       ).toJson
     }.toJson

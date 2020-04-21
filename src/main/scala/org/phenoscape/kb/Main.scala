@@ -123,7 +123,6 @@ object Main extends HttpApp with App {
           } ~ pathPrefix("kb") {
             path("metadata") {
               complete {
-                import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                 KB.getKBMetadata
               }
             } ~
