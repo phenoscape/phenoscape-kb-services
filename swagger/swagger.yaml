@@ -23,6 +23,26 @@ tags:
 schemes:
   - https
 paths:
+  /kb/metadata:
+    get:
+      tags:
+        - Knowledgebase metadata
+      summary: KB metadata
+      decription: Return KB build time, and ontologies and their versions
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        200:
+          description: KB metadata
+          examples:
+            application/json:
+              build_time: '2020-04-08T20:37:21.892Z'
+              ontologies:
+                - "@id": http://purl.obolibrary.org/obo/pato.owl
+                  version: http://purl.obolibrary.org/obo/pato/releases/2020-03-24/pato.owl
+                - "@id": http://purl.obolibrary.org/obo/ro.owl
+                  version: http://purl.obolibrary.org/obo/ro/releases/2020-02-26/ro.owl
   /kb/annotation_summary:
     get:
       tags:
