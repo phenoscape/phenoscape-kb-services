@@ -2605,6 +2605,3 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/TermWithLabel'
-# Added by API Auto Mocking Plugin
-host: virtserver.swaggerhub.com
-basePath: /Shalsh23/phenoscape-kb-webservices/1.0.0

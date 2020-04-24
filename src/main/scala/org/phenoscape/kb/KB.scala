@@ -199,7 +199,7 @@ OPTIONAL {
     } yield KBMetadata(built, ontologies)
   }
 
-  def kbOntologies: Future[Seq[(IRI, IRI)]] = {
+  def kbOntologies: Future[Set[(IRI, IRI)]] = {
     val query = sparql"""
     PREFIX owl: <http://www.w3.org/2002/07/owl#>
     SELECT ?ont ?version
@@ -210,15 +210,15 @@ OPTIONAL {
     }
   """
 
-    App.executeSPARQLQueryString(query.text, qs => (IRI.create(qs.getResource("ont").getURI), IRI.create(qs.getResource("version").getURI)))
+    App.executeSPARQLQueryString(query.text, qs => (IRI.create(qs.getResource("ont").getURI), IRI.create(qs.getResource("version").getURI))).map(_.toSet)
   }
 }
 
-case class KBMetadata(built: Instant, ontologies: Seq[(IRI, IRI)]) extends JSONResultItem {
+case class KBMetadata(built: Instant, ontologies: Set[(IRI, IRI)]) extends JSONResultItem {
 
   def toJSON: JsObject = Map(
     "build_time" -> built.toString.toJson,
-    "ontologies" -> ontologies.map{
+    "ontologies" -> ontologies.toSeq.sortBy(_.toString()).map{
       case(ont, version) => JsObject(
         "@id" -> ont.toString.toJson,
         "version" -> version.toString.toJson
