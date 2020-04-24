@@ -9,8 +9,8 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-host: kb.phenoscape.org
-basePath: /api
+# host: kb.phenoscape.org
+# basePath: /api
 tags:
   - name: Knowledgebase status
   - name: Terms
@@ -26,9 +26,9 @@ paths:
   /kb/metadata:
     get:
       tags:
-        - Knowledgebase metadata
+        - Knowledgebase status
       summary: KB metadata
-      decription: Return KB build time, and ontologies and their versions
+      description: Return KB build time, and ontologies and their versions
       produces:
         - application/json
       parameters: []
@@ -111,16 +111,22 @@ paths:
           examples:
             application/json:
               synonyms:
-                - {'property': http://www.geneontology.org/formats/oboInOwl#hasExactSynonym, 'value': basihyoid}
-                - {'property': http://www.geneontology.org/formats/oboInOwl#hasExactSynonym, 'value': glossohyal}
+                - property: http://www.geneontology.org/formats/oboInOwl#hasExactSynonym
+                  value: basihyoid
+                - property: http://www.geneontology.org/formats/oboInOwl#hasExactSynonym
+                  value: glossohyal
               isDefinedBy: http://purl.obolibrary.org/obo/uberon.owl
               label: basihyal bone
               relationships:
-                - {'property': {'@id': http://purl.obolibrary.org/obo/RO_0002202, 'label': develops from}, 'value': {'@id': http://purl.obolibrary.org/obo/UBERON_0011615, 'label': basihyal cartilage}}
-              definition: Replacement bone that is median and is the anterior-most bone of the ventral hyoid arch.
-              '@id': http://purl.obolibrary.org/obo/UBERON_0011618
-
-
+                - property:
+                    "@id": http://purl.obolibrary.org/obo/RO_0002202
+                    label: develops from
+                  value:
+                    "@id": http://purl.obolibrary.org/obo/UBERON_0011615
+                    label: basihyal cartilage
+              definition: Replacement bone that is median and is the anterior-most bone of the ventral
+                hyoid arch.
+              "@id": http://purl.obolibrary.org/obo/UBERON_0011618
   /term/search:
     get:
       tags:
@@ -2599,3 +2605,6 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/TermWithLabel'
+# Added by API Auto Mocking Plugin
+host: virtserver.swaggerhub.com
+basePath: /Shalsh23/phenoscape-kb-webservices/1.0.0
