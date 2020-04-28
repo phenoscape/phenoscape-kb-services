@@ -218,7 +218,7 @@ case class KBMetadata(built: Instant, ontologies: Set[(IRI, IRI)]) extends JSONR
 
   def toJSON: JsObject = Map(
     "build_time" -> built.toString.toJson,
-    "ontologies" -> ontologies.toSeq.sortBy(_.toString()).map{
+    "ontologies" -> ontologies.toSeq.sortBy(_.toString).map {
       case(ont, version) => JsObject(
         "@id" -> ont.toString.toJson,
         "version" -> version.toString.toJson
