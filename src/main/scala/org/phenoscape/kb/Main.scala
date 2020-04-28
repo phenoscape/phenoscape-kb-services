@@ -121,6 +121,11 @@ object Main extends HttpApp with App {
           pathSingleSlash {
             redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
           } ~ pathPrefix("kb") {
+            path("metadata") {
+              complete {
+                KB.getKBMetadata
+              }
+            } ~
             path("annotation_summary") {
               complete {
                 KB.annotationSummary

@@ -23,6 +23,26 @@ tags:
 schemes:
   - https
 paths:
+  /kb/metadata:
+    get:
+      tags:
+        - Knowledgebase status
+      summary: KB metadata
+      description: Return KB build time, and ontologies and their versions
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        200:
+          description: KB metadata
+          examples:
+            application/json:
+              build_time: '2020-04-08T20:37:21.892Z'
+              ontologies:
+                - "@id": http://purl.obolibrary.org/obo/pato.owl
+                  version: http://purl.obolibrary.org/obo/pato/releases/2020-03-24/pato.owl
+                - "@id": http://purl.obolibrary.org/obo/ro.owl
+                  version: http://purl.obolibrary.org/obo/ro/releases/2020-02-26/ro.owl
   /kb/annotation_summary:
     get:
       tags:
@@ -50,6 +70,8 @@ paths:
               annotated_states:
                 type: integer
                 example: 21182
+              build_time:
+                example: "2020-03-06T17:40:11.150Z"
   /kb/annotation_report:
     get:
       tags:
@@ -89,16 +111,22 @@ paths:
           examples:
             application/json:
               synonyms:
-                - {'property': http://www.geneontology.org/formats/oboInOwl#hasExactSynonym, 'value': basihyoid}
-                - {'property': http://www.geneontology.org/formats/oboInOwl#hasExactSynonym, 'value': glossohyal}
+                - property: http://www.geneontology.org/formats/oboInOwl#hasExactSynonym
+                  value: basihyoid
+                - property: http://www.geneontology.org/formats/oboInOwl#hasExactSynonym
+                  value: glossohyal
               isDefinedBy: http://purl.obolibrary.org/obo/uberon.owl
               label: basihyal bone
               relationships:
-                - {'property': {'@id': http://purl.obolibrary.org/obo/RO_0002202, 'label': develops from}, 'value': {'@id': http://purl.obolibrary.org/obo/UBERON_0011615, 'label': basihyal cartilage}}
-              definition: Replacement bone that is median and is the anterior-most bone of the ventral hyoid arch.
-              '@id': http://purl.obolibrary.org/obo/UBERON_0011618
-
-
+                - property:
+                    "@id": http://purl.obolibrary.org/obo/RO_0002202
+                    label: develops from
+                  value:
+                    "@id": http://purl.obolibrary.org/obo/UBERON_0011615
+                    label: basihyal cartilage
+              definition: Replacement bone that is median and is the anterior-most bone of the ventral
+                hyoid arch.
+              "@id": http://purl.obolibrary.org/obo/UBERON_0011618
   /term/search:
     get:
       tags:

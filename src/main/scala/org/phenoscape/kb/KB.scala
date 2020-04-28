@@ -28,6 +28,7 @@ import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolation.QueryText
 import org.openrdf.model.vocabulary.DCTERMS
 import org.apache.jena.vocabulary.DCTerms
+import org.semanticweb.owlapi.model.IRI
 import java.time.Instant
 
 object KB {
@@ -189,7 +190,43 @@ OPTIONAL {
     App.executeSPARQLQueryString(query.text, res => Instant.parse(res.getLiteral("date").getLexicalForm)).map(_.head)
   }
 
+  def getKBMetadata: Future[KBMetadata]= {
+    val builtFut = buildDate
+    val ontologiesFut = kbOntologies
+    for {
+      built <- builtFut
+      ontologies <- ontologiesFut
+    } yield KBMetadata(built, ontologies)
+  }
+
+  def kbOntologies: Future[Set[(IRI, IRI)]] = {
+    val query = sparql"""
+    PREFIX owl: <http://www.w3.org/2002/07/owl#>
+    SELECT ?ont ?version
+    FROM $KBMainGraph
+    WHERE {
+      ?ont $rdfType owl:Ontology .
+  	  ?ont owl:versionIRI ?version
+    }
+  """
+
+    App.executeSPARQLQueryString(query.text, qs => (IRI.create(qs.getResource("ont").getURI), IRI.create(qs.getResource("version").getURI))).map(_.toSet)
+  }
 }
+
+case class KBMetadata(built: Instant, ontologies: Set[(IRI, IRI)]) extends JSONResultItem {
+
+  def toJSON: JsObject = Map(
+    "build_time" -> built.toString.toJson,
+    "ontologies" -> ontologies.toSeq.sortBy(_.toString).map {
+      case(ont, version) => JsObject(
+        "@id" -> ont.toString.toJson,
+        "version" -> version.toString.toJson
+      ).toJson
+    }.toJson
+  ).toJson.asJsObject
+}
+
 
 case class KBAnnotationSummary(built: Instant, annotatedMatrices: Int, annotatedTaxa: Int, annotatedCharacters: Int, annotatedStates: Int) {
 
