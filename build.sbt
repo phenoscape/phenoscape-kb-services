@@ -26,7 +26,7 @@ scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf
 
 resolvers += "Phenoscape Maven repository" at "https://svn.code.sf.net/p/phenoscape/code/trunk/maven/repository"
 
-resolvers += "BBOP repository" at "http://code.berkeleybop.org/maven/repository"
+resolvers += ("BBOP repository" at "http://code.berkeleybop.org/maven/repository").withAllowInsecureProtocol(true)
 
 libraryDependencies ++= {
   Seq(
