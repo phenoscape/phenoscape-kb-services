@@ -20,18 +20,28 @@ object KBVocab {
   val owlIntersectionOf = ObjectProperty(OWL2.intersectionOf.getURI)
   val rdfFirst = ObjectProperty(RDF.first.getURI)
   val rdfRest = ObjectProperty(RDF.rest.getURI)
-  val hasExactSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasExactSynonym")
-  val hasRelatedSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym")
-  val hasNarrowSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasNarrowSynonym")
-  val hasBroadSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasBroadSynonym")
+  val hasExactSynonym = ObjectProperty(
+    "http://www.geneontology.org/formats/oboInOwl#hasExactSynonym"
+  )
+  val hasRelatedSynonym = ObjectProperty(
+    "http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym"
+  )
+  val hasNarrowSynonym = ObjectProperty(
+    "http://www.geneontology.org/formats/oboInOwl#hasNarrowSynonym"
+  )
+  val hasBroadSynonym = ObjectProperty(
+    "http://www.geneontology.org/formats/oboInOwl#hasBroadSynonym"
+  )
   val definition = ObjectProperty("http://purl.obolibrary.org/obo/IAO_0000115")
   val owlAnnotatedSource = IRI.create(OWL2.annotatedSource.getURI)
   val owlAnnotatedProperty = IRI.create(OWL2.annotatedProperty.getURI)
   val owlAnnotatedTarget = IRI.create(OWL2.annotatedTarget.getURI)
   val owlOnProperty = IRI.create(OWL2.onProperty.getURI)
   val owlSomeValuesFrom = IRI.create(OWL2.someValuesFrom.getURI)
-  val hasSynonymType = IRI.create("http://www.geneontology.org/formats/oboInOwl#hasSynonymType")
-  val CommonNameSynonymType = IRI.create("http://purl.obolibrary.org/obo/vto#COMMONNAME")
+  val hasSynonymType =
+    IRI.create("http://www.geneontology.org/formats/oboInOwl#hasSynonymType")
+  val CommonNameSynonymType =
+    IRI.create("http://purl.obolibrary.org/obo/vto#COMMONNAME")
   val rdfsIsDefinedBy = ObjectProperty(RDFS.isDefinedBy.getURI)
   val owlClass = IRI.create(OWL2.Class.getURI)
   val owlNamedIndividual = IRI.create(OWL2.NamedIndividual.getURI)
@@ -41,14 +51,21 @@ object KBVocab {
   val Uberon = IRI.create("http://purl.obolibrary.org/obo/uberon.owl")
   val VTO = IRI.create("http://purl.obolibrary.org/obo/vto.owl")
   val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
-  val homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000007")
-  val serially_homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000027")
+  val homologous_to = ObjectProperty(
+    "http://purl.obolibrary.org/obo/RO_HOM0000007"
+  )
+  val serially_homologous_to = ObjectProperty(
+    "http://purl.obolibrary.org/obo/RO_HOM0000027"
+  )
 
   val oban = "http://purl.org/oban/"
   val associationHasSubject = ObjectProperty(s"${oban}association_has_subject")
-  val associationHasPredicate = ObjectProperty(s"${oban}association_has_predicate")
+  val associationHasPredicate = ObjectProperty(
+    s"${oban}association_has_predicate"
+  )
   val associationHasObject = ObjectProperty(s"${oban}association_has_object")
-  val associationIsNegated = IRI.create("http://purl.org/phenoscape/oban/is_negated")
+  val associationIsNegated =
+    IRI.create("http://purl.org/phenoscape/oban/is_negated")
 
   val KBMainGraph = IRI.create("http://kb.phenoscape.org/")
   val KBClosureGraph = IRI.create("http://kb.phenoscape.org/closure")
@@ -57,7 +74,9 @@ object KBVocab {
   val qualityRoot = IRI.create("http://purl.obolibrary.org/obo/PATO_0000001")
   val taxonRoot = IRI.create("http://purl.obolibrary.org/obo/VTO_0000001")
 
-  val InferredPresence = IRI.create("http://purl.org/phenoscape/vocab.owl#inferred_presence")
-  val InferredAbsence = IRI.create("http://purl.org/phenoscape/vocab.owl#inferred_absence")
+  val InferredPresence =
+    IRI.create("http://purl.org/phenoscape/vocab.owl#inferred_presence")
+  val InferredAbsence =
+    IRI.create("http://purl.org/phenoscape/vocab.owl#inferred_absence")
 
 }

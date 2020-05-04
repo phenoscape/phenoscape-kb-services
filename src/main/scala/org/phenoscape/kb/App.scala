@@ -6,7 +6,11 @@ import java.nio.charset.StandardCharsets
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.{Marshal, Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshal, Unmarshaller}
+import akka.http.scaladsl.unmarshalling.{
+  FromEntityUnmarshaller,
+  Unmarshal,
+  Unmarshaller
+}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -30,39 +34,76 @@ object App {
   implicit val timeout = Timeout(10 minutes)
   implicit val materializer = ActorMaterializer()
   private val Prior = IRI.create("http://www.bigdata.com/queryHints#Prior")
-  private val RunFirst = IRI.create("http://www.bigdata.com/queryHints#runFirst")
+  private val RunFirst =
+    IRI.create("http://www.bigdata.com/queryHints#runFirst")
   private val HintQuery = IRI.create("http://www.bigdata.com/queryHints#Query")
-  private val HintAnalytic = IRI.create("http://www.bigdata.com/queryHints#analytic")
-  private val HintOptimizer = IRI.create("http://www.bigdata.com/queryHints#optimizer")
-  val BigdataRunPriorFirst = bgp(t(Prior, RunFirst, "true" ^^ XSDDatatype.XSDboolean))
-  val BigdataAnalyticQuery = t(HintQuery, HintAnalytic, "true" ^^ XSDDatatype.XSDboolean)
-  val BigdataNoOptimizer = t(HintQuery, HintOptimizer, "None" ^^ XSDDatatype.XSDstring)
-  val `application/sparql-results+xml` = MediaType.applicationWithFixedCharset("sparql-results+xml", HttpCharsets.`UTF-8`, "xml")
-  val `application/sparql-query` = MediaType.applicationWithFixedCharset("sparql-query", HttpCharsets.`UTF-8`, "rq", "sparql")
-  val `application/rdf+xml` = MediaType.applicationWithFixedCharset("rdf+xml", HttpCharsets.`UTF-8`, "rdf")
-  val `application/ld+json` = MediaType.applicationWithFixedCharset("ld+json", HttpCharsets.`UTF-8`, "jsonld")
+  private val HintAnalytic =
+    IRI.create("http://www.bigdata.com/queryHints#analytic")
+  private val HintOptimizer =
+    IRI.create("http://www.bigdata.com/queryHints#optimizer")
+  val BigdataRunPriorFirst = bgp(
+    t(Prior, RunFirst, "true" ^^ XSDDatatype.XSDboolean)
+  )
+  val BigdataAnalyticQuery =
+    t(HintQuery, HintAnalytic, "true" ^^ XSDDatatype.XSDboolean)
+  val BigdataNoOptimizer =
+    t(HintQuery, HintOptimizer, "None" ^^ XSDDatatype.XSDstring)
+  val `application/sparql-results+xml` = MediaType.applicationWithFixedCharset(
+    "sparql-results+xml",
+    HttpCharsets.`UTF-8`,
+    "xml"
+  )
+  val `application/sparql-query` = MediaType.applicationWithFixedCharset(
+    "sparql-query",
+    HttpCharsets.`UTF-8`,
+    "rq",
+    "sparql"
+  )
+  val `application/rdf+xml` = MediaType.applicationWithFixedCharset(
+    "rdf+xml",
+    HttpCharsets.`UTF-8`,
+    "rdf"
+  )
+  val `application/ld+json` = MediaType.applicationWithFixedCharset(
+    "ld+json",
+    HttpCharsets.`UTF-8`,
+    "jsonld"
+  )
 
   val conf = ConfigFactory.load()
   val KBEndpoint: Uri = Uri(conf.getString("kb-services.kb.endpoint"))
   val Owlery: Uri = Uri(conf.getString("kb-services.owlery.endpoint"))
 
-  def withOwlery(triple: TripleOrPath): ElementService = service(App.Owlery.toString + "/sparql", bgp(triple))
+  def withOwlery(triple: TripleOrPath): ElementService =
+    service(App.Owlery.toString + "/sparql", bgp(triple))
 
-  def executeSPARQLQuery(query: Query): Future[ResultSet] = sparqlSelectQuery(query)
+  def executeSPARQLQuery(query: Query): Future[ResultSet] =
+    sparqlSelectQuery(query)
 
-  def executeSPARQLQuery(queryString: String): Future[ResultSet] = sparqlSelectQuery(queryString)
+  def executeSPARQLQuery(queryString: String): Future[ResultSet] =
+    sparqlSelectQuery(queryString)
 
-  def executeSPARQLQuery[T](query: Query, resultMapper: QuerySolution => T): Future[Seq[T]] = for {
-    resultSet <- sparqlSelectQuery(query)
-  } yield resultSet.asScala.map(resultMapper).toSeq
+  def executeSPARQLQuery[T](
+      query: Query,
+      resultMapper: QuerySolution => T
+  ): Future[Seq[T]] =
+    for {
+      resultSet <- sparqlSelectQuery(query)
+    } yield resultSet.asScala.map(resultMapper).toSeq
 
-  def executeSPARQLQueryString[T](queryString: String, resultMapper: QuerySolution => T): Future[Seq[T]] = for {
-    resultSet <- sparqlSelectQuery(queryString)
-  } yield resultSet.asScala.map(resultMapper).toSeq
+  def executeSPARQLQueryString[T](
+      queryString: String,
+      resultMapper: QuerySolution => T
+  ): Future[Seq[T]] =
+    for {
+      resultSet <- sparqlSelectQuery(queryString)
+    } yield resultSet.asScala.map(resultMapper).toSeq
 
-  def executeSPARQLConstructQuery(query: Query): Future[Model] = sparqlConstructQuery(query)
+  def executeSPARQLConstructQuery(query: Query): Future[Model] =
+    sparqlConstructQuery(query)
 
-  def executeSPARQLAskQuery(query: Query): Future[Boolean] = sparqlAskQuery(query)
+  def executeSPARQLAskQuery(query: Query): Future[Boolean] =
+    sparqlAskQuery(query)
 
   def resultSetToTSV(result: ResultSet): String = {
     val outStream = new ByteArrayOutputStream()
@@ -72,75 +113,108 @@ object App {
     tsv
   }
 
-  private implicit val SPARQLQueryMarshaller: ToEntityMarshaller[Query] = Marshaller.stringMarshaller(`application/sparql-query`).compose(_.toString)
+  private implicit val SPARQLQueryMarshaller: ToEntityMarshaller[Query] =
+    Marshaller.stringMarshaller(`application/sparql-query`).compose(_.toString)
 
-  private implicit val SPARQLQueryStringMarshaller: ToEntityMarshaller[String] = Marshaller.stringMarshaller(`application/sparql-query`)
+  private implicit val SPARQLQueryStringMarshaller: ToEntityMarshaller[String] =
+    Marshaller.stringMarshaller(`application/sparql-query`)
 
-  private implicit val SPARQLQueryBodyUnmarshaller: FromEntityUnmarshaller[Query] = Unmarshaller.stringUnmarshaller.forContentTypes(`application/sparql-query`).map(QueryFactory.create)
+  private implicit val SPARQLQueryBodyUnmarshaller
+      : FromEntityUnmarshaller[Query] = Unmarshaller.stringUnmarshaller
+    .forContentTypes(`application/sparql-query`)
+    .map(QueryFactory.create)
 
-  private implicit val SPARQLResultsXMLUnmarshaller = Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/sparql-results+xml`).map { data =>
-    // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
-    ResultSetFactory.fromXML(new String(data, StandardCharsets.UTF_8))
-  }
+  private implicit val SPARQLResultsXMLUnmarshaller =
+    Unmarshaller.byteArrayUnmarshaller
+      .forContentTypes(`application/sparql-results+xml`)
+      .map { data =>
+        // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
+        ResultSetFactory.fromXML(new String(data, StandardCharsets.UTF_8))
+      }
 
-  private implicit val SPARQLResultsBooleanUnmarshaller = Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/sparql-results+xml`).map { data =>
-    // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
-    XMLInput.booleanFromXML(new String(data, StandardCharsets.UTF_8))
-  }
+  private implicit val SPARQLResultsBooleanUnmarshaller =
+    Unmarshaller.byteArrayUnmarshaller
+      .forContentTypes(`application/sparql-results+xml`)
+      .map { data =>
+        // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
+        XMLInput.booleanFromXML(new String(data, StandardCharsets.UTF_8))
+      }
 
-  private implicit val RDFXMLUnmarshaller = Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/rdf+xml`).map { data =>
-    val model = ModelFactory.createDefaultModel
-    model.read(new ByteArrayInputStream(data), null)
-    model
-  }
+  private implicit val RDFXMLUnmarshaller = Unmarshaller.byteArrayUnmarshaller
+    .forContentTypes(`application/rdf+xml`)
+    .map { data =>
+      val model = ModelFactory.createDefaultModel
+      model.read(new ByteArrayInputStream(data), null)
+      model
+    }
 
-  def expandWithOwlet(query: Query): Future[Query] = for {
-    requestEntity <- Marshal(query).to[RequestEntity]
-    response <- Http().singleRequest(HttpRequest(
-      method = HttpMethods.POST,
-      uri = Owlery.copy(path = Owlery.path / "expand"),
-      entity = requestEntity))
-    newQuery <- Unmarshal(response.entity).to[Query]
-  } yield newQuery
+  def expandWithOwlet(query: Query): Future[Query] =
+    for {
+      requestEntity <- Marshal(query).to[RequestEntity]
+      response <- Http().singleRequest(
+        HttpRequest(
+          method = HttpMethods.POST,
+          uri = Owlery.copy(path = Owlery.path / "expand"),
+          entity = requestEntity
+        )
+      )
+      newQuery <- Unmarshal(response.entity).to[Query]
+    } yield newQuery
 
-  def sparqlSelectQuery(query: Query): Future[ResultSet] = for {
-    requestEntity <- Marshal(query).to[RequestEntity]
-    response <- Http().singleRequest(HttpRequest(
-      method = HttpMethods.POST,
-      headers = List(headers.Accept(`application/sparql-results+xml`)),
-      uri = KBEndpoint,
-      entity = requestEntity))
-    result <- Unmarshal(response.entity).to[ResultSet]
-  } yield result
+  def sparqlSelectQuery(query: Query): Future[ResultSet] =
+    for {
+      requestEntity <- Marshal(query).to[RequestEntity]
+      response <- Http().singleRequest(
+        HttpRequest(
+          method = HttpMethods.POST,
+          headers = List(headers.Accept(`application/sparql-results+xml`)),
+          uri = KBEndpoint,
+          entity = requestEntity
+        )
+      )
+      result <- Unmarshal(response.entity).to[ResultSet]
+    } yield result
 
-  def sparqlSelectQuery(queryString: String): Future[ResultSet] = for {
-    requestEntity <- Marshal(queryString).to[RequestEntity]
-    response <- Http().singleRequest(HttpRequest(
-      method = HttpMethods.POST,
-      headers = List(headers.Accept(`application/sparql-results+xml`)),
-      uri = KBEndpoint,
-      entity = requestEntity))
-    result <- Unmarshal(response.entity).to[ResultSet]
-  } yield result
+  def sparqlSelectQuery(queryString: String): Future[ResultSet] =
+    for {
+      requestEntity <- Marshal(queryString).to[RequestEntity]
+      response <- Http().singleRequest(
+        HttpRequest(
+          method = HttpMethods.POST,
+          headers = List(headers.Accept(`application/sparql-results+xml`)),
+          uri = KBEndpoint,
+          entity = requestEntity
+        )
+      )
+      result <- Unmarshal(response.entity).to[ResultSet]
+    } yield result
 
-  def sparqlConstructQuery(query: Query): Future[Model] = for {
-    requestEntity <- Marshal(query).to[RequestEntity]
-    response <- Http().singleRequest(HttpRequest(
-      method = HttpMethods.POST,
-      headers = List(headers.Accept(`application/rdf+xml`)),
-      uri = KBEndpoint,
-      entity = requestEntity))
-    model <- Unmarshal(response.entity).to[Model]
-  } yield model
+  def sparqlConstructQuery(query: Query): Future[Model] =
+    for {
+      requestEntity <- Marshal(query).to[RequestEntity]
+      response <- Http().singleRequest(
+        HttpRequest(
+          method = HttpMethods.POST,
+          headers = List(headers.Accept(`application/rdf+xml`)),
+          uri = KBEndpoint,
+          entity = requestEntity
+        )
+      )
+      model <- Unmarshal(response.entity).to[Model]
+    } yield model
 
-  def sparqlAskQuery(query: Query): Future[Boolean] = for {
-    requestEntity <- Marshal(query).to[RequestEntity]
-    response <- Http().singleRequest(HttpRequest(
-      method = HttpMethods.POST,
-      headers = List(headers.Accept(`application/sparql-results+xml`)),
-      uri = KBEndpoint,
-      entity = requestEntity))
-    result <- Unmarshal(response.entity).to[Boolean]
-  } yield result
+  def sparqlAskQuery(query: Query): Future[Boolean] =
+    for {
+      requestEntity <- Marshal(query).to[RequestEntity]
+      response <- Http().singleRequest(
+        HttpRequest(
+          method = HttpMethods.POST,
+          headers = List(headers.Accept(`application/sparql-results+xml`)),
+          uri = KBEndpoint,
+          entity = requestEntity
+        )
+      )
+      result <- Unmarshal(response.entity).to[Boolean]
+    } yield result
 
 }

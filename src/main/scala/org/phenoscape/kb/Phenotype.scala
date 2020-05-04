@@ -29,23 +29,39 @@ object Phenotype {
 
   implicit val timeout = Timeout(10 minutes)
 
-  private val has_part_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
-  private val phenotype_of_some: IRI = NamedRestrictionGenerator.getClassRelationIRI(Vocab.phenotype_of.getIRI)
-  private val has_part_inhering_in_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part_inhering_in.getIRI)
+  private val has_part_some =
+    NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
+  private val phenotype_of_some: IRI =
+    NamedRestrictionGenerator.getClassRelationIRI(Vocab.phenotype_of.getIRI)
+  private val has_part_inhering_in_some =
+    NamedRestrictionGenerator.getClassRelationIRI(
+      Vocab.has_part_inhering_in.getIRI
+    )
 
   def info(phenotype: IRI, annotatedStatesOnly: Boolean): Future[Phenotype] = {
     val eqsFuture = eqForPhenotype(phenotype)
-    val statesFuture = characterStatesForPhenotype(phenotype, annotatedStatesOnly)
+    val statesFuture =
+      characterStatesForPhenotype(phenotype, annotatedStatesOnly)
     val labelFuture = Term.label(phenotype)
     for {
       eqs <- eqsFuture
       states <- statesFuture
       labelOpt <- labelFuture
-    } yield Phenotype(phenotype, labelOpt.flatMap(_.label).getOrElse(""), states, eqs)
+    } yield Phenotype(
+      phenotype,
+      labelOpt.flatMap(_.label).getOrElse(""),
+      states,
+      eqs
+    )
   }
 
-  def characterStatesForPhenotype(phenotype: IRI, annotatedStatesOnly: Boolean): Future[Set[CharacterState]] = {
-    val taxonConstraint = if (annotatedStatesOnly) sparql"?taxon $exhibits_state ?state ." else sparql""
+  def characterStatesForPhenotype(
+      phenotype: IRI,
+      annotatedStatesOnly: Boolean
+  ): Future[Set[CharacterState]] = {
+    val taxonConstraint =
+      if (annotatedStatesOnly) sparql"?taxon $exhibits_state ?state ."
+      else sparql""
     val query: QueryText =
       sparql"""
        SELECT DISTINCT ?character ?character_label ?state ?state_label ?matrix ?matrix_label
@@ -60,23 +76,33 @@ object Phenotype {
           ?matrix $rdfsLabel ?matrix_label .
        }
             """
-    App.executeSPARQLQueryString(query.text, solution => CharacterState(
-      IRI.create(solution.getResource("state").getURI),
-      solution.getLiteral("state_label").getLexicalForm,
-      MinimalTerm(
-        IRI.create(solution.getResource("character").getURI),
-        Some(solution.getLiteral("character_label").getLexicalForm),
-      ),
-      MinimalTerm(
-        IRI.create(solution.getResource("matrix").getURI),
-        Some(solution.getLiteral("matrix_label").getLexicalForm)
+    App
+      .executeSPARQLQueryString(
+        query.text,
+        solution =>
+          CharacterState(
+            IRI.create(solution.getResource("state").getURI),
+            solution.getLiteral("state_label").getLexicalForm,
+            MinimalTerm(
+              IRI.create(solution.getResource("character").getURI),
+              Some(solution.getLiteral("character_label").getLexicalForm)
+            ),
+            MinimalTerm(
+              IRI.create(solution.getResource("matrix").getURI),
+              Some(solution.getLiteral("matrix_label").getLexicalForm)
+            )
+          )
       )
-    )).map(_.toSet)
+      .map(_.toSet)
   }
 
   def eqForPhenotype(phenotype: IRI): Future[NearestEQSet] = {
-    val entitiesFuture = entitiesForPhenotype(phenotype, has_part_inhering_in_some)
-    val generalEntitiesFuture = entitiesForPhenotype(phenotype, phenotype_of_some) //FIXME need to change to relatedEntities using has_part_towards_some; this must be added to the KB build
+    val entitiesFuture =
+      entitiesForPhenotype(phenotype, has_part_inhering_in_some)
+    val generalEntitiesFuture = entitiesForPhenotype(
+      phenotype,
+      phenotype_of_some
+    ) //FIXME need to change to relatedEntities using has_part_towards_some; this must be added to the KB build
     //val relatedEntitiesFuture = ???
     val qualitiesFuture = qualitiesForPhenotype(phenotype)
     for {
@@ -88,103 +114,260 @@ object Phenotype {
 
   def entitiesForPhenotype(phenotype: IRI, relation: IRI): Future[Set[IRI]] = {
     for {
-      entityTypesResult <- App.executeSPARQLQuery(entitySuperClassesQuery(phenotype, relation), result => IRI.create(result.getResource("description").getURI))
-      entitySuperClasses <- superClassesForEntityTypes(entityTypesResult, relation)
+      entityTypesResult <- App.executeSPARQLQuery(
+        entitySuperClassesQuery(phenotype, relation),
+        result => IRI.create(result.getResource("description").getURI)
+      )
+      entitySuperClasses <- superClassesForEntityTypes(
+        entityTypesResult,
+        relation
+      )
     } yield {
       val superclasses = HashMultiset.create[IRI]
       entitySuperClasses.foreach(superclasses.add)
-      superclasses.entrySet.asScala.filter(_.getCount == 1).map(_.getElement).toSet
+      superclasses.entrySet.asScala
+        .filter(_.getCount == 1)
+        .map(_.getElement)
+        .toSet
     }
   }
 
   def qualitiesForPhenotype(phenotype: IRI): Future[Set[IRI]] = {
     for {
-      superQualities <- App.executeSPARQLQuery(qualitySuperClasses(phenotype), result => IRI.create(result.getResource("description").getURI))
+      superQualities <- App.executeSPARQLQuery(
+        qualitySuperClasses(phenotype),
+        result => IRI.create(result.getResource("description").getURI)
+      )
       superSuperQualities <- superClassesForSuperQualities(superQualities)
     } yield {
       val superclasses = HashMultiset.create[IRI]
       superSuperQualities.foreach(superclasses.add)
-      superclasses.entrySet.asScala.filter(_.getCount == 1).map(_.getElement).toSet
+      superclasses.entrySet.asScala
+        .filter(_.getCount == 1)
+        .map(_.getElement)
+        .toSet
     }
   }
 
-  def queryTaxonPhenotypes(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], phenotypeOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[MinimalTerm]] = for {
-    query <- TaxonPhenotypes.buildQuery(entity, quality, inTaxonOpt, phenotypeOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
-    phenotypes <- App.executeSPARQLQueryString(query, fromQueryResult)
-  } yield phenotypes
+  def queryTaxonPhenotypes(
+      entity: Option[IRI],
+      quality: QualitySpec,
+      inTaxonOpt: Option[IRI],
+      phenotypeOpt: Option[IRI],
+      publicationOpt: Option[IRI],
+      includeParts: Boolean,
+      includeHistoricalHomologs: Boolean,
+      includeSerialHomologs: Boolean,
+      limit: Int = 20,
+      offset: Int = 0
+  ): Future[Seq[MinimalTerm]] =
+    for {
+      query <- TaxonPhenotypes.buildQuery(
+        entity,
+        quality,
+        inTaxonOpt,
+        phenotypeOpt,
+        publicationOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs,
+        false,
+        limit,
+        offset
+      )
+      phenotypes <- App.executeSPARQLQueryString(query, fromQueryResult)
+    } yield phenotypes
 
-  def queryTaxonPhenotypesTotal(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], phenotypeOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = for {
-    query <- TaxonPhenotypes.buildQuery(entity, quality, inTaxonOpt, phenotypeOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
-    result <- App.executeSPARQLQuery(query)
-  } yield ResultCount.count(result)
+  def queryTaxonPhenotypesTotal(
+      entity: Option[IRI],
+      quality: QualitySpec,
+      inTaxonOpt: Option[IRI],
+      phenotypeOpt: Option[IRI],
+      publicationOpt: Option[IRI],
+      includeParts: Boolean,
+      includeHistoricalHomologs: Boolean,
+      includeSerialHomologs: Boolean
+  ): Future[Int] =
+    for {
+      query <- TaxonPhenotypes.buildQuery(
+        entity,
+        quality,
+        inTaxonOpt,
+        phenotypeOpt,
+        publicationOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs,
+        true,
+        0,
+        0
+      )
+      result <- App.executeSPARQLQuery(query)
+    } yield ResultCount.count(result)
 
-  def facetPhenotypeByEntity(focalEntity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => queryTaxonPhenotypesTotal(Some(iri), quality, inTaxonOpt, None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    val refine = (iri: IRI) => Term.queryAnatomySubClasses(iri, KBVocab.Uberon, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(_.toSet)
-    Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine, false)
+  def facetPhenotypeByEntity(
+      focalEntity: Option[IRI],
+      quality: QualitySpec,
+      inTaxonOpt: Option[IRI],
+      publicationOpt: Option[IRI],
+      includeParts: Boolean,
+      includeHistoricalHomologs: Boolean,
+      includeSerialHomologs: Boolean
+  ): Future[List[Facet]] = {
+    val query = (iri: IRI) =>
+      queryTaxonPhenotypesTotal(
+        Some(iri),
+        quality,
+        inTaxonOpt,
+        None,
+        publicationOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs
+      )
+    val refine = (iri: IRI) =>
+      Term
+        .queryAnatomySubClasses(
+          iri,
+          KBVocab.Uberon,
+          includeParts,
+          includeHistoricalHomologs,
+          includeSerialHomologs
+        )
+        .map(_.toSet)
+    Facets.facet(
+      focalEntity.getOrElse(KBVocab.entityRoot),
+      query,
+      refine,
+      false
+    )
   }
 
-  def facetPhenotypeByQuality(focalQuality: Option[IRI], entity: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => queryTaxonPhenotypesTotal(entity, PhenotypicQuality(Some(iri)), inTaxonOpt, None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
-    Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine, false)
+  def facetPhenotypeByQuality(
+      focalQuality: Option[IRI],
+      entity: Option[IRI],
+      inTaxonOpt: Option[IRI],
+      publicationOpt: Option[IRI],
+      includeParts: Boolean,
+      includeHistoricalHomologs: Boolean,
+      includeSerialHomologs: Boolean
+  ): Future[List[Facet]] = {
+    val query = (iri: IRI) =>
+      queryTaxonPhenotypesTotal(
+        entity,
+        PhenotypicQuality(Some(iri)),
+        inTaxonOpt,
+        None,
+        publicationOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs
+      )
+    val refine = (iri: IRI) =>
+      Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
+    Facets.facet(
+      focalQuality.getOrElse(KBVocab.qualityRoot),
+      query,
+      refine,
+      false
+    )
   }
 
-  def facetPhenotypeByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: QualitySpec, publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => queryTaxonPhenotypesTotal(entity, quality, Some(iri), None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
+  def facetPhenotypeByTaxon(
+      focalTaxon: Option[IRI],
+      entity: Option[IRI],
+      quality: QualitySpec,
+      publicationOpt: Option[IRI],
+      includeParts: Boolean,
+      includeHistoricalHomologs: Boolean,
+      includeSerialHomologs: Boolean
+  ): Future[List[Facet]] = {
+    val query = (iri: IRI) =>
+      queryTaxonPhenotypesTotal(
+        entity,
+        quality,
+        Some(iri),
+        None,
+        publicationOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs
+      )
+    val refine = (iri: IRI) =>
+      Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
     Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine, true)
   }
 
-  private def fromQueryResult(result: QuerySolution): MinimalTerm = MinimalTerm(
-    IRI.create(result.getResource("phenotype").getURI),
-    Some(result.getLiteral("phenotype_label").getLexicalForm))
+  private def fromQueryResult(result: QuerySolution): MinimalTerm =
+    MinimalTerm(
+      IRI.create(result.getResource("phenotype").getURI),
+      Some(result.getLiteral("phenotype_label").getLexicalForm)
+    )
 
   private def entitySuperClassesQuery(phenotype: IRI, relation: IRI): Query =
-    select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
-      bgp(
-        t(phenotype, rdfsSubClassOf, 'description),
-        t('description, relation, 'entity),
-        t('entity, rdfsIsDefinedBy, Uberon)))
+    select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
+      t(phenotype, rdfsSubClassOf, 'description),
+      t('description, relation, 'entity),
+      t('entity, rdfsIsDefinedBy, Uberon)
+    ))
 
-  private def entityEntitySuperClassesQuery(phenotype: IRI, relation: IRI): Query =
-    select_distinct('entity) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
-      bgp(
-        t(phenotype, rdfsSubClassOf, 'description),
-        t('description, relation, 'entity),
-        t('entity, rdfsIsDefinedBy, Uberon)))
+  private def entityEntitySuperClassesQuery(
+      phenotype: IRI,
+      relation: IRI
+  ): Query =
+    select_distinct('entity) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
+      t(phenotype, rdfsSubClassOf, 'description),
+      t('description, relation, 'entity),
+      t('entity, rdfsIsDefinedBy, Uberon)
+    ))
 
-  private def superClassesForEntityTypes(entityTypes: Iterable[IRI], relation: IRI): Future[Iterable[IRI]] = {
+  private def superClassesForEntityTypes(
+      entityTypes: Iterable[IRI],
+      relation: IRI
+  ): Future[Iterable[IRI]] = {
     val futureSuperclasses = Future.sequence(entityTypes.map { entityType =>
-      App.executeSPARQLQuery(entityEntitySuperClassesQuery(entityType, relation), result => IRI.create(result.getResource("entity").getURI))
+      App.executeSPARQLQuery(
+        entityEntitySuperClassesQuery(entityType, relation),
+        result => IRI.create(result.getResource("entity").getURI)
+      )
     })
     futureSuperclasses.map(_.flatten)
   }
 
-  private def superClassesForSuperQualities(superQualities: Iterable[IRI]): Future[Iterable[IRI]] = {
+  private def superClassesForSuperQualities(
+      superQualities: Iterable[IRI]
+  ): Future[Iterable[IRI]] = {
     val futureSuperclasses = Future.sequence(superQualities.map { superClass =>
-      App.executeSPARQLQuery(qualityQualitySuperClasses(superClass), result => IRI.create(result.getResource("quality").getURI))
+      App.executeSPARQLQuery(
+        qualityQualitySuperClasses(superClass),
+        result => IRI.create(result.getResource("quality").getURI)
+      )
     })
     futureSuperclasses.map(_.flatten)
   }
 
   private def qualitySuperClasses(phenotype: IRI): Query =
-    select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
-      bgp(
-        t(phenotype, rdfsSubClassOf, 'description),
-        t('description, has_part_some, 'quality),
-        t('quality, rdfsIsDefinedBy, PATO)))
+    select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
+      t(phenotype, rdfsSubClassOf, 'description),
+      t('description, has_part_some, 'quality),
+      t('quality, rdfsIsDefinedBy, PATO)
+    ))
 
   private def qualityQualitySuperClasses(phenotype: IRI): Query =
-    select_distinct('quality) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
-      bgp(
-        t(phenotype, rdfsSubClassOf, 'description),
-        t('description, has_part_some, 'quality),
-        t('quality, rdfsIsDefinedBy, PATO)))
+    select_distinct('quality) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
+      t(phenotype, rdfsSubClassOf, 'description),
+      t('description, has_part_some, 'quality),
+      t('quality, rdfsIsDefinedBy, PATO)
+    ))
 
 }
 
-final case class Phenotype(iri: IRI, label: String, states: Set[CharacterState], eqs: NearestEQSet) extends JSONResultItem {
+final case class Phenotype(
+    iri: IRI,
+    label: String,
+    states: Set[CharacterState],
+    eqs: NearestEQSet
+) extends JSONResultItem {
 
   override def toJSON: JsObject =
     Map(
@@ -196,7 +379,11 @@ final case class Phenotype(iri: IRI, label: String, states: Set[CharacterState],
 
 }
 
-final case class NearestEQSet(entities: Set[IRI], qualities: Set[IRI], relatedEntities: Set[IRI]) extends JSONResultItem {
+final case class NearestEQSet(
+    entities: Set[IRI],
+    qualities: Set[IRI],
+    relatedEntities: Set[IRI]
+) extends JSONResultItem {
 
   override def toJSON: JsObject =
     Map(

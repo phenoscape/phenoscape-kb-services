@@ -17,28 +17,48 @@ import scala.language.postfixOps
 
 object Graph {
 
-  def propertyNeighborsForObject(term: IRI, property: IRI): Future[Seq[MinimalTerm]] =
-    App.executeSPARQLQuery(buildPropertyNeighborsQueryObject(term, property), MinimalTerm.fromQuerySolution)
+  def propertyNeighborsForObject(
+      term: IRI,
+      property: IRI
+  ): Future[Seq[MinimalTerm]] =
+    App.executeSPARQLQuery(
+      buildPropertyNeighborsQueryObject(term, property),
+      MinimalTerm.fromQuerySolution
+    )
 
-  def propertyNeighborsForSubject(term: IRI, property: IRI): Future[Seq[MinimalTerm]] =
-    App.executeSPARQLQuery(buildPropertyNeighborsQuerySubject(term, property), MinimalTerm.fromQuerySolution)
+  def propertyNeighborsForSubject(
+      term: IRI,
+      property: IRI
+  ): Future[Seq[MinimalTerm]] =
+    App.executeSPARQLQuery(
+      buildPropertyNeighborsQuerySubject(term, property),
+      MinimalTerm.fromQuerySolution
+    )
 
-  private def buildPropertyNeighborsQueryObject(focalTerm: IRI, property: IRI): Query = {
+  private def buildPropertyNeighborsQueryObject(
+      focalTerm: IRI,
+      property: IRI
+  ): Query = {
     val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)
     select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where bgp(
       t('existential_node, classRelation, focalTerm),
       t('existential_subclass, rdfsSubClassOf, 'existential_node),
       t('existential_subclass, classRelation, 'term),
-      t('term, rdfsLabel, 'term_label))
+      t('term, rdfsLabel, 'term_label)
+    )
   }
 
-  private def buildPropertyNeighborsQuerySubject(focalTerm: IRI, property: IRI): Query = {
+  private def buildPropertyNeighborsQuerySubject(
+      focalTerm: IRI,
+      property: IRI
+  ): Query = {
     val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)
     select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where bgp(
       t('existential_node, classRelation, focalTerm),
       t('existential_node, rdfsSubClassOf, 'existential_superclass),
       t('existential_superclass, classRelation, 'term),
-      t('term, rdfsLabel, 'term_label))
+      t('term, rdfsLabel, 'term_label)
+    )
   }
 
   def ancestorMatrix(terms: Set[IRI]): Future[AncestorMatrix] = {
@@ -67,10 +87,12 @@ object Graph {
         val termsSequence = terms.map(_.toString).toSeq.sorted
         val header = s",${termsSequence.mkString(",")}"
         val groupedByAncestor = pairs.groupBy(_._2)
-        val valuesLines = groupedByAncestor.map { case (ancestor, ancPairs) =>
-          val termsForAncestor = ancPairs.map(_._1).toSet
-          val values = termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
-          s"$ancestor,${values.mkString(",")}"
+        val valuesLines = groupedByAncestor.map {
+          case (ancestor, ancPairs) =>
+            val termsForAncestor = ancPairs.map(_._1).toSet
+            val values =
+              termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
+            s"$ancestor,${values.mkString(",")}"
         }
         AncestorMatrix(s"$header\n${valuesLines.mkString("\n")}")
       }
@@ -81,7 +103,8 @@ object Graph {
 
   object AncestorMatrix {
 
-    implicit val matrixMarshaller: ToEntityMarshaller[AncestorMatrix] = Marshaller.stringMarshaller(MediaTypes.`text/csv`).compose(_.csv)
+    implicit val matrixMarshaller: ToEntityMarshaller[AncestorMatrix] =
+      Marshaller.stringMarshaller(MediaTypes.`text/csv`).compose(_.csv)
 
   }
 

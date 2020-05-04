@@ -28,8 +28,12 @@ object EQForGene {
   private val rdfsIsDefinedBy = factory.getRDFSIsDefinedBy
   private val UBERON = IRI.create("http://purl.obolibrary.org/obo/uberon.owl")
   private val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
-  private val has_part_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
-  private val has_part_inhering_in_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part_inhering_in.getIRI)
+  private val has_part_some =
+    NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
+  private val has_part_inhering_in_some =
+    NamedRestrictionGenerator.getClassRelationIRI(
+      Vocab.has_part_inhering_in.getIRI
+    )
   private implicit val timeout: Timeout = Timeout(10 minutes)
 
   def query(geneID: IRI): Future[JsArray] = {
@@ -52,31 +56,44 @@ object EQForGene {
   }
 
   def annotationsForGene(geneID: IRI): Future[Iterable[String]] = {
-    App.executeSPARQLQuery(annotationsQuery(geneID), _.getResource("annotation").getURI)
+    App.executeSPARQLQuery(
+      annotationsQuery(geneID),
+      _.getResource("annotation").getURI
+    )
   }
 
   def annotationsQuery(geneIRI: IRI): Query = {
     select_distinct('annotation) from "http://kb.phenoscape.org/" where bgp(
       t('annotation, rdfType, Vocab.AnnotatedPhenotype),
-      t('annotation, Vocab.associated_with_gene, geneIRI))
+      t('annotation, Vocab.associated_with_gene, geneIRI)
+    )
   }
 
   def qualitiesForAnnotation(annotationID: String): Future[Iterable[String]] = {
-    val allSuperQualities = App.executeSPARQLQuery(annotationSuperQualityQuery(annotationID), _.getResource("quality").getURI)
+    val allSuperQualities = App.executeSPARQLQuery(
+      annotationSuperQualityQuery(annotationID),
+      _.getResource("quality").getURI
+    )
     for {
       superQualities <- allSuperQualities
       superSuperQualities <- superClassesForSuperQualities(superQualities)
     } yield {
       val superclasses = HashMultiset.create[String]
       superSuperQualities.foreach(superclasses.add)
-      val nearestQualities = superclasses.entrySet.asScala.filter(_.getCount == 1).map(_.getElement)
+      val nearestQualities =
+        superclasses.entrySet.asScala.filter(_.getCount == 1).map(_.getElement)
       nearestQualities.toVector
     }
   }
 
-  def superClassesForSuperQualities(superQualities: Iterable[String]): Future[Iterable[String]] = {
+  def superClassesForSuperQualities(
+      superQualities: Iterable[String]
+  ): Future[Iterable[String]] = {
     val superclasses = Future.sequence(superQualities.map { superClass =>
-      App.executeSPARQLQuery(qualitySuperQualityQuery(superClass), _.getResource("quality").getURI)
+      App.executeSPARQLQuery(
+        qualitySuperQualityQuery(superClass),
+        _.getResource("quality").getURI
+      )
     })
     for { result <- superclasses } yield result.flatten
   }
@@ -86,7 +103,8 @@ object EQForGene {
     select_distinct('quality) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where bgp(
       t(annotationIRI, rdfType / rdfsSubClassOf, 'has_quality),
       t('has_quality, has_part_some, 'quality),
-      t('quality, rdfsIsDefinedBy, PATO))
+      t('quality, rdfsIsDefinedBy, PATO)
+    )
   }
 
   def qualitySuperQualityQuery(termID: String): Query = {
@@ -94,25 +112,35 @@ object EQForGene {
     select_distinct('quality) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where bgp(
       t(termIRI, rdfsSubClassOf, 'has_quality),
       t('has_quality, has_part_some, 'quality),
-      t('quality, rdfsIsDefinedBy, PATO))
+      t('quality, rdfsIsDefinedBy, PATO)
+    )
   }
 
   def entitiesForAnnotation(annotationID: String): Future[Iterable[String]] = {
-    val entityTypes = App.executeSPARQLQuery(annotationEntityTypesQuery(annotationID), _.getResource("description").getURI)
+    val entityTypes = App.executeSPARQLQuery(
+      annotationEntityTypesQuery(annotationID),
+      _.getResource("description").getURI
+    )
     for {
       entityTypesResult <- entityTypes
       entitySuperClasses <- superClassesForEntityTypes(entityTypesResult)
     } yield {
       val superclasses = HashMultiset.create[String]
       entitySuperClasses.foreach(superclasses.add)
-      val nearestEntities = superclasses.entrySet.asScala.filter(_.getCount == 1).map(_.getElement)
+      val nearestEntities =
+        superclasses.entrySet.asScala.filter(_.getCount == 1).map(_.getElement)
       nearestEntities.toVector
     }
   }
 
-  def superClassesForEntityTypes(entityTypes: Iterable[String]): Future[Iterable[String]] = {
+  def superClassesForEntityTypes(
+      entityTypes: Iterable[String]
+  ): Future[Iterable[String]] = {
     val superclasses = Future.sequence(entityTypes.map { entityType =>
-      App.executeSPARQLQuery(entitySuperClassesQuery(entityType), _.getResource("bearer").getURI)
+      App.executeSPARQLQuery(
+        entitySuperClassesQuery(entityType),
+        _.getResource("bearer").getURI
+      )
     })
     for { result <- superclasses } yield result.flatten
   }
@@ -122,7 +150,8 @@ object EQForGene {
     select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where bgp(
       t(annotationIRI, rdfType / rdfsSubClassOf, 'description),
       t('description, has_part_inhering_in_some, 'bearer),
-      t('bearer, rdfsIsDefinedBy, UBERON))
+      t('bearer, rdfsIsDefinedBy, UBERON)
+    )
   }
 
   def entitySuperClassesQuery(termID: String): Query = {
@@ -130,7 +159,8 @@ object EQForGene {
     select_distinct('bearer) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where bgp(
       t(termIRI, rdfsSubClassOf, 'description),
       t('description, has_part_inhering_in_some, 'bearer),
-      t('bearer, rdfsIsDefinedBy, UBERON))
+      t('bearer, rdfsIsDefinedBy, UBERON)
+    )
   }
 
 }

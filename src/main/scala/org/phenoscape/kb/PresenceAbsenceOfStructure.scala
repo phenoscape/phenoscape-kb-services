@@ -7,7 +7,10 @@ import java.util.Calendar
 import org.apache.jena.query.{Query, QuerySolution}
 import org.apache.jena.rdf.model.{Property, ResourceFactory}
 import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.aggregate.{AggCountDistinct, AggCountVarDistinct}
+import org.apache.jena.sparql.expr.aggregate.{
+  AggCountDistinct,
+  AggCountVarDistinct
+}
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
 import org.apache.jena.sparql.expr.{E_OneOf, Expr, ExprList, ExprVar}
 import org.apache.jena.sparql.syntax.{ElementFilter, ElementSubQuery}
@@ -17,7 +20,13 @@ import org.phenoscape.io.NeXMLUtil
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.model.MultipleState.MODE
-import org.phenoscape.model.{Character, DataSet, MultipleState, State, Taxon => MatrixTaxon}
+import org.phenoscape.model.{
+  Character,
+  DataSet,
+  MultipleState,
+  State,
+  Taxon => MatrixTaxon
+}
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
@@ -32,36 +41,97 @@ import scala.language.{implicitConversions, postfixOps}
 
 object PresenceAbsenceOfStructure {
 
-  val implies_presence_of_some = NamedRestrictionGenerator.getClassRelationIRI(IMPLIES_PRESENCE_OF.getIRI)
+  val implies_presence_of_some =
+    NamedRestrictionGenerator.getClassRelationIRI(IMPLIES_PRESENCE_OF.getIRI)
 
-  implicit def owlEntityToJenaProperty(prop: OWLEntity): Property = ResourceFactory.createProperty(prop.getIRI.toString)
+  implicit def owlEntityToJenaProperty(prop: OWLEntity): Property =
+    ResourceFactory.createProperty(prop.getIRI.toString)
 
-  def statesEntailingAbsence(taxon: IRI, entity: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] =
-    App.executeSPARQLQuery(buildAbsenceStatesQuery(taxon, entity, limit, offset), AnnotatedCharacterDescription.fromQuerySolution).flatMap(Future.sequence(_))
+  def statesEntailingAbsence(
+      taxon: IRI,
+      entity: IRI,
+      limit: Int = 20,
+      offset: Int = 0
+  ): Future[Seq[AnnotatedCharacterDescription]] =
+    App
+      .executeSPARQLQuery(
+        buildAbsenceStatesQuery(taxon, entity, limit, offset),
+        AnnotatedCharacterDescription.fromQuerySolution
+      )
+      .flatMap(Future.sequence(_))
 
   def statesEntailingAbsenceTotal(taxon: IRI, entity: IRI): Future[Int] =
-    App.executeSPARQLQuery(buildAbsenceStatesQueryTotal(taxon, entity)).map(ResultCount.count)
+    App
+      .executeSPARQLQuery(buildAbsenceStatesQueryTotal(taxon, entity))
+      .map(ResultCount.count)
 
-  def statesEntailingPresence(taxon: IRI, entity: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] =
-    App.executeSPARQLQuery(buildPresenceStatesQuery(taxon, entity, limit, offset), AnnotatedCharacterDescription.fromQuerySolution).flatMap(Future.sequence(_))
+  def statesEntailingPresence(
+      taxon: IRI,
+      entity: IRI,
+      limit: Int = 20,
+      offset: Int = 0
+  ): Future[Seq[AnnotatedCharacterDescription]] =
+    App
+      .executeSPARQLQuery(
+        buildPresenceStatesQuery(taxon, entity, limit, offset),
+        AnnotatedCharacterDescription.fromQuerySolution
+      )
+      .flatMap(Future.sequence(_))
 
   def statesEntailingPresenceTotal(taxon: IRI, entity: IRI): Future[Int] =
-    App.executeSPARQLQuery(buildPresenceStatesQueryTotal(taxon, entity)).map(ResultCount.count)
+    App
+      .executeSPARQLQuery(buildPresenceStatesQueryTotal(taxon, entity))
+      .map(ResultCount.count)
 
-  def taxaExhibitingPresence(entity: IRI, taxonFilter: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] =
-    App.executeSPARQLQuery(buildExhibitingPresenceQuery(entity, taxonFilter, limit, offset), resultToTaxon)
+  def taxaExhibitingPresence(
+      entity: IRI,
+      taxonFilter: Option[IRI],
+      limit: Int = 20,
+      offset: Int = 0
+  ): Future[Seq[Taxon]] =
+    App.executeSPARQLQuery(
+      buildExhibitingPresenceQuery(entity, taxonFilter, limit, offset),
+      resultToTaxon
+    )
 
-  def taxaExhibitingPresenceTotal(entity: IRI, taxonFilter: Option[IRI]): Future[Int] =
-    App.executeSPARQLQuery(buildExhibitingPresenceTotalQuery(entity, taxonFilter)).map(ResultCount.count)
+  def taxaExhibitingPresenceTotal(
+      entity: IRI,
+      taxonFilter: Option[IRI]
+  ): Future[Int] =
+    App
+      .executeSPARQLQuery(
+        buildExhibitingPresenceTotalQuery(entity, taxonFilter)
+      )
+      .map(ResultCount.count)
 
-  def taxaExhibitingAbsence(entity: IRI, taxonFilter: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] =
-    App.executeSPARQLQuery(buildExhibitingAbsenceQuery(entity, taxonFilter, limit, offset), resultToTaxon)
+  def taxaExhibitingAbsence(
+      entity: IRI,
+      taxonFilter: Option[IRI],
+      limit: Int = 20,
+      offset: Int = 0
+  ): Future[Seq[Taxon]] =
+    App.executeSPARQLQuery(
+      buildExhibitingAbsenceQuery(entity, taxonFilter, limit, offset),
+      resultToTaxon
+    )
 
-  def taxaExhibitingAbsenceTotal(entity: IRI, taxonFilter: Option[IRI]): Future[Int] =
-    App.executeSPARQLQuery(buildExhibitingAbsenceTotalQuery(entity, taxonFilter)).map(ResultCount.count)
+  def taxaExhibitingAbsenceTotal(
+      entity: IRI,
+      taxonFilter: Option[IRI]
+  ): Future[Int] =
+    App
+      .executeSPARQLQuery(buildExhibitingAbsenceTotalQuery(entity, taxonFilter))
+      .map(ResultCount.count)
 
-  def presenceAbsenceMatrix(mainEntityClass: OWLClassExpression, taxonClass: OWLClassExpression, variableOnly: Boolean, includeParts: Boolean): Future[DataSet] = {
-    val entityClass = if (includeParts) mainEntityClass or (part_of some mainEntityClass) else mainEntityClass
+  def presenceAbsenceMatrix(
+      mainEntityClass: OWLClassExpression,
+      taxonClass: OWLClassExpression,
+      variableOnly: Boolean,
+      includeParts: Boolean
+  ): Future[DataSet] = {
+    val entityClass =
+      if (includeParts) mainEntityClass or (part_of some mainEntityClass)
+      else mainEntityClass
     val buildDateFut = KB.buildDate
     for {
       query <- App.expandWithOwlet(buildMatrixQuery(entityClass, taxonClass))
@@ -74,12 +144,16 @@ object PresenceAbsenceOfStructure {
       val states: mutable.Map[String, State] = mutable.Map()
       val taxa: mutable.Map[String, MatrixTaxon] = mutable.Map()
       val presencesAndAbsences = {
-        val allPresences = model.listStatements(null, has_presence_of, null).asScala.toSet
-        val allAbsences = model.listStatements(null, has_absence_of, null).asScala.toSet
+        val allPresences =
+          model.listStatements(null, has_presence_of, null).asScala.toSet
+        val allAbsences =
+          model.listStatements(null, has_absence_of, null).asScala.toSet
         val allStatements = allPresences ++ allAbsences
         if (variableOnly) {
-          val presentEntities = model.listObjectsOfProperty(has_presence_of).asScala.toSet
-          val absentEntities = model.listObjectsOfProperty(has_absence_of).asScala.toSet
+          val presentEntities =
+            model.listObjectsOfProperty(has_presence_of).asScala.toSet
+          val absentEntities =
+            model.listObjectsOfProperty(has_absence_of).asScala.toSet
           val variableEntities = absentEntities & presentEntities
           allStatements.filter(s => variableEntities(s.getObject))
         } else {
@@ -89,15 +163,22 @@ object PresenceAbsenceOfStructure {
       for (statement <- presencesAndAbsences) {
         val taxon = statement.getSubject
         val entity = statement.getObject.asResource
-        val presenceAbsence: PresenceAbsence = if (statement.getPredicate.getURI == has_presence_of.getIRI.toString) Presence else Absence
+        val presenceAbsence: PresenceAbsence =
+          if (statement.getPredicate.getURI == has_presence_of.getIRI.toString)
+            Presence
+          else Absence
         val characterID = unOBO(entity.getURI)
-        val character = characters.getOrElseUpdate(characterID, {
-          val newChar = new Character(characterID)
-          newChar.setLabel(model.getProperty(entity, rdfsLabel).getObject.asLiteral.getString)
-          newChar.setDenotes(URI.create(entity.getURI))
-          dataset.addCharacter(newChar)
-          newChar
-        })
+        val character = characters.getOrElseUpdate(
+          characterID, {
+            val newChar = new Character(characterID)
+            newChar.setLabel(
+              model.getProperty(entity, rdfsLabel).getObject.asLiteral.getString
+            )
+            newChar.setDenotes(URI.create(entity.getURI))
+            dataset.addCharacter(newChar)
+            newChar
+          }
+        )
         val stateID = s"${unOBO(entity.getURI)}_${presenceAbsence.symbol}"
         val state = states.getOrElseUpdate(stateID, {
           val newState = new State(stateID)
@@ -107,51 +188,79 @@ object PresenceAbsenceOfStructure {
         })
         if (!character.getStates.contains(state)) character.addState(state)
         val matrixTaxonID = unOBO(taxon.getURI)
-        val matrixTaxon = taxa.getOrElseUpdate(matrixTaxonID, {
-          val newTaxon = new MatrixTaxon(matrixTaxonID)
-          newTaxon.setPublicationName(model.getProperty(taxon, rdfsLabel).getObject.asLiteral.getString)
-          val oboID = NeXMLUtil.oboID(URI.create(taxon.getURI))
-          newTaxon.setValidName(new OBOClassImpl(oboID))
-          dataset.addTaxon(newTaxon)
-          newTaxon
-        })
+        val matrixTaxon = taxa.getOrElseUpdate(
+          matrixTaxonID, {
+            val newTaxon = new MatrixTaxon(matrixTaxonID)
+            newTaxon.setPublicationName(
+              model.getProperty(taxon, rdfsLabel).getObject.asLiteral.getString
+            )
+            val oboID = NeXMLUtil.oboID(URI.create(taxon.getURI))
+            newTaxon.setValidName(new OBOClassImpl(oboID))
+            dataset.addTaxon(newTaxon)
+            newTaxon
+          }
+        )
         val currentState = dataset.getStateForTaxon(matrixTaxon, character)
         val stateToAssign = currentState match {
-          case polymorphic: MultipleState => addStateToMultiState(polymorphic, state)
-          case `state`                    => state
-          case null                       => state
-          case _                          => new MultipleState(Set(currentState, state).asJava, MODE.POLYMORPHIC)
+          case polymorphic: MultipleState =>
+            addStateToMultiState(polymorphic, state)
+          case `state` => state
+          case null    => state
+          case _ =>
+            new MultipleState(Set(currentState, state).asJava, MODE.POLYMORPHIC)
         }
         dataset.setStateForTaxon(matrixTaxon, character, stateToAssign)
       }
-      val date = new SimpleDateFormat("y-M-d").format(Calendar.getInstance.getTime)
-      dataset.setPublicationNotes(s"Generated from the Phenoscape Knowledgebase on $date by Ontotrace query:\n* taxa: ${taxonClass.asOMN.getLiteralLexicalForm}\n* entities: ${entityClass.asOMN.getLiteralLexicalForm}\n* variable only: ${variableOnly}")
+      val date =
+        new SimpleDateFormat("y-M-d").format(Calendar.getInstance.getTime)
+      dataset.setPublicationNotes(
+        s"Generated from the Phenoscape Knowledgebase on $date by Ontotrace query:\n* taxa: ${taxonClass.asOMN.getLiteralLexicalForm}\n* entities: ${entityClass.asOMN.getLiteralLexicalForm}\n* variable only: ${variableOnly}"
+      )
       dataset
     }
   }
 
-  private def unOBO(uri: String): String = uri.replaceAllLiterally("http://purl.obolibrary.org/obo/", "")
+  private def unOBO(uri: String): String =
+    uri.replaceAllLiterally("http://purl.obolibrary.org/obo/", "")
 
-  def buildMatrixQuery(entityClass: OWLClassExpression, taxonClass: OWLClassExpression): Query = {
+  def buildMatrixQuery(
+      entityClass: OWLClassExpression,
+      taxonClass: OWLClassExpression
+  ): Query = {
     construct(
       t('taxon, 'relation, 'entity),
       t('taxon, rdfsLabel, 'taxon_label),
-      t('entity, rdfsLabel, 'entity_label)) from "http://kb.phenoscape.org/" where(
-      bgp(
-        t('taxon, 'relation, 'entity),
-        t('taxon, rdfsLabel, 'taxon_label),
-        t('entity, rdfsLabel, 'entity_label),
-        t('entity, rdfsSubClassOf, entityClass.asOMN),
-        t('taxon, rdfsSubClassOf, taxonClass.asOMN)),
-      new ElementFilter(new E_OneOf(new ExprVar('relation),
-        new ExprList(List[Expr](new NodeValueNode(has_presence_of), new NodeValueNode(has_absence_of)).asJava))))
+      t('entity, rdfsLabel, 'entity_label)
+    ) from "http://kb.phenoscape.org/" where (bgp(
+      t('taxon, 'relation, 'entity),
+      t('taxon, rdfsLabel, 'taxon_label),
+      t('entity, rdfsLabel, 'entity_label),
+      t('entity, rdfsSubClassOf, entityClass.asOMN),
+      t('taxon, rdfsSubClassOf, taxonClass.asOMN)
+    ),
+    new ElementFilter(
+      new E_OneOf(
+        new ExprVar('relation),
+        new ExprList(
+          List[Expr](
+            new NodeValueNode(has_presence_of),
+            new NodeValueNode(has_absence_of)
+          ).asJava
+        )
+      )
+    ))
   }
 
   def expandMatrixQuery(query: Query): Future[Query] = {
     App.expandWithOwlet(query)
   }
 
-  def buildAbsenceStatesQuery(taxonIRI: IRI, entityIRI: IRI, limit: Int, offset: Int): Query = {
+  def buildAbsenceStatesQuery(
+      taxonIRI: IRI,
+      entityIRI: IRI,
+      limit: Int,
+      offset: Int
+  ): Query = {
     val query = buildAbsenceStatesQueryBase(taxonIRI, entityIRI) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure"
     if (limit > 1) {
       query.setOffset(offset)
@@ -163,13 +272,17 @@ object PresenceAbsenceOfStructure {
   }
 
   def buildAbsenceStatesQueryTotal(taxonIRI: IRI, entityIRI: IRI): Query = {
-    val query = select() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (new ElementSubQuery(buildAbsenceStatesQueryBase(taxonIRI, entityIRI)))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
+    val query = select() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (new ElementSubQuery(
+      buildAbsenceStatesQueryBase(taxonIRI, entityIRI)
+    ))
+    query.getProject
+      .add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
     query
   }
 
   def buildAbsenceStatesQueryBase(taxonIRI: IRI, entityIRI: IRI): Query = {
-    select_distinct('phenotype, 'state, 'description, 'matrix, 'matrix_label, 'character, 'character_label) where (
+    select_distinct('phenotype, 'state, 'description, 'matrix, 'matrix_label,
+      'character, 'character_label) where (
       bgp(
         t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
@@ -178,10 +291,17 @@ object PresenceAbsenceOfStructure {
         t('matrix, has_character, 'character),
         t('character, rdfsLabel, 'character_label),
         t('matrix, rdfsLabel, 'matrix_label),
-        t('character, may_have_state_value, 'state)))
+        t('character, may_have_state_value, 'state)
+      )
+    )
   }
 
-  def buildPresenceStatesQuery(taxonIRI: IRI, entityIRI: IRI, limit: Int, offset: Int): Query = {
+  def buildPresenceStatesQuery(
+      taxonIRI: IRI,
+      entityIRI: IRI,
+      limit: Int,
+      offset: Int
+  ): Query = {
     val query = buildPresenceStatesQueryBase(taxonIRI, entityIRI) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure"
     if (limit > 1) {
       query.setOffset(offset)
@@ -193,13 +313,17 @@ object PresenceAbsenceOfStructure {
   }
 
   def buildPresenceStatesQueryTotal(taxonIRI: IRI, entityIRI: IRI): Query = {
-    val query = select() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (new ElementSubQuery(buildPresenceStatesQueryBase(taxonIRI, entityIRI)))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
+    val query = select() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (new ElementSubQuery(
+      buildPresenceStatesQueryBase(taxonIRI, entityIRI)
+    ))
+    query.getProject
+      .add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
     query
   }
 
   def buildPresenceStatesQueryBase(taxonIRI: IRI, entityIRI: IRI): Query = {
-    select_distinct('phenotype, 'state, 'description, 'matrix, 'matrix_label, 'character, 'character_label) where (
+    select_distinct('phenotype, 'state, 'description, 'matrix, 'matrix_label,
+      'character, 'character_label) where (
       bgp(
         t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
@@ -208,20 +332,30 @@ object PresenceAbsenceOfStructure {
         t('matrix, has_character, 'character),
         t('character, rdfsLabel, 'character_label),
         t('matrix, rdfsLabel, 'matrix_label),
-        t('character, may_have_state_value, 'state)))
+        t('character, may_have_state_value, 'state)
+      )
+    )
   }
 
-  def buildExhibitingAbsenceBasicQuery(entityIRI: IRI, taxonFilter: Option[IRI]): Query = {
+  def buildExhibitingAbsenceBasicQuery(
+      entityIRI: IRI,
+      taxonFilter: Option[IRI]
+  ): Query = {
     val taxonFilterTriple = taxonFilter.map(t('taxon, rdfsSubClassOf, _)).toList
-    select_distinct() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
-      bgp((
-        App.BigdataAnalyticQuery ::
-          t('taxon, has_absence_of, entityIRI) ::
-          t('taxon, rdfsLabel, 'taxon_label) ::
-          taxonFilterTriple): _*))
+    select_distinct() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
+      (App.BigdataAnalyticQuery ::
+        t('taxon, has_absence_of, entityIRI) ::
+        t('taxon, rdfsLabel, 'taxon_label) ::
+        taxonFilterTriple): _*
+    ))
   }
 
-  def buildExhibitingAbsenceQuery(entityIRI: IRI, taxonFilter: Option[IRI], limit: Int, offset: Int): Query = {
+  def buildExhibitingAbsenceQuery(
+      entityIRI: IRI,
+      taxonFilter: Option[IRI],
+      limit: Int,
+      offset: Int
+  ): Query = {
     val query = buildExhibitingAbsenceBasicQuery(entityIRI, taxonFilter)
     query.addResultVar('taxon)
     query.addResultVar('taxon_label)
@@ -232,23 +366,37 @@ object PresenceAbsenceOfStructure {
     query
   }
 
-  def buildExhibitingAbsenceTotalQuery(entityIRI: IRI, taxonFilter: Option[IRI]): Query = {
+  def buildExhibitingAbsenceTotalQuery(
+      entityIRI: IRI,
+      taxonFilter: Option[IRI]
+  ): Query = {
     val query = buildExhibitingAbsenceBasicQuery(entityIRI, taxonFilter)
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
+    query.getProject.add(
+      Var.alloc("count"),
+      query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon")))
+    )
     query
   }
 
-  def buildExhibitingPresenceBasicQuery(entityIRI: IRI, taxonFilter: Option[IRI]): Query = {
+  def buildExhibitingPresenceBasicQuery(
+      entityIRI: IRI,
+      taxonFilter: Option[IRI]
+  ): Query = {
     val taxonFilterTriple = taxonFilter.map(t('taxon, rdfsSubClassOf, _)).toList
-    select_distinct() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (
-      bgp((
-        App.BigdataAnalyticQuery ::
-          t('taxon, has_presence_of, entityIRI) ::
-          t('taxon, rdfsLabel, 'taxon_label) ::
-          taxonFilterTriple): _*))
+    select_distinct() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
+      (App.BigdataAnalyticQuery ::
+        t('taxon, has_presence_of, entityIRI) ::
+        t('taxon, rdfsLabel, 'taxon_label) ::
+        taxonFilterTriple): _*
+    ))
   }
 
-  def buildExhibitingPresenceQuery(entityIRI: IRI, taxonFilter: Option[IRI], limit: Int, offset: Int): Query = {
+  def buildExhibitingPresenceQuery(
+      entityIRI: IRI,
+      taxonFilter: Option[IRI],
+      limit: Int,
+      offset: Int
+  ): Query = {
     val query = buildExhibitingPresenceBasicQuery(entityIRI, taxonFilter)
     query.addResultVar('taxon)
     query.addResultVar('taxon_label)
@@ -259,30 +407,51 @@ object PresenceAbsenceOfStructure {
     query
   }
 
-  def buildExhibitingPresenceTotalQuery(entityIRI: IRI, taxonFilter: Option[IRI]): Query = {
+  def buildExhibitingPresenceTotalQuery(
+      entityIRI: IRI,
+      taxonFilter: Option[IRI]
+  ): Query = {
     val query = buildExhibitingPresenceBasicQuery(entityIRI, taxonFilter)
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
+    query.getProject.add(
+      Var.alloc("count"),
+      query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon")))
+    )
     query
   }
 
-  private def resultToTaxon(result: QuerySolution): Taxon = Taxon(
-    IRI.create(result.getResource("taxon").getURI),
-    result.getLiteral("taxon_label").getLexicalForm)
+  private def resultToTaxon(result: QuerySolution): Taxon =
+    Taxon(
+      IRI.create(result.getResource("taxon").getURI),
+      result.getLiteral("taxon_label").getLexicalForm
+    )
 
-  private def addStateToMultiState(multi: MultipleState, state: State): MultipleState = {
-    if (multi.getStates.asScala.map(_.getNexmlID).contains(state.getNexmlID)) multi
-    else new MultipleState((multi.getStates.asScala + state).asJava, multi.getMode)
+  private def addStateToMultiState(
+      multi: MultipleState,
+      state: State
+  ): MultipleState = {
+    if (multi.getStates.asScala.map(_.getNexmlID).contains(state.getNexmlID))
+      multi
+    else
+      new MultipleState((multi.getStates.asScala + state).asJava, multi.getMode)
   }
 
   private lazy val logger = Logger.getLogger(this.getClass)
 
 }
 
-case class Association(entity: String, entityLabel: String, taxon: String, taxonLabel: String, state: String, stateLabel: String, matrixLabel: String, direct: Boolean)
+case class Association(
+    entity: String,
+    entityLabel: String,
+    taxon: String,
+    taxonLabel: String,
+    state: String,
+    stateLabel: String,
+    matrixLabel: String,
+    direct: Boolean
+)
 
 sealed abstract class PresenceAbsence(val symbol: String, val label: String)
 
 case object Absence extends PresenceAbsence("0", "absent")
 
 case object Presence extends PresenceAbsence("1", "present")
-

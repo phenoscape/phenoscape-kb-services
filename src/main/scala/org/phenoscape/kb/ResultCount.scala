@@ -18,7 +18,8 @@ object ResultCount {
     if (resultSet.hasNext) resultSet.next.getLiteral("count").getInt
     else 0
 
-  implicit val ResultCountMarshaller: ToEntityMarshaller[ResultCount] = Marshaller.combined(result => result.toJSON)
+  implicit val ResultCountMarshaller: ToEntityMarshaller[ResultCount] =
+    Marshaller.combined(result => result.toJSON)
 
 }
 

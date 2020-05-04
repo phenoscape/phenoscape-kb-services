@@ -31,7 +31,8 @@ object DataCoverageFigureReportCatfish {
     "post-hyoid pharyngeal arch skeleton" -> "http://purl.obolibrary.org/obo/UBERON_0005886",
     "neurocranium" -> "http://purl.obolibrary.org/obo/UBERON_0001703",
     "post-cranial axial skeletal system" -> "http://purl.obolibrary.org/obo/UBERON_0011138",
-    "integumental system" -> "http://purl.obolibrary.org/obo/UBERON_0002416")
+    "integumental system" -> "http://purl.obolibrary.org/obo/UBERON_0002416"
+  )
 
   private val Siluriformes = Class("http://purl.obolibrary.org/obo/VTO_0034991")
 
@@ -52,19 +53,29 @@ object DataCoverageFigureReportCatfish {
     }
   }
 
-  private def processResult(entity: IRI, entityLabel: String, solution: QuerySolution): QueryResult = {
+  private def processResult(
+      entity: IRI,
+      entityLabel: String,
+      solution: QuerySolution
+  ): QueryResult = {
     val taxon = IRI.create(solution.getResource("taxon").getURI)
     val taxonLabel = solution.getLiteral("taxon_label").getLexicalForm
     val count = solution.getLiteral("count").getInt
     QueryResult(entity, entityLabel, taxon, taxonLabel, count)
   }
 
-  private def queryEntry(entityIRI: String, entityLabel: String): Future[Seq[QueryResult]] = {
+  private def queryEntry(
+      entityIRI: String,
+      entityLabel: String
+  ): Future[Seq[QueryResult]] = {
     val query = buildQuery(entityIRI)
     for {
       expandedQuery <- App.expandWithOwlet(query)
       _ = println(s"Expanded $entityLabel")
-      result <- App.executeSPARQLQuery(expandedQuery, processResult(IRI.create(entityIRI), entityLabel, _))
+      result <- App.executeSPARQLQuery(
+        expandedQuery,
+        processResult(IRI.create(entityIRI), entityLabel, _)
+      )
       _ = println(s"Queried $entityLabel")
     } yield {
       result
@@ -79,16 +90,30 @@ object DataCoverageFigureReportCatfish {
       t('taxon, rdfsLabel, 'taxon_label),
       t('state, describes_phenotype, 'phenotype),
       t('taxon, ObjectProperty(rdfsSubClassOf) *, Siluriformes),
-      t('phenotype, rdfsSubClassOf, ((phenotype_of some (part_of some entityClass)) or (towards value entityInd)).asOMN))
+      t(
+        'phenotype,
+        rdfsSubClassOf,
+        ((phenotype_of some (part_of some entityClass)) or (towards value entityInd)).asOMN
+      )
+    )
     query.getProject.add(Var.alloc("taxon"))
     query.getProject.add(Var.alloc("taxon_label"))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
+    query.getProject.add(
+      Var.alloc("count"),
+      query.allocAggregate(new AggCountVarDistinct(new ExprVar("state")))
+    )
     query.addGroupBy("taxon")
     query.addGroupBy("taxon_label")
     query
   }
 
-  case class QueryResult(entity: IRI, entityLabel: String, taxon: IRI, taxonLabel: String, count: Int) {
+  case class QueryResult(
+      entity: IRI,
+      entityLabel: String,
+      taxon: IRI,
+      taxonLabel: String,
+      count: Int
+  ) {
 
     override def toString = s"$entityLabel\t$taxonLabel\t$count"
 

@@ -58,7 +58,8 @@ object DataCoverageFigureReport {
     "tibia" -> "http://purl.obolibrary.org/obo/UBERON_0000979",
     "ulna" -> "http://purl.obolibrary.org/obo/UBERON_0001424",
     "radial bone" -> "http://purl.obolibrary.org/obo/UBERON_2000271",
-    "lepidotrichium" -> "http://purl.obolibrary.org/obo/UBERON_4000172")
+    "lepidotrichium" -> "http://purl.obolibrary.org/obo/UBERON_4000172"
+  )
 
   private val taxa = Set(
     "Acanthostega gunnari" -> "http://purl.obolibrary.org/obo/VTO_9001290",
@@ -136,7 +137,8 @@ object DataCoverageFigureReport {
     "Westlothiana lizziae" -> "http://purl.obolibrary.org/obo/VTO_9031047",
     "Whatcheeria deltae" -> "http://purl.obolibrary.org/obo/VTO_9019883",
     "Whatcheeriidae" -> "http://purl.obolibrary.org/obo/VTO_9031049",
-    "Youngolepis" -> "http://purl.obolibrary.org/obo/VTO_9008383")
+    "Youngolepis" -> "http://purl.obolibrary.org/obo/VTO_9008383"
+  )
 
   def query(): Future[String] = {
     val results = for {
@@ -152,27 +154,42 @@ object DataCoverageFigureReport {
     }
   }
 
-  private def queryEntry(entityIRI: String, taxonIRI: String): Future[String] = {
+  private def queryEntry(
+      entityIRI: String,
+      taxonIRI: String
+  ): Future[String] = {
     val query = buildQuery(Class(taxonIRI), entityIRI)
     for {
       results <- App.executeSPARQLQuery(query)
-    } yield if (results.hasNext) results.next.getLiteral("count").getLexicalForm else "0"
+    } yield
+      if (results.hasNext) results.next.getLiteral("count").getLexicalForm
+      else "0"
   }
 
   //character states annotating the term or its parts
-  private def buildQuery(taxonClass: OWLClassExpression, entityIRI: String): Query = {
+  private def buildQuery(
+      taxonClass: OWLClassExpression,
+      entityIRI: String
+  ): Query = {
     val entityClass = Class(IRI.create(entityIRI))
     val entityInd = Individual(entityIRI)
-    val query = select() from "http://kb.phenoscape.org/" where(
-      bgp(
-        t('taxon, exhibits_state, 'state),
-        t('state, describes_phenotype, 'phenotype)),
-      withOwlery(
-        t('taxon, rdfsSubClassOf, taxonClass.asOMN)),
-      withOwlery(
-        t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (towards value entityInd)).asOMN)),
-      App.BigdataRunPriorFirst)
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
+    val query = select() from "http://kb.phenoscape.org/" where (bgp(
+      t('taxon, exhibits_state, 'state),
+      t('state, describes_phenotype, 'phenotype)
+    ),
+    withOwlery(t('taxon, rdfsSubClassOf, taxonClass.asOMN)),
+    withOwlery(
+      t(
+        'phenotype,
+        rdfsSubClassOf,
+        ((IMPLIES_PRESENCE_OF some entityClass) or (towards value entityInd)).asOMN
+      )
+    ),
+    App.BigdataRunPriorFirst)
+    query.getProject.add(
+      Var.alloc("count"),
+      query.allocAggregate(new AggCountVarDistinct(new ExprVar("state")))
+    )
     query
   }
 

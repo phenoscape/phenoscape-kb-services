@@ -73,7 +73,8 @@ object DataCoverageFigureReportAnyTaxon {
     "paired limb/fin" -> "http://purl.obolibrary.org/obo/UBERON_0004708",
     "appendage girdle region" -> "http://purl.obolibrary.org/obo/UBERON_0007823",
     "appendage girdle complex" -> "http://purl.obolibrary.org/obo/UBERON_0010707",
-    "girdle skeleton" -> "http://purl.obolibrary.org/obo/UBERON_0010719")
+    "girdle skeleton" -> "http://purl.obolibrary.org/obo/UBERON_0010719"
+  )
 
   def query(): Future[String] = {
     val results = for {
@@ -92,21 +93,31 @@ object DataCoverageFigureReportAnyTaxon {
     val query = buildQuery(entityIRI)
     for {
       results <- App.executeSPARQLQuery(query)
-    } yield if (results.hasNext) results.next.getLiteral("count").getLexicalForm else "0"
+    } yield
+      if (results.hasNext) results.next.getLiteral("count").getLexicalForm
+      else "0"
   }
 
   //character states annotating the term or its parts
   def buildQuery(entityIRI: String): Query = {
     val entityClass = Class(IRI.create(entityIRI))
     val entityInd = Individual(entityIRI)
-    val query = select() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('state, describes_phenotype, 'phenotype),
-        t('state, rdfType, StandardState)),
-        App.withOwlery(
-          t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (towards value entityInd)).asOMN)),
-          App.BigdataRunPriorFirst)
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
+    val query = select() from "http://kb.phenoscape.org/" where (bgp(
+      t('state, describes_phenotype, 'phenotype),
+      t('state, rdfType, StandardState)
+    ),
+    App.withOwlery(
+      t(
+        'phenotype,
+        rdfsSubClassOf,
+        ((IMPLIES_PRESENCE_OF some entityClass) or (towards value entityInd)).asOMN
+      )
+    ),
+    App.BigdataRunPriorFirst)
+    query.getProject.add(
+      Var.alloc("count"),
+      query.allocAggregate(new AggCountVarDistinct(new ExprVar("state")))
+    )
     query
   }
 
