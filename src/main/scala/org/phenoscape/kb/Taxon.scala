@@ -11,6 +11,7 @@ import org.apache.jena.rdf.model.Resource
 import org.apache.jena.rdf.model.ResourceFactory
 import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.expr.{E_Coalesce, Expr, ExprList, ExprVar}
+import org.apache.jena.sparql.path.{P_Link, P_OneOrMore1}
 import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueString
@@ -31,7 +32,9 @@ import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
-import org.semanticweb.owlapi.model.IRI
+import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.semanticweb.owlapi.model.{IRI, OWLClassExpression, OWLEntity, OWLObject}
 import org.semanticweb.owlapi.model.OWLClassExpression
 import akka.http.scaladsl.marshalling.Marshaller
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
@@ -42,91 +45,316 @@ import spray.json.DefaultJsonProtocol._
 
 object Taxon {
 
-  val phylopic = ObjectProperty("http://purl.org/phenoscape/phylopics.owl#phylopic")
-  val group_label = ObjectProperty("http://purl.org/phenoscape/phylopics.owl#group_label")
-  val is_extinct = ObjectProperty("http://purl.obolibrary.org/obo/vto#is_extinct")
+  val phylopic = ObjectProperty(
+    "http://purl.org/phenoscape/phylopics.owl#phylopic"
+  )
+  val group_label = ObjectProperty(
+    "http://purl.org/phenoscape/phylopics.owl#group_label"
+  )
+  val is_extinct = ObjectProperty(
+    "http://purl.obolibrary.org/obo/vto#is_extinct"
+  )
   val has_rank = ObjectProperty("http://purl.obolibrary.org/obo/vto#has_rank")
 
-  def withIRI(iri: IRI): Future[Option[TaxonInfo]] =
-    App.executeSPARQLQuery(buildTaxonQuery(iri), Taxon.fromIRIQuery(iri)).map(_.headOption)
+  def withIRI(iri: IRI): Future[Option[TaxonInfo]] = {
+    def fromIRIQuery(result: QuerySolution) =
+      (
+        iri,
+        result.getLiteral("label").getLexicalForm,
+        Option(result.getLiteral("rank_label")).map(
+          label =>
+            MinimalTerm(
+              IRI.create(result.getResource("rank").getURI),
+              Some(label.getLexicalForm)
+            )
+        ),
+        Option(result.getLiteral("common_name")).map(_.getString),
+        Option(result.getLiteral("is_extinct"))
+          .map(_.getBoolean)
+          .getOrElse(false)
+      )
 
-  def withPhenotypeExpression(entity: OWLClassExpression = OWLThing, quality: OWLClassExpression = OWLThing, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = {
+    val taxonFuture = App
+      .executeSPARQLQuery(buildTaxonQuery(iri), fromIRIQuery)
+      .map(_.headOption)
+    val synonymsFuture = taxonSynonyms(iri)
+
     for {
-      query <- buildTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, limit, offset)
+      taxon <- taxonFuture
+      val x = taxon
+      synonyms <- synonymsFuture
+    } yield {
+      taxon.map {
+        case (iri, label, rank_label, common_name, is_extinct) =>
+          TaxonInfo(iri, label, rank_label, common_name, synonyms, is_extinct)
+      }
+    }
+  }
+
+  def withPhenotypeExpression(entity: OWLClassExpression = OWLThing,
+                              quality: OWLClassExpression = OWLThing,
+                              inTaxonOpt: Option[IRI],
+                              publicationOpt: Option[IRI],
+                              includeParts: Boolean,
+                              includeHistoricalHomologs: Boolean,
+                              includeSerialHomologs: Boolean,
+                              limit: Int = 20,
+                              offset: Int = 0): Future[Seq[Taxon]] = {
+    for {
+      query <- buildTaxaWithPhenotypeQuery(
+        entity,
+        quality,
+        inTaxonOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs,
+        limit,
+        offset
+      )
       taxa <- App.executeSPARQLQuery(query, Taxon(_))
     } yield taxa
   }
 
-  def withPhenotype(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], phenotypeOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = {
+  def withPhenotype(entity: Option[IRI],
+                    quality: QualitySpec,
+                    inTaxonOpt: Option[IRI],
+                    phenotypeOpt: Option[IRI],
+                    publicationOpt: Option[IRI],
+                    includeParts: Boolean,
+                    includeHistoricalHomologs: Boolean,
+                    includeSerialHomologs: Boolean,
+                    limit: Int = 20,
+                    offset: Int = 0): Future[Seq[Taxon]] = {
     val entityOpt = entity.filterNot(_ == OWLThing.getIRI) //FIXME do this filter in caller
     //val qualityIRI = Option(quality).filterNot(_ == OWLThing.getIRI)
     for {
-      query <- TaxaWithPhenotype.buildQuery(entityOpt, quality, inTaxonOpt, phenotypeOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
+      query <- TaxaWithPhenotype.buildQuery(
+        entityOpt,
+        quality,
+        inTaxonOpt,
+        phenotypeOpt,
+        publicationOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs,
+        false,
+        limit,
+        offset
+      )
       taxa <- App.executeSPARQLQueryString(query, Taxon(_))
     } yield taxa
   }
 
-  def withPhenotypeExpressionTotal(entity: OWLClassExpression = OWLThing, quality: OWLClassExpression = OWLThing, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = {
+  def withPhenotypeExpressionTotal(
+                                    entity: OWLClassExpression = OWLThing,
+                                    quality: OWLClassExpression = OWLThing,
+                                    inTaxonOpt: Option[IRI],
+                                    publicationOpt: Option[IRI],
+                                    includeParts: Boolean,
+                                    includeHistoricalHomologs: Boolean,
+                                    includeSerialHomologs: Boolean
+                                  ): Future[Int] = {
     for {
-      query <- buildTaxaWithPhenotypeTotalQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+      query <- buildTaxaWithPhenotypeTotalQuery(
+        entity,
+        quality,
+        inTaxonOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs
+      )
       result <- App.executeSPARQLQuery(query)
     } yield ResultCount.count(result)
   }
 
-  def withPhenotypeTotal(entity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], phenotypeOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] = {
+  def withPhenotypeTotal(entity: Option[IRI],
+                         quality: QualitySpec,
+                         inTaxonOpt: Option[IRI],
+                         phenotypeOpt: Option[IRI],
+                         publicationOpt: Option[IRI],
+                         includeParts: Boolean,
+                         includeHistoricalHomologs: Boolean,
+                         includeSerialHomologs: Boolean): Future[Int] = {
     val entityOpt = entity.filterNot(_ == OWLThing.getIRI) //FIXME do this filter in caller
     for {
-      query <- TaxaWithPhenotype.buildQuery(entityOpt, quality, inTaxonOpt, phenotypeOpt, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
+      query <- TaxaWithPhenotype.buildQuery(
+        entityOpt,
+        quality,
+        inTaxonOpt,
+        phenotypeOpt,
+        publicationOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs,
+        true,
+        0,
+        0
+      )
       result <- App.executeSPARQLQuery(query)
     } yield ResultCount.count(result)
   }
 
-  def facetTaxaWithPhenotypeByEntity(focalEntity: Option[IRI], quality: QualitySpec, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => withPhenotypeTotal(Some(iri), quality, inTaxonOpt, None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    val refine = (iri: IRI) => Term.queryAnatomySubClasses(iri, KBVocab.Uberon, includeParts, includeHistoricalHomologs, includeSerialHomologs).map(_.toSet)
-    Facets.facet(focalEntity.getOrElse(KBVocab.entityRoot), query, refine, false)
+  def facetTaxaWithPhenotypeByEntity(
+                                      focalEntity: Option[IRI],
+                                      quality: QualitySpec,
+                                      inTaxonOpt: Option[IRI],
+                                      publicationOpt: Option[IRI],
+                                      includeParts: Boolean,
+                                      includeHistoricalHomologs: Boolean,
+                                      includeSerialHomologs: Boolean
+                                    ): Future[List[Facet]] = {
+    val query = (iri: IRI) =>
+      withPhenotypeTotal(
+        Some(iri),
+        quality,
+        inTaxonOpt,
+        None,
+        publicationOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs
+      )
+    val refine = (iri: IRI) =>
+      Term
+        .queryAnatomySubClasses(
+          iri,
+          KBVocab.Uberon,
+          includeParts,
+          includeHistoricalHomologs,
+          includeSerialHomologs
+        )
+        .map(_.toSet)
+    Facets.facet(
+      focalEntity.getOrElse(KBVocab.entityRoot),
+      query,
+      refine,
+      false
+    )
   }
 
-  def facetTaxaWithPhenotypeByQuality(focalQuality: Option[IRI], entity: Option[IRI], inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => withPhenotypeTotal(entity, PhenotypicQuality(Some(iri)), inTaxonOpt, None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
-    Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine, false)
+  def facetTaxaWithPhenotypeByQuality(
+                                       focalQuality: Option[IRI],
+                                       entity: Option[IRI],
+                                       inTaxonOpt: Option[IRI],
+                                       publicationOpt: Option[IRI],
+                                       includeParts: Boolean,
+                                       includeHistoricalHomologs: Boolean,
+                                       includeSerialHomologs: Boolean
+                                     ): Future[List[Facet]] = {
+    val query = (iri: IRI) =>
+      withPhenotypeTotal(
+        entity,
+        PhenotypicQuality(Some(iri)),
+        inTaxonOpt,
+        None,
+        publicationOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs
+      )
+    val refine = (iri: IRI) =>
+      Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
+    Facets.facet(
+      focalQuality.getOrElse(KBVocab.qualityRoot),
+      query,
+      refine,
+      false
+    )
   }
 
-  def facetTaxaWithPhenotypeByTaxon(focalTaxon: Option[IRI], entity: Option[IRI], quality: QualitySpec, publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query = (iri: IRI) => withPhenotypeTotal(entity, quality, Some(iri), None, publicationOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
+  def facetTaxaWithPhenotypeByTaxon(
+                                     focalTaxon: Option[IRI],
+                                     entity: Option[IRI],
+                                     quality: QualitySpec,
+                                     publicationOpt: Option[IRI],
+                                     includeParts: Boolean,
+                                     includeHistoricalHomologs: Boolean,
+                                     includeSerialHomologs: Boolean
+                                   ): Future[List[Facet]] = {
+    val query = (iri: IRI) =>
+      withPhenotypeTotal(
+        entity,
+        quality,
+        Some(iri),
+        None,
+        publicationOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs
+      )
+    val refine = (iri: IRI) =>
+      Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
     Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine, true)
   }
 
-  private def facetResultToMap(facets: List[(MinimalTerm, Int)]) = Map("facets" -> facets.map { case (term, count) => Map("term" -> term, "count" -> count) })
-
-  def variationProfileFor(taxon: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
-    val results = App.executeSPARQLQuery(buildVariationProfileQuery(taxon, limit, offset), result => {
-      Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
-        AnnotatedCharacterDescription(
-          CharacterDescription(
-            IRI.create(result.getResource("state").getURI),
-            result.getLiteral("description").getLexicalForm,
-            CharacterMatrix(
-              IRI.create(result.getResource("matrix").getURI),
-              result.getLiteral("matrix_label").getLexicalForm), MinimalTerm(IRI.create(result.getResource("character").getURI), Some(result.getLiteral("characterLabel").getLexicalForm))),
-          phenotype)
-      }
+  private def facetResultToMap(facets: List[(MinimalTerm, Int)]) =
+    Map("facets" -> facets.map {
+      case (term, count) => Map("term" -> term, "count" -> count)
     })
+
+  def variationProfileFor(
+                           taxon: IRI,
+                           limit: Int = 20,
+                           offset: Int = 0
+                         ): Future[Seq[AnnotatedCharacterDescription]] = {
+    val results = App.executeSPARQLQuery(
+      buildVariationProfileQuery(taxon, limit, offset),
+      result => {
+        Term
+          .computedLabel(IRI.create(result.getResource("phenotype").getURI))
+          .map {
+            phenotype =>
+              AnnotatedCharacterDescription(
+                CharacterDescription(
+                  IRI.create(result.getResource("state").getURI),
+                  result.getLiteral("description").getLexicalForm,
+                  CharacterMatrix(
+                    IRI.create(result.getResource("matrix").getURI),
+                    result.getLiteral("matrix_label").getLexicalForm
+                  ),
+                  MinimalTerm(
+                    IRI.create(result.getResource("character").getURI),
+                    Some(result.getLiteral("characterLabel").getLexicalForm)
+                  )
+                ),
+                phenotype
+              )
+          }
+      }
+    )
     results.flatMap(Future.sequence(_))
   }
 
   def variationProfileTotalFor(taxon: IRI): Future[Int] =
-    App.executeSPARQLQuery(buildVariationProfileTotalQuery(taxon)).map(ResultCount.count)
+    App
+      .executeSPARQLQuery(buildVariationProfileTotalQuery(taxon))
+      .map(ResultCount.count)
 
   def commonGroupFor(taxon: IRI): Future[Option[CommonGroup]] = {
-    App.executeSPARQLQuery(buildPhylopicQuery(taxon), CommonGroup(_)).map(_.headOption)
+    App
+      .executeSPARQLQuery(buildPhylopicQuery(taxon), CommonGroup(_))
+      .map(_.headOption)
   }
 
-  def directPhenotypesForExpression(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
+  def directPhenotypesForExpression(
+                                     taxon: IRI,
+                                     entityOpt: Option[OWLClassExpression],
+                                     qualityOpt: Option[OWLClassExpression],
+                                     includeParts: Boolean,
+                                     includeHistoricalHomologs: Boolean,
+                                     includeSerialHomologs: Boolean,
+                                     limit: Int = 20,
+                                     offset: Int = 0
+                                   ): Future[Seq[AnnotatedCharacterDescription]] = {
     val queryFuture = for {
-      rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+      rawQuery <- buildPhenotypesSubQuery(
+        taxon,
+        entityOpt,
+        qualityOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs
+      )
     } yield {
       val query = rawQuery from "http://kb.phenoscape.org/"
       if (limit > 1) {
@@ -139,85 +367,173 @@ object Taxon {
     }
     val results = for {
       query <- queryFuture
-      result <- App.executeSPARQLQuery(query, AnnotatedCharacterDescription.fromQuerySolution)
+      result <- App.executeSPARQLQuery(
+        query,
+        AnnotatedCharacterDescription.fromQuerySolution
+      )
     } yield result
     results.flatMap(Future.sequence(_))
   }
 
-  def directPhenotypesFor(taxon: IRI, entityOpt: Option[IRI], quality: QualitySpec, phenotypeOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
+  def directPhenotypesFor(
+                           taxon: IRI,
+                           entityOpt: Option[IRI],
+                           quality: QualitySpec,
+                           phenotypeOpt: Option[IRI],
+                           includeParts: Boolean,
+                           includeHistoricalHomologs: Boolean,
+                           includeSerialHomologs: Boolean,
+                           limit: Int = 20,
+                           offset: Int = 0
+                         ): Future[Seq[AnnotatedCharacterDescription]] = {
     val results = for {
-      query <- DirectPhenotypesForTaxon.buildQuery(taxon, entityOpt, quality, phenotypeOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, false, limit, offset)
-      result <- App.executeSPARQLQueryString(query, AnnotatedCharacterDescription.fromQuerySolution)
+      query <- DirectPhenotypesForTaxon.buildQuery(
+        taxon,
+        entityOpt,
+        quality,
+        phenotypeOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs,
+        false,
+        limit,
+        offset
+      )
+      result <- App.executeSPARQLQueryString(
+        query,
+        AnnotatedCharacterDescription.fromQuerySolution
+      )
     } yield result
     results.flatMap(Future.sequence(_))
   }
 
-  def directPhenotypesTotalForExpression(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] =
+  def directPhenotypesTotalForExpression(
+                                          taxon: IRI,
+                                          entityOpt: Option[OWLClassExpression],
+                                          qualityOpt: Option[OWLClassExpression],
+                                          includeParts: Boolean,
+                                          includeHistoricalHomologs: Boolean,
+                                          includeSerialHomologs: Boolean
+                                        ): Future[Int] =
     for {
-      rawQuery <- buildPhenotypesSubQuery(taxon, entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
-      query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(rawQuery))
-      _ = query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
+      rawQuery <- buildPhenotypesSubQuery(
+        taxon,
+        entityOpt,
+        qualityOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs
+      )
+      query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(
+        rawQuery
+      ))
+      _ = query.getProject
+        .add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
       result <- App.executeSPARQLQuery(query).map(ResultCount.count)
     } yield result
 
-  def directPhenotypesTotalFor(taxon: IRI, entityOpt: Option[IRI], quality: QualitySpec, phenotypeOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Int] =
+  def directPhenotypesTotalFor(taxon: IRI,
+                               entityOpt: Option[IRI],
+                               quality: QualitySpec,
+                               phenotypeOpt: Option[IRI],
+                               includeParts: Boolean,
+                               includeHistoricalHomologs: Boolean,
+                               includeSerialHomologs: Boolean): Future[Int] =
     for {
-      query <- DirectPhenotypesForTaxon.buildQuery(taxon, entityOpt, quality, phenotypeOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs, true, 0, 0)
+      query <- DirectPhenotypesForTaxon.buildQuery(
+        taxon,
+        entityOpt,
+        quality,
+        phenotypeOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs,
+        true,
+        0,
+        0
+      )
       result <- App.executeSPARQLQuery(query).map(ResultCount.count)
     } yield result
 
-  private def buildPhenotypesSubQuery(taxon: IRI, entityOpt: Option[OWLClassExpression], qualityOpt: Option[OWLClassExpression], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Query] = {
+  private def buildPhenotypesSubQuery(
+                                       taxon: IRI,
+                                       entityOpt: Option[OWLClassExpression],
+                                       qualityOpt: Option[OWLClassExpression],
+                                       includeParts: Boolean,
+                                       includeHistoricalHomologs: Boolean,
+                                       includeSerialHomologs: Boolean
+                                     ): Future[Query] = {
     val phenotypePattern = if (entityOpt.nonEmpty || qualityOpt.nonEmpty) {
       val entity = entityOpt.getOrElse(owlThing)
       val quality = qualityOpt.getOrElse(owlThing)
-      val actualEntity = (includeHistoricalHomologs, includeSerialHomologs) match {
-        case (false, false) => entity
-        case (true, false)  => entity or (homologous_to some entity)
-        case (false, true)  => entity or (serially_homologous_to some entity)
-        case (true, true)   => entity or (homologous_to some entity) or (serially_homologous_to some entity)
-      }
-      val entityExpression = if (includeParts) (actualEntity or (part_of some actualEntity)) else actualEntity
-      t('phenotype, rdfsSubClassOf, ((has_part some quality) and (phenotype_of some entityExpression)).asOMN) :: Nil
+      val actualEntity =
+        (includeHistoricalHomologs, includeSerialHomologs) match {
+          case (false, false) => entity
+          case (true, false)  => entity or (homologous_to some entity)
+          case (false, true)  => entity or (serially_homologous_to some entity)
+          case (true, true)   =>
+            entity or (homologous_to some entity) or (serially_homologous_to some entity)
+        }
+      val entityExpression =
+        if (includeParts) (actualEntity or (part_of some actualEntity))
+        else actualEntity
+      t(
+        'phenotype,
+        rdfsSubClassOf,
+        ((has_part some quality) and (phenotype_of some entityExpression)).asOMN
+      ) :: Nil
     } else Nil
-    val query = select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
-      bgp(
-        t(taxon, exhibits_state, 'state) ::
-          t('state, describes_phenotype, 'phenotype) ::
-          t('state, dcDescription, 'description) ::
-          t('matrix, has_character, 'character) ::
-          t('character, may_have_state_value, 'state) ::
-          t('character, rdfsLabel, 'character_label) ::
-          t('matrix, rdfsLabel, 'matrix_label) ::
-          phenotypePattern: _*))
+    val query = select_distinct(
+      'state,
+      'description,
+      'matrix,
+      'matrix_label,
+      'phenotype
+    ) where (bgp(
+      t(taxon, exhibits_state, 'state) ::
+        t('state, describes_phenotype, 'phenotype) ::
+        t('state, dcDescription, 'description) ::
+        t('matrix, has_character, 'character) ::
+        t('character, may_have_state_value, 'state) ::
+        t('character, rdfsLabel, 'character_label) ::
+        t('matrix, rdfsLabel, 'matrix_label) ::
+        phenotypePattern: _*
+    ))
     App.expandWithOwlet(query)
   }
 
   def phyloPicAcknowledgments: Future[Seq[IRI]] = {
     val query = select_distinct('pic) where (bgp(t('subject, phylopic, 'pic)))
-    App.executeSPARQLQuery(query, result => IRI.create(result.getResource("pic").getURI))
+    App.executeSPARQLQuery(
+      query,
+      result => IRI.create(result.getResource("pic").getURI)
+    )
   }
 
   def taxaWithRank(rank: IRI, inTaxon: IRI): Future[Seq[MinimalTerm]] = {
-    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where(
-      bgp(
-        t('term, has_rank, rank),
-        t('term, rdfsLabel, 'term_label)),
+    val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where(bgp(
+      t('term, has_rank, rank),
+      t('term, rdfsLabel, 'term_label)
+    ),
       new ElementNamedGraph(
         NodeFactory.createURI("http://kb.phenoscape.org/closure"),
-        bgp(
-          t('term, rdfsSubClassOf, inTaxon))))
+        bgp(t('term, rdfsSubClassOf, inTaxon))
+      ))
     App.executeSPARQLQuery(query, MinimalTerm.fromQuerySolution)
   }
 
   def countOfAnnotatedTaxa(inTaxon: IRI): Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where(
-      bgp(
-        t('taxon, exhibits_state / describes_phenotype, 'phenotype)),
+    val query = select() from "http://kb.phenoscape.org/" where(bgp(
+      t('taxon, exhibits_state / describes_phenotype, 'phenotype)
+    ),
       new ElementNamedGraph(
         NodeFactory.createURI("http://kb.phenoscape.org/closure"),
-        bgp(
-          t('taxon, rdfsSubClassOf, inTaxon))))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
+        bgp(t('taxon, rdfsSubClassOf, inTaxon))
+      ))
+    query.getProject.add(
+      Var.alloc("count"),
+      query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon")))
+    )
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
@@ -240,29 +556,58 @@ object Taxon {
   //        publicationFilters: _*)
   //  }
 
-  private def buildBasicTaxaWithPhenotypeQuery(entity: OWLClassExpression = owlThing, quality: OWLClassExpression = owlThing, inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Query] = {
-    val actualEntity = (includeHistoricalHomologs, includeSerialHomologs) match {
-      case (false, false) => entity
-      case (true, false)  => entity or (homologous_to some entity)
-      case (false, true)  => entity or (serially_homologous_to some entity)
-      case (true, true)   => entity or (homologous_to some entity) or (serially_homologous_to some entity)
-    }
-    val entityExpression = if (includeParts) (actualEntity or (part_of some actualEntity)) else actualEntity
+  private def buildBasicTaxaWithPhenotypeQuery(
+                                                entity: OWLClassExpression = owlThing,
+                                                quality: OWLClassExpression = owlThing,
+                                                inTaxonOpt: Option[IRI],
+                                                includeParts: Boolean,
+                                                includeHistoricalHomologs: Boolean,
+                                                includeSerialHomologs: Boolean
+                                              ): Future[Query] = {
+    val actualEntity =
+      (includeHistoricalHomologs, includeSerialHomologs) match {
+        case (false, false) => entity
+        case (true, false)  => entity or (homologous_to some entity)
+        case (false, true)  => entity or (serially_homologous_to some entity)
+        case (true, true)   =>
+          entity or (homologous_to some entity) or (serially_homologous_to some entity)
+      }
+    val entityExpression =
+      if (includeParts) (actualEntity or (part_of some actualEntity))
+      else actualEntity
     val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf *, _)).toList
-    val query = select_distinct('taxon, 'taxon_label) where (
-      bgp(
-        App.BigdataAnalyticQuery ::
-          t('state, describes_phenotype, 'phenotype) ::
-          t('taxon, exhibits_state, 'state) ::
-          t('taxon, rdfsLabel, 'taxon_label) ::
-          t('phenotype, rdfsSubClassOf, ((has_part some quality) and (phenotype_of some entityExpression)).asOMN) ::
-          taxonPatterns: _*))
+    val query = select_distinct('taxon, 'taxon_label) where (bgp(
+      App.BigdataAnalyticQuery ::
+        t('state, describes_phenotype, 'phenotype) ::
+        t('taxon, exhibits_state, 'state) ::
+        t('taxon, rdfsLabel, 'taxon_label) ::
+        t(
+          'phenotype,
+          rdfsSubClassOf,
+          ((has_part some quality) and (phenotype_of some entityExpression)).asOMN
+        ) ::
+        taxonPatterns: _*
+    ))
     App.expandWithOwlet(query)
   }
 
-  def buildTaxaWithPhenotypeQuery(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Query] = {
+  def buildTaxaWithPhenotypeQuery(entity: OWLClassExpression,
+                                  quality: OWLClassExpression,
+                                  inTaxonOpt: Option[IRI],
+                                  includeParts: Boolean,
+                                  includeHistoricalHomologs: Boolean,
+                                  includeSerialHomologs: Boolean,
+                                  limit: Int = 20,
+                                  offset: Int = 0): Future[Query] = {
     for {
-      rawQuery <- buildBasicTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+      rawQuery <- buildBasicTaxaWithPhenotypeQuery(
+        entity,
+        quality,
+        inTaxonOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs
+      )
     } yield {
       val query = rawQuery from "http://kb.phenoscape.org/"
       query.setOffset(offset)
@@ -273,12 +618,29 @@ object Taxon {
     }
   }
 
-  def buildTaxaWithPhenotypeTotalQuery(entity: OWLClassExpression, quality: OWLClassExpression, inTaxonOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean): Future[Query] = {
+  def buildTaxaWithPhenotypeTotalQuery(
+                                        entity: OWLClassExpression,
+                                        quality: OWLClassExpression,
+                                        inTaxonOpt: Option[IRI],
+                                        includeParts: Boolean,
+                                        includeHistoricalHomologs: Boolean,
+                                        includeSerialHomologs: Boolean
+                                      ): Future[Query] = {
     for {
-      rawQuery <- buildBasicTaxaWithPhenotypeQuery(entity, quality, inTaxonOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs)
+      rawQuery <- buildBasicTaxaWithPhenotypeQuery(
+        entity,
+        quality,
+        inTaxonOpt,
+        includeParts,
+        includeHistoricalHomologs,
+        includeSerialHomologs
+      )
     } yield {
-      val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(rawQuery))
-      query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
+      val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(
+        rawQuery
+      ))
+      query.getProject
+        .add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
       query
     }
   }
@@ -301,27 +663,27 @@ object Taxon {
   //  }
 
   def buildTaxonQuery(iri: IRI): Query =
-    select_distinct('label, 'is_extinct, 'rank, 'rank_label, 'common_name) from "http://kb.phenoscape.org/" where(
-      bgp(
-        t(iri, rdfsLabel, 'label),
-        t(iri, rdfsIsDefinedBy, VTO)),
-      optional(
-        bgp(
-          t(iri, is_extinct, 'is_extinct))),
-      optional(
-        bgp(
-          t(iri, has_rank, 'rank),
-          t('rank, rdfsLabel, 'rank_label))),
+    select_distinct('label, 'is_extinct, 'rank, 'rank_label, 'common_name) from "http://kb.phenoscape.org/" where(bgp(
+      t(iri, rdfsLabel, 'label),
+      t(iri, rdfsIsDefinedBy, VTO)
+    ),
+      optional(bgp(t(iri, is_extinct, 'is_extinct))),
+      optional(bgp(t(iri, has_rank, 'rank), t('rank, rdfsLabel, 'rank_label))),
       optional(
         bgp(
           t('common_name_axiom, owlAnnotatedSource, iri),
           t('common_name_axiom, owlAnnotatedProperty, hasRelatedSynonym),
           t('common_name_axiom, owlAnnotatedTarget, 'common_name),
-          t('common_name_axiom, hasSynonymType, CommonNameSynonymType))))
+          t('common_name_axiom, hasSynonymType, CommonNameSynonymType)
+        )
+      ))
 
   def buildVariationProfileTotalQuery(taxon: IRI): Query = {
-    val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(buildBasicVariationProfileQuery(taxon)))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
+    val query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(
+      buildBasicVariationProfileQuery(taxon)
+    ))
+    query.getProject
+      .add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
     query
   }
 
@@ -338,55 +700,83 @@ object Taxon {
 
   def buildBasicVariationProfileQuery(taxon: IRI): Query = {
     val hasPhenotypicProfile = ObjectProperty(has_phenotypic_profile)
-    select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
-      bgp(
-        t(taxon, hasPhenotypicProfile / rdfType, 'phenotype),
-        t('state, describes_phenotype, 'phenotype),
-        t('state, dcDescription, 'description),
-        t('matrix, has_character / may_have_state_value, 'state),
-        t('matrix, rdfsLabel, 'matrix_label)))
+    select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (bgp(
+      t(taxon, hasPhenotypicProfile / rdfType, 'phenotype),
+      t('state, describes_phenotype, 'phenotype),
+      t('state, dcDescription, 'description),
+      t('matrix, has_character / may_have_state_value, 'state),
+      t('matrix, rdfsLabel, 'matrix_label)
+    ))
   }
 
   def buildPhylopicQuery(taxon: IRI): Query = {
     val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
-    val query = select('super, 'label, 'picOpt) from "http://kb.phenoscape.org/" from "http://purl.org/phenoscape/phylopics.owl" where(
-      bgp(
-        t(taxon, rdfsSubClassOf *, 'super),
-        t('super, group_label, 'label),
-        t('super, rdfsSubClassOf *, 'ancestor)),
-      optional(
-        bgp(
-          t('super, phylopic, 'pic))),
-      new ElementBind('picOpt, new E_Coalesce(new ExprList(Seq[Expr](new ExprVar("pic"), new NodeValueString("")).asJava)))) order_by desc('level) limit 1
+    val query = select('super, 'label, 'picOpt) from "http://kb.phenoscape.org/" from "http://purl.org/phenoscape/phylopics.owl" where(bgp(
+      t(taxon, rdfsSubClassOf *, 'super),
+      t('super, group_label, 'label),
+      t('super, rdfsSubClassOf *, 'ancestor)
+    ),
+      optional(bgp(t('super, phylopic, 'pic))),
+      new ElementBind(
+        'picOpt,
+        new E_Coalesce(
+          new ExprList(
+            Seq[Expr](new ExprVar("pic"), new NodeValueString("")).asJava
+          )
+        )
+      )) order_by desc('level) limit 1
     query.addGroupBy('super)
     query.addGroupBy('label)
     query.addGroupBy('picOpt)
-    query.getProject.add(Var.alloc("level"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("ancestor"))))
+    query.getProject.add(
+      Var.alloc("level"),
+      query.allocAggregate(new AggCountVarDistinct(new ExprVar("ancestor")))
+    )
     query
   }
 
-  def apply(result: QuerySolution): Taxon = Taxon(
-    IRI.create(result.getResource("taxon").getURI),
-    result.getLiteral("taxon_label").getLexicalForm)
+  def apply(result: QuerySolution): Taxon =
+    Taxon(
+      IRI.create(result.getResource("taxon").getURI),
+      result.getLiteral("taxon_label").getLexicalForm
+    )
 
-  def fromIRIQuery(iri: IRI)(result: QuerySolution): TaxonInfo = TaxonInfo(
-    iri,
-    result.getLiteral("label").getLexicalForm,
-    Option(result.getLiteral("rank_label")).map(label => MinimalTerm(IRI.create(result.getResource("rank").getURI), Some(label.getLexicalForm))),
-    Option(result.getLiteral("common_name")).map(_.getString),
-    Option(result.getLiteral("is_extinct")).map(_.getBoolean).getOrElse(false))
+  def taxonSynonyms(iri: IRI): Future[Seq[(IRI, String)]] = {
+    val query =
+      sparql"""
+      SELECT DISTINCT ?relation ?synonym
+      FROM $KBMainGraph
+      WHERE {
+        VALUES ?relation {
+      		  $hasExactSynonym
+      		  $hasRelatedSynonym
+      		  $hasNarrowSynonym
+      		  $hasBroadSynonym
+          }
+    		  $iri ?relation ?synonym .
+      }
+      """
+    App.executeSPARQLQueryString(
+      query.text,
+      result =>
+        IRI.create(result.getResource("relation").getURI) -> result
+          .getLiteral("synonym")
+          .getLexicalForm
+    )
+  }
 
   def newickTreeWithRoot(iri: IRI): Future[String] = {
     val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
     val query = construct(
       t('child, rdfsSubClassOf, 'parent),
-      t('child, rdfsLabel, 'label)) from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('parent, rdfsSubClassOf *, iri),
-        t('child, rdfsSubClassOf, 'parent),
-        t('child, rdfsLabel, 'label),
-        t('child, rdfsIsDefinedBy, VTO),
-        t('parent, rdfsIsDefinedBy, VTO)))
+      t('child, rdfsLabel, 'label)
+    ) from "http://kb.phenoscape.org/" where (bgp(
+      t('parent, rdfsSubClassOf *, iri),
+      t('child, rdfsSubClassOf, 'parent),
+      t('child, rdfsLabel, 'label),
+      t('child, rdfsIsDefinedBy, VTO),
+      t('parent, rdfsIsDefinedBy, VTO)
+    ))
     for {
       model <- App.executeSPARQLConstructQuery(query)
       taxon <- Term.computedLabel(iri)
@@ -401,30 +791,38 @@ object Taxon {
 
   private def newickFor(parent: Resource, model: Model): String = {
     val reserved = Set(';', ',', ':', '(', ')', ' ', '"')
-    val parentLabel = model.getProperty(parent, RDFS.label).getLiteral.getLexicalForm
+    val parentLabel =
+      model.getProperty(parent, RDFS.label).getLiteral.getLexicalForm
     //val escapedLabel = if (parentLabel.exists(reserved)) s"'$parentLabel'" else parentLabel
     val escapedLabel = s"'${parentLabel.replaceAllLiterally("'", "\"")}'"
-    val parentCount = model.listObjectsOfProperty(parent, RDFS.subClassOf).asScala.size
+    val parentCount =
+      model.listObjectsOfProperty(parent, RDFS.subClassOf).asScala.size
     if (parentCount > 1) println(s"WARNING: $parentCount parents for $parent")
-    val children = model.listResourcesWithProperty(RDFS.subClassOf, parent).asScala.toSeq
+    val children =
+      model.listResourcesWithProperty(RDFS.subClassOf, parent).asScala.toSeq
     val childList = children.map(newickFor(_, model)).mkString(", ")
     val subtree = if (children.isEmpty) "" else s"($childList)"
     s"$subtree$escapedLabel"
   }
 
-  val TaxaTextMarshaller: ToEntityMarshaller[Seq[Taxon]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { taxa =>
-    val header = "IRI\tlabel"
-    s"$header\n${taxa.map(_.toString).mkString("\n")}"
-  }
+  val TaxaTextMarshaller: ToEntityMarshaller[Seq[Taxon]] = Marshaller
+    .stringMarshaller(MediaTypes.`text/tab-separated-values`)
+    .compose { taxa =>
+      val header = "IRI\tlabel"
+      s"$header\n${taxa.map(_.toString).mkString("\n")}"
+    }
 
-  implicit val ComboTaxaMarshaller = Marshaller.oneOf(TaxaTextMarshaller, JSONResultItemsMarshaller)
+  implicit val ComboTaxaMarshaller =
+    Marshaller.oneOf(TaxaTextMarshaller, JSONResultItemsMarshaller)
 
 }
 
-case class CommonGroup(label: String, phylopic: Option[IRI]) extends JSONResultItem {
+case class CommonGroup(label: String, phylopic: Option[IRI])
+  extends JSONResultItem {
 
   def toJSON: JsObject = {
-    val pic = phylopic.map(iri => Map("phylopic" -> iri.toString)).getOrElse(Map.empty)
+    val pic =
+      phylopic.map(iri => Map("phylopic" -> iri.toString)).getOrElse(Map.empty)
     (Map("label" -> label) ++ pic).toJson.asJsObject
   }
 
@@ -433,12 +831,11 @@ case class CommonGroup(label: String, phylopic: Option[IRI]) extends JSONResultI
 object CommonGroup {
 
   def apply(result: QuerySolution): CommonGroup = {
-    CommonGroup(
-      result.getLiteral("label").getLexicalForm,
-      {
-        val picOpt = result.get("picOpt")
-        if (picOpt.isURIResource) Some(IRI.create(picOpt.asResource.getURI)) else None
-      })
+    CommonGroup(result.getLiteral("label").getLexicalForm, {
+      val picOpt = result.get("picOpt")
+      if (picOpt.isURIResource) Some(IRI.create(picOpt.asResource.getURI))
+      else None
+    })
   }
 
 }
@@ -455,16 +852,24 @@ case class Taxon(iri: IRI, label: String) extends JSONResultItem {
 
 }
 
-case class TaxonInfo(iri: IRI, label: String, rank: Option[MinimalTerm], commonName: Option[String], extinct: Boolean) extends JSONResultItem {
+case class TaxonInfo(iri: IRI,
+                     label: String,
+                     rank: Option[MinimalTerm],
+                     commonName: Option[String],
+                     synonyms: Seq[(IRI, String)],
+                     extinct: Boolean)
+  extends JSONResultItem {
 
-  def toJSON: JsObject = {
-    (Map(
+  def toJSON: JsObject =
+    Map(
       "@id" -> iri.toString.toJson,
       "label" -> label.toJson,
-      "extinct" -> extinct.toJson) ++
-      rank.map("rank" -> _.toJSON) ++
-      commonName.map("common_name" -> _.toJson)).toJson.asJsObject
-  }
-
+      "extinct" -> extinct.toJson,
+      "synonyms" -> synonyms.map {
+        case (iri, value) =>
+          JsObject("property" -> iri.toString.toJson, "value" -> value.toJson).toJson
+      }.toJson,
+      "rank" -> rank.map(_.toJSON).toJson,
+      "common_name" -> commonName.map(_.toJson).toJson
+    ).toJson.asJsObject
 }
-
