@@ -1,19 +1,18 @@
 package org.phenoscape.kb
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
-import java.nio.charset.StandardCharsets
 
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.{Marshal, Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshal, Unmarshaller}
-import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.query._
 import org.apache.jena.rdf.model.{Model, ModelFactory}
-import org.apache.jena.sparql.resultset.XMLInput
+import org.apache.jena.riot.ResultSetMgr
+import org.apache.jena.riot.resultset.ResultSetLang
 import org.apache.jena.sparql.syntax.ElementService
 import org.phenoscape.kb.Main.system
 import org.phenoscape.kb.Main.system.dispatcher
@@ -28,7 +27,6 @@ import scala.language.postfixOps
 object App {
 
   implicit val timeout = Timeout(10 minutes)
-  implicit val materializer = ActorMaterializer()
   private val Prior = IRI.create("http://www.bigdata.com/queryHints#Prior")
   private val RunFirst = IRI.create("http://www.bigdata.com/queryHints#runFirst")
   private val HintQuery = IRI.create("http://www.bigdata.com/queryHints#Query")
@@ -80,12 +78,18 @@ object App {
 
   private implicit val SPARQLResultsXMLUnmarshaller = Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/sparql-results+xml`).map { data =>
     // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
-    ResultSetFactory.fromXML(new String(data, StandardCharsets.UTF_8))
+    val inputStream = new ByteArrayInputStream(data)
+    val result = ResultSetMgr.read(inputStream, ResultSetLang.SPARQLResultSetXML)
+    inputStream.close()
+    result
   }
 
   private implicit val SPARQLResultsBooleanUnmarshaller = Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/sparql-results+xml`).map { data =>
     // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
-    XMLInput.booleanFromXML(new String(data, StandardCharsets.UTF_8))
+    val inputStream = new ByteArrayInputStream(data)
+    val result = ResultSetMgr.readBoolean(inputStream, ResultSetLang.SPARQLResultSetXML)
+    inputStream.close()
+    result
   }
 
   private implicit val RDFXMLUnmarshaller = Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/rdf+xml`).map { data =>

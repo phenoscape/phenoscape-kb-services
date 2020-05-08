@@ -35,7 +35,7 @@ object StreamingSPARQLResults {
 
   def streamSelectQuery(futureQuery: Future[String]): Source[QuerySolution, NotUsed] = {
     val reqFuture = futureQuery.flatMap(Marshal(_).to[RequestEntity])
-    Source.fromFuture(reqFuture)
+    Source.future(reqFuture)
       .map(req => HttpRequest(
         method = HttpMethods.POST,
         headers = List(headers.Accept(`application/sparql-results+xml`)),
