@@ -25,55 +25,54 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 
 case class GenePhenotypeAnnotation(
-    gene: MinimalTerm,
-    phenotype: MinimalTerm,
-    source: Option[IRI]
+  gene: MinimalTerm,
+  phenotype: MinimalTerm,
+  source: Option[IRI]
 ) extends JSONResultItem {
 
   def toJSON: JsObject =
     Map(
-      "gene" -> gene.toJSON,
+      "gene"      -> gene.toJSON,
       "phenotype" -> phenotype.toJSON,
-      "source" -> source.map(_.toString).getOrElse("").toJson
+      "source"    -> source.map(_.toString).getOrElse("").toJson
     ).toJson.asJsObject
 
-  override def toString: String = {
+  override def toString: String =
     s"${gene.iri}\t${gene.label}\t${phenotype.iri}\t${phenotype.label}\t$source"
-  }
 
 }
 
 object GenePhenotypeAnnotation {
 
   def queryAnnotations(
-      entity: Option[OWLClassExpression],
-      quality: Option[OWLClassExpression],
-      inTaxonOpt: Option[IRI],
-      limit: Int = 20,
-      offset: Int = 0
+    entity: Option[OWLClassExpression],
+    quality: Option[OWLClassExpression],
+    inTaxonOpt: Option[IRI],
+    limit: Int = 20,
+    offset: Int = 0
   ): Future[Seq[GenePhenotypeAnnotation]] =
     for {
-      query <- buildGenePhenotypeAnnotationsQuery(
-        entity,
-        quality,
-        inTaxonOpt,
-        limit,
-        offset
-      )
+      query       <- buildGenePhenotypeAnnotationsQuery(
+                 entity,
+                 quality,
+                 inTaxonOpt,
+                 limit,
+                 offset
+               )
       annotations <- App.executeSPARQLQuery(query, fromQueryResult)
     } yield annotations
 
   def queryAnnotationsTotal(
-      entity: Option[OWLClassExpression],
-      quality: Option[OWLClassExpression],
-      inTaxonOpt: Option[IRI]
+    entity: Option[OWLClassExpression],
+    quality: Option[OWLClassExpression],
+    inTaxonOpt: Option[IRI]
   ): Future[Int] =
     for {
-      query <- buildGenePhenotypeAnnotationsTotalQuery(
-        entity,
-        quality,
-        inTaxonOpt
-      )
+      query  <- buildGenePhenotypeAnnotationsTotalQuery(
+                 entity,
+                 quality,
+                 inTaxonOpt
+               )
       result <- App.executeSPARQLQuery(query)
     } yield ResultCount.count(result)
 
@@ -91,22 +90,22 @@ object GenePhenotypeAnnotation {
     )
 
   private def buildBasicGenePhenotypeAnnotationsQuery(
-      entity: Option[OWLClassExpression],
-      quality: Option[OWLClassExpression],
-      inTaxonOpt: Option[IRI]
+    entity: Option[OWLClassExpression],
+    quality: Option[OWLClassExpression],
+    inTaxonOpt: Option[IRI]
   ): Future[Query] = {
     val phenotypeExpression = (entity, quality) match {
       case (Some(entityTerm), Some(qualityTerm)) =>
         Some((has_part some qualityTerm) and (phenotype_of some entityTerm))
-      case (Some(entityTerm), None)  => Some(phenotype_of some entityTerm)
-      case (None, Some(qualityTerm)) => Some(has_part some qualityTerm)
-      case (None, None)              => None
+      case (Some(entityTerm), None)              => Some(phenotype_of some entityTerm)
+      case (None, Some(qualityTerm))             => Some(has_part some qualityTerm)
+      case (None, None)                          => None
     }
-    val phenotypeTriple = phenotypeExpression
+    val phenotypeTriple     = phenotypeExpression
       .map(desc => t('phenotype, rdfsSubClassOf, desc.asOMN))
       .toList
-    val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf *, _)).toList
-    val query = select_distinct(
+    val taxonPatterns       = inTaxonOpt.map(t('taxon, rdfsSubClassOf *, _)).toList
+    val query               = select_distinct(
       'gene,
       'gene_label,
       'phenotype,
@@ -139,18 +138,18 @@ object GenePhenotypeAnnotation {
   }
 
   def buildGenePhenotypeAnnotationsQuery(
-      entity: Option[OWLClassExpression],
-      quality: Option[OWLClassExpression],
-      inTaxonOpt: Option[IRI],
-      limit: Int = 20,
-      offset: Int = 0
-  ): Future[Query] = {
+    entity: Option[OWLClassExpression],
+    quality: Option[OWLClassExpression],
+    inTaxonOpt: Option[IRI],
+    limit: Int = 20,
+    offset: Int = 0
+  ): Future[Query] =
     for {
       rawQuery <- buildBasicGenePhenotypeAnnotationsQuery(
-        entity,
-        quality,
-        inTaxonOpt
-      )
+                    entity,
+                    quality,
+                    inTaxonOpt
+                  )
     } yield {
       val query = rawQuery from KBMainGraph.toString
       query.setOffset(offset)
@@ -168,19 +167,18 @@ object GenePhenotypeAnnotation {
       query.addOrderBy('phenotype)
       query
     }
-  }
 
   def buildGenePhenotypeAnnotationsTotalQuery(
-      entity: Option[OWLClassExpression],
-      quality: Option[OWLClassExpression],
-      inTaxonOpt: Option[IRI]
-  ): Future[Query] = {
+    entity: Option[OWLClassExpression],
+    quality: Option[OWLClassExpression],
+    inTaxonOpt: Option[IRI]
+  ): Future[Query] =
     for {
       rawQuery <- buildBasicGenePhenotypeAnnotationsQuery(
-        entity,
-        quality,
-        inTaxonOpt
-      )
+                    entity,
+                    quality,
+                    inTaxonOpt
+                  )
     } yield {
       val query = select() from KBMainGraph.toString where new ElementSubQuery(
         rawQuery
@@ -189,10 +187,8 @@ object GenePhenotypeAnnotation {
         .add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
       query
     }
-  }
 
-  val AnnotationTextMarshaller
-      : ToEntityMarshaller[Seq[GenePhenotypeAnnotation]] = Marshaller
+  val AnnotationTextMarshaller: ToEntityMarshaller[Seq[GenePhenotypeAnnotation]] = Marshaller
     .stringMarshaller(MediaTypes.`text/tab-separated-values`)
     .compose { annotations =>
       val header =
@@ -200,8 +196,7 @@ object GenePhenotypeAnnotation {
       s"$header\n${annotations.map(_.toString).mkString("\n")}"
     }
 
-  implicit val ComboGenePhenotypeAnnotationsMarshaller
-      : ToEntityMarshaller[Seq[GenePhenotypeAnnotation]] =
+  implicit val ComboGenePhenotypeAnnotationsMarshaller: ToEntityMarshaller[Seq[GenePhenotypeAnnotation]] =
     Marshaller.oneOf(AnnotationTextMarshaller, JSONResultItemsMarshaller)
 
 }

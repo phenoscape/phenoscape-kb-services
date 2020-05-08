@@ -20,38 +20,40 @@ object GeneAffectingPhenotype {
 
   private val PhenotypeOfSome =
     NamedRestrictionGenerator.getClassRelationIRI(phenotype_of.getIRI)
+
   private val PartOfSome =
     NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
+
   private val HasPartSome =
     NamedRestrictionGenerator.getClassRelationIRI(has_part.getIRI)
 
   def buildQuery(
-      entity: Option[IRI],
-      quality: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean,
-      countOnly: Boolean,
-      limit: Int,
-      offset: Int
-  ): Future[String] = {
+    entity: Option[IRI],
+    quality: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean,
+    countOnly: Boolean,
+    limit: Int,
+    offset: Int
+  ): Future[String] =
     for {
       (whereClause, subqueries) <- constructWhereClause(
-        entity,
-        quality,
-        includeParts,
-        includeHistoricalHomologs,
-        includeSerialHomologs
-      )
+                                     entity,
+                                     quality,
+                                     includeParts,
+                                     includeHistoricalHomologs,
+                                     includeSerialHomologs
+                                   )
     } yield {
-      val unifiedQueries = BlazegraphNamedSubquery.unifyQueries(subqueries)
+      val unifiedQueries    = BlazegraphNamedSubquery.unifyQueries(subqueries)
       val namedQueriesBlock =
         if (unifiedQueries.nonEmpty)
           unifiedQueries.map(_.namedQuery).reduce(_ |+| _)
         else sparql""
-      val paging =
+      val paging            =
         if (limit > 0) sparql"LIMIT $limit OFFSET $offset" else sparql""
-      val query =
+      val query             =
         if (countOnly)
           sparql"""
       SELECT (COUNT(*) AS ?count)
@@ -75,16 +77,15 @@ object GeneAffectingPhenotype {
       """
       BlazegraphNamedSubquery.updateReferencesFor(unifiedQueries, query.text)
     }
-  }
 
   private def constructWhereClause(
-      entity: Option[IRI],
-      quality: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean
+    entity: Option[IRI],
+    quality: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean
   ): Future[(QueryText, Set[BlazegraphNamedSubquery])] = {
-    val validHomologyRelation = (if (includeHistoricalHomologs)
+    val validHomologyRelation                                                                 = (if (includeHistoricalHomologs)
                                    Set(homologous_to.getIRI)
                                  else
                                    Set.empty) ++ (if (includeSerialHomologs)
@@ -92,32 +93,31 @@ object GeneAffectingPhenotype {
                                                       serially_homologous_to.getIRI
                                                     )
                                                   else Set.empty)
-    val homologyQueryPartsFut
-        : ListT[Future, (List[QueryText], Set[BlazegraphNamedSubquery])] = for {
-      entityTerm <- entity.toList |> Future.successful |> ListT.apply
+    val homologyQueryPartsFut: ListT[Future, (List[QueryText], Set[BlazegraphNamedSubquery])] = for {
+      entityTerm                          <- entity.toList |> Future.successful |> ListT.apply
       if includeHistoricalHomologs || includeSerialHomologs
-      annotations <- AnatomicalEntity
-        .homologyAnnotations(entityTerm, true)
-        .map(List(_)) |> ListT.apply
-      uniquedPositiveAnnotations = annotations
-        .filterNot(_.negated)
-        .map(ann => (ann.`object`, ann.objectTaxon, ann.relation))
-        .toSet
+      annotations                         <- AnatomicalEntity
+                       .homologyAnnotations(entityTerm, true)
+                       .map(List(_)) |> ListT.apply
+      uniquedPositiveAnnotations           = annotations
+                                     .filterNot(_.negated)
+                                     .map(ann => (ann.`object`, ann.objectTaxon, ann.relation))
+                                     .toSet
       (otherEntity, otherTaxon, relation) <- uniquedPositiveAnnotations.toList |> Future.successful |> ListT.apply
       if validHomologyRelation(relation)
     } yield {
       var homComponents = List.empty[QueryText]
       var homSubqueries = Set.empty[BlazegraphNamedSubquery]
-      val homSubquery =
+      val homSubquery   =
         phenotypeSubQueryFor(Option(otherEntity), quality, false)
       //FIXME add taxon links to genes and use taxon restriction in homology queries for gene data
-      val basicHom = coreGeneToPhenotype(homSubquery)
+      val basicHom      = coreGeneToPhenotype(homSubquery)
       homComponents = basicHom :: homComponents
       homSubquery.foreach(q => homSubqueries += q)
       if (includeParts) {
         val homPartsSubquery =
           phenotypeSubQueryFor(Option(otherEntity), quality, true)
-        val homParts = coreGeneToPhenotype(homPartsSubquery)
+        val homParts         = coreGeneToPhenotype(homPartsSubquery)
         homComponents = homParts :: homComponents
         homPartsSubquery.foreach(q => homSubqueries += q)
       }
@@ -128,19 +128,19 @@ object GeneAffectingPhenotype {
     } yield {
       val (homologyWhereBlocks, homologySubqueries) = homologyQueryParts.unzip
 
-      var components = homologyWhereBlocks.flatten
-      var subqueries = homologySubqueries.toSet.flatten
+      var components    = homologyWhereBlocks.flatten
+      var subqueries    = homologySubqueries.toSet.flatten
       val basicSubquery = phenotypeSubQueryFor(entity, quality, false)
-      val basic = coreGeneToPhenotype(basicSubquery)
+      val basic         = coreGeneToPhenotype(basicSubquery)
       components = basic :: components
       basicSubquery.foreach(q => subqueries += q)
       if (includeParts) {
         val partsSubquery = phenotypeSubQueryFor(entity, quality, true)
-        val parts = coreGeneToPhenotype(partsSubquery)
+        val parts         = coreGeneToPhenotype(partsSubquery)
         components = parts :: components
         partsSubquery.foreach(q => subqueries += q)
       }
-      val blocks = (components match {
+      val blocks        = (components match {
         case Nil          => List(sparql"")
         case head :: Nil  => components
         case head :: tail => head :: tail.map(sparql" UNION " |+| _)
@@ -154,8 +154,8 @@ object GeneAffectingPhenotype {
   }
 
   private def coreGeneToPhenotype(
-      phenotypeQuery: Option[BlazegraphNamedSubquery]
-  ): QueryText = {
+    phenotypeQuery: Option[BlazegraphNamedSubquery]
+  ): QueryText                       = {
     val subQueryRef = phenotypeQuery.map(q => sparql"$q").getOrElse(sparql"")
     sparql"""
       {
@@ -169,12 +169,12 @@ object GeneAffectingPhenotype {
 
   // named subquery is used like for taxon query, but may not really be necessary
   def phenotypeSubQueryFor(
-      entity: Option[IRI],
-      quality: Option[IRI],
-      parts: Boolean
+    entity: Option[IRI],
+    quality: Option[IRI],
+    parts: Boolean
   ): Option[BlazegraphNamedSubquery] =
     if (entity.nonEmpty || quality.nonEmpty) {
-      val entityPattern = entity
+      val entityPattern  = entity
         .map { e =>
           if (parts)
             sparql"?phenotype $rdfType/$PhenotypeOfSome/$rdfsSubClassOf/$PartOfSome $e . "

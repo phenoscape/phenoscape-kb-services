@@ -35,7 +35,7 @@ object Gene {
 
   //FIXME this is a temporary hack until genes are directly associated with taxa in the KB
   private val geneIDPrefixToTaxon = Map(
-    "http://zfin.org" -> Taxon(
+    "http://zfin.org"                -> Taxon(
       IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_7955"),
       "Danio rerio"
     ),
@@ -43,11 +43,11 @@ object Gene {
       IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_10090"),
       "Mus musculus"
     ),
-    "http://xenbase.org" -> Taxon(
+    "http://xenbase.org"             -> Taxon(
       IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_8353"),
       "Xenopus"
     ),
-    "http://www.ncbi.nlm.nih.gov" -> Taxon(
+    "http://www.ncbi.nlm.nih.gov"    -> Taxon(
       IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_9606"),
       "Homo sapiens"
     )
@@ -59,8 +59,8 @@ object Gene {
       .map(_.headOption)
 
   def search(
-      text: String,
-      taxonOpt: Option[IRI]
+    text: String,
+    taxonOpt: Option[IRI]
   ): Future[Seq[MatchedTerm[Gene]]] = {
     val taxonFilter = taxonOpt
       .map(taxonIRI => (gene: Gene) => gene.taxon.iri == taxonIRI)
@@ -71,32 +71,28 @@ object Gene {
   }
 
   def query(
-      entity: OWLClassExpression = owlThing,
-      taxon: OWLClassExpression = owlThing,
-      limit: Int = 20,
-      offset: Int = 0
+    entity: OWLClassExpression = owlThing,
+    taxon: OWLClassExpression = owlThing,
+    limit: Int = 20,
+    offset: Int = 0
   ): Future[Seq[Gene]] =
     for {
-      query <- App.expandWithOwlet(buildQuery(entity, taxon, limit, offset))
+      query        <- App.expandWithOwlet(buildQuery(entity, taxon, limit, offset))
       descriptions <- App.executeSPARQLQuery(query, Gene(_))
-    } yield {
-      descriptions
-    }
+    } yield descriptions
 
   def queryTotal(
-      entity: OWLClassExpression = owlThing,
-      taxon: OWLClassExpression = owlThing
+    entity: OWLClassExpression = owlThing,
+    taxon: OWLClassExpression = owlThing
   ): Future[ResultCount] =
     for {
-      query <- App.expandWithOwlet(buildTotalQuery(entity, taxon))
+      query  <- App.expandWithOwlet(buildTotalQuery(entity, taxon))
       result <- App.executeSPARQLQuery(query)
-    } yield {
-      ResultCount(result)
-    }
+    } yield ResultCount(result)
 
   def buildSearchQuery(text: String): Query = {
     val searchText = if (text.endsWith("*")) text else s"$text*"
-    val query = select_distinct('gene, 'gene_label) from "http://kb.phenoscape.org/" where bgp(
+    val query      = select_distinct('gene, 'gene_label) from "http://kb.phenoscape.org/" where bgp(
       t('gene_label, BDSearch, NodeFactory.createLiteral(searchText)),
       t('gene_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
       t('gene_label, BDRank, 'rank),
@@ -109,10 +105,10 @@ object Gene {
   }
 
   def buildBasicQuery(
-      entity: OWLClassExpression = owlThing,
-      taxon: OWLClassExpression = owlThing,
-      limit: Int = 20,
-      offset: Int = 0
+    entity: OWLClassExpression = owlThing,
+    taxon: OWLClassExpression = owlThing,
+    limit: Int = 20,
+    offset: Int = 0
   ): Query = {
     //TODO allowing expressions makes it impossible to look for absences using the entity as an Individual... fix?
     val entityPatterns =
@@ -123,7 +119,7 @@ object Gene {
           rdfsSubClassOf,
           ((has_part some (inheres_in some entity)) or (has_part some (towards some entity))).asOMN
         ) :: Nil
-    val taxonPatterns =
+    val taxonPatterns  =
       if (taxon == owlThing) Nil
       else
         t('annotation, associated_with_taxon, 'taxon) :: t(
@@ -131,7 +127,7 @@ object Gene {
           rdfsSubClassOf,
           taxon.asOMN
         ) :: Nil
-    val query = select_distinct() from "http://kb.phenoscape.org/" where bgp(
+    val query          = select_distinct() from "http://kb.phenoscape.org/" where bgp(
       t('annotation, rdfType, AnnotatedPhenotype) ::
         t('annotation, associated_with_gene, 'gene) ::
         t('gene, rdfsLabel, 'gene_label) ::
@@ -142,10 +138,10 @@ object Gene {
   }
 
   def buildQuery(
-      entity: OWLClassExpression = owlThing,
-      taxon: OWLClassExpression = owlThing,
-      limit: Int = 20,
-      offset: Int = 0
+    entity: OWLClassExpression = owlThing,
+    taxon: OWLClassExpression = owlThing,
+    limit: Int = 20,
+    offset: Int = 0
   ): Query = {
     val query = buildBasicQuery(entity, taxon)
     query.addResultVar('gene)
@@ -158,8 +154,8 @@ object Gene {
   }
 
   def buildTotalQuery(
-      entity: OWLClassExpression = owlThing,
-      taxon: OWLClassExpression = owlThing
+    entity: OWLClassExpression = owlThing,
+    taxon: OWLClassExpression = owlThing
   ): Query = {
     val query = buildBasicQuery(entity, taxon)
     query.getProject.add(
@@ -183,57 +179,57 @@ object Gene {
     )
 
   def affectingPhenotypeOfEntity(
-      entity: Option[IRI],
-      quality: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean,
-      limit: Int,
-      offset: Int
+    entity: Option[IRI],
+    quality: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean,
+    limit: Int,
+    offset: Int
   ): Future[Seq[Gene]] =
     for {
       query <- GeneAffectingPhenotype.buildQuery(
-        entity,
-        quality,
-        includeParts,
-        includeHistoricalHomologs,
-        includeSerialHomologs,
-        false,
-        limit,
-        offset
-      )
+                 entity,
+                 quality,
+                 includeParts,
+                 includeHistoricalHomologs,
+                 includeSerialHomologs,
+                 false,
+                 limit,
+                 offset
+               )
       genes <- App.executeSPARQLQueryString(query, Gene(_))
     } yield genes
 
   def affectingPhenotypeOfEntityTotal(
-      entity: Option[IRI],
-      quality: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean
+    entity: Option[IRI],
+    quality: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean
   ): Future[Int] =
     for {
       query <- GeneAffectingPhenotype.buildQuery(
-        entity,
-        quality,
-        includeParts,
-        includeHistoricalHomologs,
-        includeSerialHomologs,
-        true,
-        0,
-        0
-      )
+                 entity,
+                 quality,
+                 includeParts,
+                 includeHistoricalHomologs,
+                 includeSerialHomologs,
+                 true,
+                 0,
+                 0
+               )
       total <- App.executeSPARQLQuery(query).map(ResultCount.count)
     } yield total
 
   def facetGenesWithPhenotypeByEntity(
-      focalEntity: Option[IRI],
-      quality: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean
+    focalEntity: Option[IRI],
+    quality: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean
   ): Future[List[Facet]] = {
-    val query = (iri: IRI) =>
+    val query  = (iri: IRI) =>
       affectingPhenotypeOfEntityTotal(
         Some(iri),
         quality,
@@ -260,13 +256,13 @@ object Gene {
   }
 
   def facetGenesWithPhenotypeByQuality(
-      focalQuality: Option[IRI],
-      entity: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean
+    focalQuality: Option[IRI],
+    entity: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean
   ): Future[List[Facet]] = {
-    val query = (iri: IRI) =>
+    val query  = (iri: IRI) =>
       affectingPhenotypeOfEntityTotal(
         entity,
         Some(iri),
@@ -274,8 +270,7 @@ object Gene {
         includeHistoricalHomologs,
         includeSerialHomologs
       )
-    val refine = (iri: IRI) =>
-      Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
     Facets.facet(
       focalQuality.getOrElse(KBVocab.qualityRoot),
       query,
@@ -285,9 +280,9 @@ object Gene {
   }
 
   def expressedWithinEntity(
-      entity: IRI,
-      limit: Int,
-      offset: Int
+    entity: IRI,
+    limit: Int,
+    offset: Int
   ): Future[Seq[Gene]] = {
     val query = buildGeneExpressedInEntityQuery(entity)
     query.addResultVar('gene)
@@ -332,29 +327,28 @@ object Gene {
       )
     ))
     for {
-      annotationsData <- App.executeSPARQLConstructQuery(query)
+      annotationsData      <- App.executeSPARQLConstructQuery(query)
       phenotypesWithSources = processProfileResultToAnnotationsAndSources(
-        annotationsData
-      )
-      labelledPhenotypes <- Future.sequence(phenotypesWithSources.map {
-        case (phenotype, sources) =>
-          Term.computedLabel(phenotype).map(SourcedMinimalTerm(_, sources))
-      })
+                                annotationsData
+                              )
+      labelledPhenotypes   <- Future.sequence(phenotypesWithSources.map {
+                              case (phenotype, sources) =>
+                                Term.computedLabel(phenotype).map(SourcedMinimalTerm(_, sources))
+                            })
     } yield labelledPhenotypes.toSeq.sortBy(_.term.label.map(_.toLowerCase))
   }
 
   private val hasAnnotation =
     ResourceFactory.createProperty("http://example.org/hasAnnotation")
 
-  private implicit def objectPropertyToJenaProperty(
-      prop: OWLObjectProperty
-  ): Property = {
+  implicit private def objectPropertyToJenaProperty(
+    prop: OWLObjectProperty
+  ): Property =
     ResourceFactory.createProperty(prop.getIRI.toString)
-  }
 
   private def processProfileResultToAnnotationsAndSources(
-      model: Model
-  ): Set[(IRI, Set[IRI])] = {
+    model: Model
+  ): Set[(IRI, Set[IRI])] =
     model
       .listObjectsOfProperty(hasAnnotation)
       .asScala
@@ -373,7 +367,6 @@ object Gene {
           .toSet
       }
       .toSet
-  }
 
   def expressionProfile(iri: IRI): Future[Seq[SourcedMinimalTerm]] = {
     val query = construct(
@@ -397,24 +390,24 @@ object Gene {
       )
     ))
     for {
-      annotationsData <- App.executeSPARQLConstructQuery(query)
+      annotationsData    <- App.executeSPARQLConstructQuery(query)
       entitiesWithSources = processProfileResultToAnnotationsAndSources(
-        annotationsData
-      )
-      labelledEntities <- Future.sequence(entitiesWithSources.map {
-        case (entity, sources) =>
-          Term.computedLabel(entity).map(SourcedMinimalTerm(_, sources))
-      })
+                              annotationsData
+                            )
+      labelledEntities   <- Future.sequence(entitiesWithSources.map {
+                            case (entity, sources) =>
+                              Term.computedLabel(entity).map(SourcedMinimalTerm(_, sources))
+                          })
     } yield labelledEntities.toSeq.sortBy(_.term.label.map(_.toLowerCase))
   }
 
   case class Phenotype(iri: IRI)
 
   private def formatResult(result: QuerySolution): String = {
-    val gene = result.getResource("gene").getURI
+    val gene      = result.getResource("gene").getURI
     val geneLabel = result.getLiteral("gene_label").getLexicalForm
-    val taxon = result.getLiteral("taxon_label").getLexicalForm
-    val source =
+    val taxon     = result.getLiteral("taxon_label").getLexicalForm
+    val source    =
       Option(result.getResource("source")).map(_.getURI).getOrElse("")
     s"$gene\t$geneLabel\t$taxon\t$source"
   }
@@ -458,20 +451,16 @@ object Gene {
 
 }
 
-case class Gene(iri: IRI, label: Option[String], taxon: Taxon)
-    extends LabeledTerm
-    with JSONResultItem {
+case class Gene(iri: IRI, label: Option[String], taxon: Taxon) extends LabeledTerm with JSONResultItem {
 
-  def toJSON: JsObject = {
+  def toJSON: JsObject =
     Map(
-      "@id" -> iri.toString.toJson,
+      "@id"   -> iri.toString.toJson,
       "label" -> label.map(_.toJson).getOrElse(JsNull),
       "taxon" -> taxon.toJSON
     ).toJson.asJsObject
-  }
 
-  override def toString: String = {
+  override def toString: String =
     s"$iri\t$label\t${taxon.label}"
-  }
 
 }

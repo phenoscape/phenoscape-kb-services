@@ -26,21 +26,20 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 case class GeneExpressionAnnotation(
-    gene: MinimalTerm,
-    location: MinimalTerm,
-    source: Option[IRI]
+  gene: MinimalTerm,
+  location: MinimalTerm,
+  source: Option[IRI]
 ) extends JSONResultItem {
 
   def toJSON: JsObject =
     Map(
-      "gene" -> gene.toJSON,
+      "gene"     -> gene.toJSON,
       "location" -> location.toJSON,
-      "source" -> source.map(_.toString).getOrElse("").toJson
+      "source"   -> source.map(_.toString).getOrElse("").toJson
     ).toJson.asJsObject
 
-  override def toString: String = {
+  override def toString: String =
     s"${gene.iri}\t${gene.label}\t${location.iri}\t${location.label}\t$source"
-  }
 
 }
 
@@ -49,27 +48,27 @@ object GeneExpressionAnnotation {
   implicit val timeout: Timeout = Timeout(10 minutes)
 
   def queryAnnotations(
-      entity: Option[OWLClassExpression],
-      inTaxonOpt: Option[IRI],
-      limit: Int = 20,
-      offset: Int = 0
+    entity: Option[OWLClassExpression],
+    inTaxonOpt: Option[IRI],
+    limit: Int = 20,
+    offset: Int = 0
   ): Future[Seq[GeneExpressionAnnotation]] =
     for {
-      query <- buildGeneExpressionAnnotationsQuery(
-        entity,
-        inTaxonOpt,
-        limit,
-        offset
-      )
+      query       <- buildGeneExpressionAnnotationsQuery(
+                 entity,
+                 inTaxonOpt,
+                 limit,
+                 offset
+               )
       annotations <- App.executeSPARQLQuery(query, fromQueryResult)
     } yield annotations
 
   def queryAnnotationsTotal(
-      entity: Option[OWLClassExpression],
-      inTaxonOpt: Option[IRI]
+    entity: Option[OWLClassExpression],
+    inTaxonOpt: Option[IRI]
   ): Future[Int] =
     for {
-      query <- buildGeneExpressionAnnotationsTotalQuery(entity, inTaxonOpt)
+      query  <- buildGeneExpressionAnnotationsTotalQuery(entity, inTaxonOpt)
       result <- App.executeSPARQLQuery(query)
     } yield ResultCount.count(result)
 
@@ -87,16 +86,16 @@ object GeneExpressionAnnotation {
     )
 
   private def buildBasicGeneExpressionAnnotationsQuery(
-      entity: Option[OWLClassExpression],
-      inTaxonOpt: Option[IRI]
+    entity: Option[OWLClassExpression],
+    inTaxonOpt: Option[IRI]
   ): Future[Query] = {
     val locationExpression =
       entity.map(e => Class(ANATOMICAL_ENTITY) and (part_of some e))
-    val phenotypeTriple = locationExpression
+    val phenotypeTriple    = locationExpression
       .map(desc => t('location, rdfsSubClassOf, desc.asOMN))
       .toList
-    val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf *, _)).toList
-    val query = select_distinct(
+    val taxonPatterns      = inTaxonOpt.map(t('taxon, rdfsSubClassOf *, _)).toList
+    val query              = select_distinct(
       'gene,
       'gene_label,
       'location,
@@ -124,11 +123,11 @@ object GeneExpressionAnnotation {
   }
 
   def buildGeneExpressionAnnotationsQuery(
-      entity: Option[OWLClassExpression],
-      inTaxonOpt: Option[IRI],
-      limit: Int = 20,
-      offset: Int = 0
-  ): Future[Query] = {
+    entity: Option[OWLClassExpression],
+    inTaxonOpt: Option[IRI],
+    limit: Int = 20,
+    offset: Int = 0
+  ): Future[Query] =
     for {
       rawQuery <- buildBasicGeneExpressionAnnotationsQuery(entity, inTaxonOpt)
     } yield {
@@ -141,12 +140,11 @@ object GeneExpressionAnnotation {
       query.addOrderBy('location)
       query
     }
-  }
 
   def buildGeneExpressionAnnotationsTotalQuery(
-      entity: Option[OWLClassExpression],
-      inTaxonOpt: Option[IRI]
-  ): Future[Query] = {
+    entity: Option[OWLClassExpression],
+    inTaxonOpt: Option[IRI]
+  ): Future[Query] =
     for {
       rawQuery <- buildBasicGeneExpressionAnnotationsQuery(entity, inTaxonOpt)
     } yield {
@@ -157,10 +155,8 @@ object GeneExpressionAnnotation {
         .add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
       query
     }
-  }
 
-  implicit val AnnotationTextMarshaller
-      : ToEntityMarshaller[Seq[GeneExpressionAnnotation]] = Marshaller
+  implicit val AnnotationTextMarshaller: ToEntityMarshaller[Seq[GeneExpressionAnnotation]] = Marshaller
     .stringMarshaller(MediaTypes.`text/tab-separated-values`)
     .compose { annotations =>
       val header =
@@ -168,8 +164,7 @@ object GeneExpressionAnnotation {
       s"$header\n${annotations.map(_.toString).mkString("\n")}"
     }
 
-  implicit val ComboGeneExpressionAnnotationsMarshaller
-      : ToEntityMarshaller[Seq[GeneExpressionAnnotation]] =
+  implicit val ComboGeneExpressionAnnotationsMarshaller: ToEntityMarshaller[Seq[GeneExpressionAnnotation]] =
     Marshaller.oneOf(AnnotationTextMarshaller, JSONResultItemsMarshaller)
 
 }

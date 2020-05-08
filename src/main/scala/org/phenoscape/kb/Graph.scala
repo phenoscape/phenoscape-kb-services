@@ -18,8 +18,8 @@ import scala.language.postfixOps
 object Graph {
 
   def propertyNeighborsForObject(
-      term: IRI,
-      property: IRI
+    term: IRI,
+    property: IRI
   ): Future[Seq[MinimalTerm]] =
     App.executeSPARQLQuery(
       buildPropertyNeighborsQueryObject(term, property),
@@ -27,8 +27,8 @@ object Graph {
     )
 
   def propertyNeighborsForSubject(
-      term: IRI,
-      property: IRI
+    term: IRI,
+    property: IRI
   ): Future[Seq[MinimalTerm]] =
     App.executeSPARQLQuery(
       buildPropertyNeighborsQuerySubject(term, property),
@@ -36,8 +36,8 @@ object Graph {
     )
 
   private def buildPropertyNeighborsQueryObject(
-      focalTerm: IRI,
-      property: IRI
+    focalTerm: IRI,
+    property: IRI
   ): Query = {
     val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)
     select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where bgp(
@@ -49,8 +49,8 @@ object Graph {
   }
 
   private def buildPropertyNeighborsQuerySubject(
-      focalTerm: IRI,
-      property: IRI
+    focalTerm: IRI,
+    property: IRI
   ): Query = {
     val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)
     select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where bgp(
@@ -67,7 +67,7 @@ object Graph {
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
       val valuesElements = terms.map(t => sparql" $t ").reduce(_ |+| _)
-      val query =
+      val query          =
         sparql"""
        SELECT DISTINCT ?term ?ancestor
        FROM $KBClosureGraph
@@ -76,21 +76,24 @@ object Graph {
          ?term $rdfsSubClassOf ?ancestor .
        }
           """
-      val futurePairs = App.executeSPARQLQueryString(query.text, qs => {
-        val term = qs.getResource("term").getURI
-        val ancestor = qs.getResource("ancestor").getURI
-        (term, ancestor)
-      })
+      val futurePairs    = App.executeSPARQLQueryString(
+        query.text,
+        qs => {
+          val term     = qs.getResource("term").getURI
+          val ancestor = qs.getResource("ancestor").getURI
+          (term, ancestor)
+        }
+      )
       for {
         pairs <- futurePairs
       } yield {
-        val termsSequence = terms.map(_.toString).toSeq.sorted
-        val header = s",${termsSequence.mkString(",")}"
+        val termsSequence     = terms.map(_.toString).toSeq.sorted
+        val header            = s",${termsSequence.mkString(",")}"
         val groupedByAncestor = pairs.groupBy(_._2)
-        val valuesLines = groupedByAncestor.map {
+        val valuesLines       = groupedByAncestor.map {
           case (ancestor, ancPairs) =>
             val termsForAncestor = ancPairs.map(_._1).toSet
-            val values =
+            val values           =
               termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
             s"$ancestor,${values.mkString(",")}"
         }

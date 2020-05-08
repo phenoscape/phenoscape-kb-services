@@ -1,11 +1,7 @@
 package org.phenoscape.kb
 
 import akka.NotUsed
-import akka.http.scaladsl.marshalling.{
-  Marshaller,
-  Marshalling,
-  ToEntityMarshaller
-}
+import akka.http.scaladsl.marshalling.{Marshaller, Marshalling, ToEntityMarshaller}
 import akka.http.scaladsl.model.{HttpCharsets, MediaTypes}
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
@@ -28,17 +24,15 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 
 final case class TaxonPhenotypeAnnotation(
-    taxon: MinimalTerm,
-    phenotype: MinimalTerm
+  taxon: MinimalTerm,
+  phenotype: MinimalTerm
 ) extends JSONResultItem {
 
-  def toJSON: JsObject = {
+  def toJSON: JsObject          =
     (Map("taxon" -> taxon.toJSON, "phenotype" -> phenotype.toJSON)).toJson.asJsObject
-  }
 
-  override def toString: String = {
+  override def toString: String =
     s"${taxon.iri}\t${taxon.label}\t${phenotype.iri}\t${phenotype.label}"
-  }
 
   def toCSV: String =
     s"${taxon.iri},${taxon.label},${phenotype.iri},${phenotype.label}"
@@ -48,45 +42,45 @@ final case class TaxonPhenotypeAnnotation(
 object TaxonPhenotypeAnnotation {
 
   def queryAnnotations(
-      entity: Option[IRI],
-      quality: QualitySpec,
-      inTaxonOpt: Option[IRI],
-      phenotypeOpt: Option[IRI],
-      publicationOpt: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean,
-      limit: Int = 20,
-      offset: Int = 0
+    entity: Option[IRI],
+    quality: QualitySpec,
+    inTaxonOpt: Option[IRI],
+    phenotypeOpt: Option[IRI],
+    publicationOpt: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean,
+    limit: Int = 20,
+    offset: Int = 0
   ): Future[Seq[TaxonPhenotypeAnnotation]] =
     for {
-      query <- TaxonAnnotations.buildQuery(
-        entity,
-        quality,
-        inTaxonOpt,
-        phenotypeOpt,
-        publicationOpt,
-        includeParts,
-        includeHistoricalHomologs,
-        includeSerialHomologs,
-        false,
-        limit,
-        offset
-      )
+      query       <- TaxonAnnotations.buildQuery(
+                 entity,
+                 quality,
+                 inTaxonOpt,
+                 phenotypeOpt,
+                 publicationOpt,
+                 includeParts,
+                 includeHistoricalHomologs,
+                 includeSerialHomologs,
+                 false,
+                 limit,
+                 offset
+               )
       annotations <- App.executeSPARQLQueryString(query, fromQueryResult)
     } yield annotations
 
   def queryAnnotationsStream(
-      entity: Option[IRI],
-      quality: QualitySpec,
-      inTaxonOpt: Option[IRI],
-      phenotypeOpt: Option[IRI],
-      publicationOpt: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean,
-      limit: Int = 20,
-      offset: Int = 0
+    entity: Option[IRI],
+    quality: QualitySpec,
+    inTaxonOpt: Option[IRI],
+    phenotypeOpt: Option[IRI],
+    publicationOpt: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean,
+    limit: Int = 20,
+    offset: Int = 0
   ): Source[TaxonPhenotypeAnnotation, NotUsed] = {
     val futQuery = TaxonAnnotations.buildQuery(
       entity,
@@ -105,29 +99,29 @@ object TaxonPhenotypeAnnotation {
   }
 
   def queryAnnotationsTotal(
-      entity: Option[IRI],
-      quality: QualitySpec,
-      inTaxonOpt: Option[IRI],
-      phenotypeOpt: Option[IRI],
-      publicationOpt: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean
+    entity: Option[IRI],
+    quality: QualitySpec,
+    inTaxonOpt: Option[IRI],
+    phenotypeOpt: Option[IRI],
+    publicationOpt: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean
   ): Future[Int] =
     for {
-      query <- TaxonAnnotations.buildQuery(
-        entity,
-        quality,
-        inTaxonOpt,
-        phenotypeOpt,
-        publicationOpt,
-        includeParts,
-        includeHistoricalHomologs,
-        includeSerialHomologs,
-        true,
-        0,
-        0
-      )
+      query  <- TaxonAnnotations.buildQuery(
+                 entity,
+                 quality,
+                 inTaxonOpt,
+                 phenotypeOpt,
+                 publicationOpt,
+                 includeParts,
+                 includeHistoricalHomologs,
+                 includeSerialHomologs,
+                 true,
+                 0,
+                 0
+               )
       result <- App.executeSPARQLQuery(query)
     } yield ResultCount.count(result)
 
@@ -144,15 +138,15 @@ object TaxonPhenotypeAnnotation {
     )
 
   def facetTaxonAnnotationsByEntity(
-      focalEntity: Option[IRI],
-      quality: QualitySpec,
-      inTaxonOpt: Option[IRI],
-      publicationOpt: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean
+    focalEntity: Option[IRI],
+    quality: QualitySpec,
+    inTaxonOpt: Option[IRI],
+    publicationOpt: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean
   ): Future[List[Facet]] = {
-    val query = (iri: IRI) =>
+    val query  = (iri: IRI) =>
       queryAnnotationsTotal(
         Some(iri),
         quality,
@@ -182,15 +176,15 @@ object TaxonPhenotypeAnnotation {
   }
 
   def facetTaxonAnnotationsByQuality(
-      focalQuality: Option[IRI],
-      entity: Option[IRI],
-      inTaxonOpt: Option[IRI],
-      publicationOpt: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean
+    focalQuality: Option[IRI],
+    entity: Option[IRI],
+    inTaxonOpt: Option[IRI],
+    publicationOpt: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean
   ): Future[List[Facet]] = {
-    val query = (iri: IRI) =>
+    val query  = (iri: IRI) =>
       queryAnnotationsTotal(
         entity,
         PhenotypicQuality(Some(iri)),
@@ -201,8 +195,7 @@ object TaxonPhenotypeAnnotation {
         includeHistoricalHomologs,
         includeSerialHomologs
       )
-    val refine = (iri: IRI) =>
-      Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
     Facets.facet(
       focalQuality.getOrElse(KBVocab.qualityRoot),
       query,
@@ -212,15 +205,15 @@ object TaxonPhenotypeAnnotation {
   }
 
   def facetTaxonAnnotationsByTaxon(
-      focalTaxon: Option[IRI],
-      entity: Option[IRI],
-      quality: QualitySpec,
-      publicationOpt: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean
+    focalTaxon: Option[IRI],
+    entity: Option[IRI],
+    quality: QualitySpec,
+    publicationOpt: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean
   ): Future[List[Facet]] = {
-    val query = (iri: IRI) =>
+    val query  = (iri: IRI) =>
       queryAnnotationsTotal(
         entity,
         quality,
@@ -231,14 +224,13 @@ object TaxonPhenotypeAnnotation {
         includeHistoricalHomologs,
         includeSerialHomologs
       )
-    val refine = (iri: IRI) =>
-      Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
     Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine, true)
   }
 
   def annotationSources(
-      taxon: IRI,
-      phenotype: IRI
+    taxon: IRI,
+    phenotype: IRI
   ): Future[Seq[AnnotationSource]] = {
     val query =
       sparql"""
@@ -257,7 +249,7 @@ object TaxonPhenotypeAnnotation {
       """
     App.executeSPARQLQueryString(
       query.text,
-      res => {
+      res =>
         AnnotationSource(
           MinimalTerm(
             IRI.create(res.getResource("pub").getURI),
@@ -267,7 +259,6 @@ object TaxonPhenotypeAnnotation {
           res.getLiteral("char_text").getLexicalForm,
           res.getLiteral("state_text").getLexicalForm
         )
-      }
     )
   }
 
@@ -283,8 +274,7 @@ object TaxonPhenotypeAnnotation {
         annotation.toString
       }
 
-  val AnnotationsTextMarshaller
-      : ToEntityMarshaller[Seq[TaxonPhenotypeAnnotation]] = Marshaller
+  val AnnotationsTextMarshaller: ToEntityMarshaller[Seq[TaxonPhenotypeAnnotation]] = Marshaller
     .stringMarshaller(MediaTypes.`text/tab-separated-values`)
     .compose { annotations =>
       val header = "taxon IRI\ttaxon label\tphenotype IRI\tphenotype label"
@@ -294,14 +284,12 @@ object TaxonPhenotypeAnnotation {
   /**
     * Required for streaming TaxonPhenotypeAnnotations to client
     */
-  val AnnotationByteStringTSVMarshaller =
+  val AnnotationByteStringTSVMarshaller                                            =
     Marshaller.strict[TaxonPhenotypeAnnotation, ByteString] { ann =>
       Marshalling.WithFixedContentType(
         MediaTypes.`text/tab-separated-values`
           .toContentType(HttpCharsets.`UTF-8`),
-        () => {
-          ByteString(ann.toString)
-        }
+        () => ByteString(ann.toString)
       )
     }
 
@@ -314,19 +302,18 @@ object TaxonPhenotypeAnnotation {
 }
 
 final case class AnnotationSource(
-    publication: MinimalTerm,
-    characterNum: Int,
-    character: String,
-    state: String
+  publication: MinimalTerm,
+  characterNum: Int,
+  character: String,
+  state: String
 ) extends JSONResultItem {
 
-  def toJSON: JsObject = {
+  def toJSON: JsObject =
     (Map(
-      "publication" -> publication.toJSON,
-      "character_num" -> characterNum.toJson,
+      "publication"    -> publication.toJSON,
+      "character_num"  -> characterNum.toJson,
       "character_text" -> character.toJson,
-      "state_text" -> state.toJson
+      "state_text"     -> state.toJson
     )).toJson.asJsObject
-  }
 
 }

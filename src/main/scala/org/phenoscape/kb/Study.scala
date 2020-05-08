@@ -32,15 +32,14 @@ import spray.json.DefaultJsonProtocol._
 
 object Study {
 
-  private val factory = OWLManager.getOWLDataFactory
+  private val factory  = OWLManager.getOWLDataFactory
   val AnatomicalEntity = Class(ANATOMICAL_ENTITY)
-  val Chordata = Class(CHORDATA)
+  val Chordata         = Class(CHORDATA)
 
-  def withIRI(iri: IRI): Future[Option[Study]] = {
+  def withIRI(iri: IRI): Future[Option[Study]] =
     App
       .executeSPARQLQuery(buildStudyQuery(iri), Study.fromIRIQuery(iri))
       .map(_.headOption)
-  }
 
   def buildStudyQuery(iri: IRI): Query =
     select_distinct('label, 'citation) from "http://kb.phenoscape.org/" where (bgp(
@@ -56,71 +55,71 @@ object Study {
     )
 
   def queryStudies(
-      entity: Option[IRI],
-      quality: QualitySpec,
-      inTaxonOpt: Option[IRI],
-      phenotypeOpt: Option[IRI],
-      publicationOpt: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean,
-      limit: Int = 20,
-      offset: Int = 0
+    entity: Option[IRI],
+    quality: QualitySpec,
+    inTaxonOpt: Option[IRI],
+    phenotypeOpt: Option[IRI],
+    publicationOpt: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean,
+    limit: Int = 20,
+    offset: Int = 0
   ): Future[Seq[MinimalTerm]] =
     for {
-      query <- StudiesRelevantToPhenotype.buildQuery(
-        entity,
-        quality,
-        inTaxonOpt,
-        phenotypeOpt,
-        publicationOpt,
-        includeParts,
-        includeHistoricalHomologs,
-        includeSerialHomologs,
-        false,
-        limit,
-        offset
-      )
+      query   <- StudiesRelevantToPhenotype.buildQuery(
+                 entity,
+                 quality,
+                 inTaxonOpt,
+                 phenotypeOpt,
+                 publicationOpt,
+                 includeParts,
+                 includeHistoricalHomologs,
+                 includeSerialHomologs,
+                 false,
+                 limit,
+                 offset
+               )
       studies <- App.executeSPARQLQueryString(query, queryToTerm)
     } yield studies
 
   def queryStudiesTotal(
-      entity: Option[IRI],
-      quality: QualitySpec,
-      inTaxonOpt: Option[IRI],
-      phenotypeOpt: Option[IRI],
-      publicationOpt: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean
+    entity: Option[IRI],
+    quality: QualitySpec,
+    inTaxonOpt: Option[IRI],
+    phenotypeOpt: Option[IRI],
+    publicationOpt: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean
   ): Future[Int] =
     for {
-      query <- StudiesRelevantToPhenotype.buildQuery(
-        entity,
-        quality,
-        inTaxonOpt,
-        phenotypeOpt,
-        publicationOpt,
-        includeParts,
-        includeHistoricalHomologs,
-        includeSerialHomologs,
-        true,
-        0,
-        0
-      )
+      query  <- StudiesRelevantToPhenotype.buildQuery(
+                 entity,
+                 quality,
+                 inTaxonOpt,
+                 phenotypeOpt,
+                 publicationOpt,
+                 includeParts,
+                 includeHistoricalHomologs,
+                 includeSerialHomologs,
+                 true,
+                 0,
+                 0
+               )
       result <- App.executeSPARQLQuery(query)
     } yield ResultCount.count(result)
 
   def facetStudiesByEntity(
-      focalEntity: Option[IRI],
-      quality: QualitySpec,
-      inTaxonOpt: Option[IRI],
-      publicationOpt: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean
+    focalEntity: Option[IRI],
+    quality: QualitySpec,
+    inTaxonOpt: Option[IRI],
+    publicationOpt: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean
   ): Future[List[Facet]] = {
-    val query = (iri: IRI) =>
+    val query  = (iri: IRI) =>
       queryStudiesTotal(
         Some(iri),
         quality,
@@ -150,15 +149,15 @@ object Study {
   }
 
   def facetStudiesByQuality(
-      focalQuality: Option[IRI],
-      entity: Option[IRI],
-      inTaxonOpt: Option[IRI],
-      publicationOpt: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean
+    focalQuality: Option[IRI],
+    entity: Option[IRI],
+    inTaxonOpt: Option[IRI],
+    publicationOpt: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean
   ): Future[List[Facet]] = {
-    val query = (iri: IRI) =>
+    val query  = (iri: IRI) =>
       queryStudiesTotal(
         entity,
         PhenotypicQuality(Some(iri)),
@@ -169,8 +168,7 @@ object Study {
         includeHistoricalHomologs,
         includeSerialHomologs
       )
-    val refine = (iri: IRI) =>
-      Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
     Facets.facet(
       focalQuality.getOrElse(KBVocab.qualityRoot),
       query,
@@ -180,15 +178,15 @@ object Study {
   }
 
   def facetStudiesByTaxon(
-      focalTaxon: Option[IRI],
-      entity: Option[IRI],
-      quality: QualitySpec,
-      publicationOpt: Option[IRI],
-      includeParts: Boolean,
-      includeHistoricalHomologs: Boolean,
-      includeSerialHomologs: Boolean
+    focalTaxon: Option[IRI],
+    entity: Option[IRI],
+    quality: QualitySpec,
+    publicationOpt: Option[IRI],
+    includeParts: Boolean,
+    includeHistoricalHomologs: Boolean,
+    includeSerialHomologs: Boolean
   ): Future[List[Facet]] = {
-    val query = (iri: IRI) =>
+    val query  = (iri: IRI) =>
       queryStudiesTotal(
         entity,
         quality,
@@ -199,15 +197,14 @@ object Study {
         includeHistoricalHomologs,
         includeSerialHomologs
       )
-    val refine = (iri: IRI) =>
-      Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
+    val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.VTO)).map(_.toSet)
     Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine, true)
   }
 
   def annotatedTaxa(
-      study: IRI,
-      limit: Int = 20,
-      offset: Int = 0
+    study: IRI,
+    limit: Int = 20,
+    offset: Int = 0
   ): Future[Seq[Taxon]] =
     App.executeSPARQLQuery(
       buildAnnotatedTaxaQuery(study, limit, offset),
@@ -220,9 +217,9 @@ object Study {
       .map(ResultCount.count)
 
   def annotatedPhenotypes(
-      study: IRI,
-      limit: Int = 20,
-      offset: Int = 0
+    study: IRI,
+    limit: Int = 20,
+    offset: Int = 0
   ): Future[Seq[AnnotatedCharacterDescription]] = {
     val futureDescriptions = Term.label(study).map { studyTermOpt =>
       studyTermOpt.map { studyTerm =>
@@ -238,7 +235,7 @@ object Study {
     }
     for {
       o <- futureDescriptions
-      s <- Future.sequence(o.toSeq)
+      s            <- Future.sequence(o.toSeq)
       descriptions <- Future.sequence(s.flatten)
     } yield descriptions
   }
@@ -274,25 +271,22 @@ object Study {
   }
 
   private def annotationFromQueryResult(
-      matrix: CharacterMatrix
-  )(result: QuerySolution): Future[AnnotatedCharacterDescription] = {
-    Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map {
-      phenotype =>
-        AnnotatedCharacterDescription(
-          CharacterDescription(
-            IRI.create(result.getResource("state").getURI),
-            result.getLiteral("description").getLexicalForm,
-            matrix,
-            MinimalTerm(
-              IRI.create(result.getResource("character").getURI),
-              Some(result.getLiteral("characterLabel").getLexicalForm)
-            )
-          ),
-          phenotype
-        )
+    matrix: CharacterMatrix
+  )(result: QuerySolution): Future[AnnotatedCharacterDescription] =
+    Term.computedLabel(IRI.create(result.getResource("phenotype").getURI)).map { phenotype =>
+      AnnotatedCharacterDescription(
+        CharacterDescription(
+          IRI.create(result.getResource("state").getURI),
+          result.getLiteral("description").getLexicalForm,
+          matrix,
+          MinimalTerm(
+            IRI.create(result.getResource("character").getURI),
+            Some(result.getLiteral("characterLabel").getLexicalForm)
+          )
+        ),
+        phenotype
+      )
     }
-
-  }
 
   private def buildPhenotypesSubQuery(study: IRI): Query =
     select_distinct(
@@ -332,7 +326,7 @@ object Study {
   }
 
   //FIXME add to Vocab in phenoscape-owl-tools
-  private val dcBibliographicCitation = factory.getOWLAnnotationProperty(
+  private val dcBibliographicCitation              = factory.getOWLAnnotationProperty(
     IRI.create("http://rs.tdwg.org/dwc/terms/bibliographicCitation")
   )
 
@@ -341,16 +335,15 @@ object Study {
   object StudyMatrix {
 
     implicit val studyMatrixMarshaller: ToEntityMarshaller[StudyMatrix] =
-      Marshaller.stringMarshaller(MediaTypes.`application/xml`).compose {
-        matrix =>
-          val prettyPrinter = new scala.xml.PrettyPrinter(9999, 2)
-          prettyPrinter.format(matrix.xml)
+      Marshaller.stringMarshaller(MediaTypes.`application/xml`).compose { matrix =>
+        val prettyPrinter = new scala.xml.PrettyPrinter(9999, 2)
+        prettyPrinter.format(matrix.xml)
       }
 
   }
 
   def queryMatrix(study: IRI): Future[StudyMatrix] = {
-    val pattern = Seq(
+    val pattern     = Seq(
       t(study, rdfsLabel, 'study_label),
       t(study, dcBibliographicCitation, 'citation),
       t(study, has_character, 'character),
@@ -369,7 +362,7 @@ object Study {
       t('cell, belongs_to_TU, 'otu),
       t('cell, has_state, 'state)
     )
-    val query = construct(pattern: _*) from "http://kb.phenoscape.org/" where (bgp(
+    val query       = construct(pattern: _*) from "http://kb.phenoscape.org/" where (bgp(
       pattern: _*
     ))
     val modelFuture = App.executeSPARQLConstructQuery(query)
@@ -377,8 +370,8 @@ object Study {
   }
 
   def matrix(study: IRI, model: Model): Elem = { //FIXME add about=#
-    val otusID = s"otus_${UUID.randomUUID.toString}"
-    val otuToID = (for {
+    val otusID                                       = s"otus_${UUID.randomUUID.toString}"
+    val otuToID                                      = (for {
       otu <- model.listObjectsOfProperty(has_TU).asScala
     } yield otu.asResource.getURI -> s"otu_${UUID.randomUUID.toString}").toMap
 
@@ -391,38 +384,35 @@ object Study {
           .sorted
           .mkString("_")
 
-    val characterToIDSuffix = (for {
+    val characterToIDSuffix       = (for {
       character <- model.listObjectsOfProperty(has_character).asScala
     } yield character.asResource.getURI -> UUID.randomUUID.toString).toMap
-    val neededStateGroups = (for {
-      character <- model.listObjectsOfProperty(has_character).asScala
+    val neededStateGroups         = (for {
+      character  <- model.listObjectsOfProperty(has_character).asScala
       stateGroup <- model
-        .listSubjectsWithProperty(belongs_to_character, character)
-        .asScala
-        .map(cell =>
-          model
-            .listObjectsOfProperty(cell.asResource, has_state)
-            .asScala
-            .map(_.asResource.getURI)
-        )
+                      .listSubjectsWithProperty(belongs_to_character, character)
+                      .asScala
+                      .map(cell =>
+                        model
+                          .listObjectsOfProperty(cell.asResource, has_state)
+                          .asScala
+                          .map(_.asResource.getURI))
     } yield character.asResource.getURI -> stateGroup.toSet)
       .toSet[(String, Set[String])]
       .groupBy(_._1)
       .mapValues(_.map(_._2))
     val allIndividualStatesAsSets =
       neededStateGroups.values.flatten.flatten.map(Set(_))
-    val stateGroupIDs = (for {
+    val stateGroupIDs             = (for {
       (character, stateGroups) <- neededStateGroups
-      stateGroup <- stateGroups
+      stateGroup               <- stateGroups
     } yield stateGroup -> idForStateGroup(stateGroup)) ++ allIndividualStatesAsSets
       .map(group => group -> idForStateGroup(group))
-    val orderedCharacters = model
+    val orderedCharacters         = model
       .listObjectsOfProperty(has_character)
       .asScala
       .toSeq
-      .sortBy(character =>
-        model.getProperty(character.asResource, list_index).getInt
-      )
+      .sortBy(character => model.getProperty(character.asResource, list_index).getInt)
       .map(_.asResource.getURI)
 
     def label(uri: String): String =
@@ -431,7 +421,12 @@ object Study {
         .getString
 
     def symbol(stateGroup: Set[String]): String =
-      (stateGroup.map(state => model.getProperty(ResourceFactory.createResource(state), state_symbol).getString)).toSeq.sorted.mkString(" and ")
+      (
+        stateGroup
+          .map(state => model.getProperty(ResourceFactory.createResource(state), state_symbol).getString))
+        .toSeq
+        .sorted
+        .mkString(" and ")
 
     <nexml xmlns="http://www.nexml.org/2009" xmlns:dc="http://purl.org/dc/terms/" xmlns:dwc="http://rs.tdwg.org/dwc/terms/" xmlns:obo="http://purl.obolibrary.org/obo/" xmlns:ps="http://purl.org/phenoscape/vocab.owl#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="0.9" xsi:schemaLocation="http://www.nexml.org/2009 http://www.nexml.org/2009/nexml.xsd http://www.bioontologies.org/obd/schema/pheno http://purl.org/phenoscape/phenoxml.xsd">
       {
@@ -454,17 +449,17 @@ object Study {
     }<otus id={otusID}>
       {
       for {
-        otu <- model.listObjectsOfProperty(has_TU).asScala
-        taxon = model
-          .listObjectsOfProperty(otu.asResource, has_external_reference)
-          .next
-          .asResource
-        label = model
-          .listObjectsOfProperty(taxon, rdfsLabel)
-          .next
-          .asLiteral
-          .getLexicalForm
-        otuID = otuToID(otu.asResource.getURI)
+        otu                   <- model.listObjectsOfProperty(has_TU).asScala
+        taxon                  = model
+                  .listObjectsOfProperty(otu.asResource, has_external_reference)
+                  .next
+                  .asResource
+        label                  = model
+                  .listObjectsOfProperty(taxon, rdfsLabel)
+                  .next
+                  .asLiteral
+                  .getLexicalForm
+        otuID                  = otuToID(otu.asResource.getURI)
       } yield <otu id={otuID} about={s"#$otuID"} label={label}>
         <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href={taxon.getURI}/>
       </otu>
@@ -480,7 +475,7 @@ object Study {
       } yield <states id={s"states_$idSuffix"}>
           {
         for {
-          stateGroup <- neededStateGroups(character)
+          stateGroup  <- neededStateGroups(character)
           stateGroupID = stateGroupIDs(stateGroup)
         } yield
           if (stateGroup.size < 2)
@@ -527,7 +522,7 @@ object Study {
         </states>
     }{
       for {
-        character <- orderedCharacters
+        character             <- orderedCharacters
       } yield <char id={s"character_${characterToIDSuffix(character)}"} label={
         label(character)
       } states={s"states_${characterToIDSuffix(character)}"}>
@@ -538,8 +533,8 @@ object Study {
         <matrix>
           {
       for {
-        otu <- model.listObjectsOfProperty(has_TU).asScala
-        otuURI = otu.asResource.getURI
+        otu                   <- model.listObjectsOfProperty(has_TU).asScala
+        otuURI                 = otu.asResource.getURI
       } yield <row id={s"row_${otuToID(otuURI)}"} otu={otuToID(otuURI)}>
           {
         for {
@@ -567,7 +562,7 @@ object Study {
     </nexml>
   }
 
-  private implicit def owlEntityToJenaProperty(prop: OWLEntity): Property =
+  implicit private def owlEntityToJenaProperty(prop: OWLEntity): Property =
     ResourceFactory.createProperty(prop.getIRI.toString)
 
   private def queryToTerm(result: QuerySolution): MinimalTerm =
@@ -578,15 +573,13 @@ object Study {
 
 }
 
-case class Study(iri: IRI, label: String, citation: String)
-    extends JSONResultItem {
+case class Study(iri: IRI, label: String, citation: String) extends JSONResultItem {
 
-  def toJSON: JsObject = {
+  def toJSON: JsObject =
     (Map(
-      "@id" -> iri.toString.toJson,
-      "label" -> label.toJson,
+      "@id"      -> iri.toString.toJson,
+      "label"    -> label.toJson,
       "citation" -> citation.toJson
     )).toJson.asJsObject
-  }
 
 }

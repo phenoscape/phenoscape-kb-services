@@ -36,17 +36,17 @@ object KB {
   val rdfsLabel = org.phenoscape.kb.KBVocab.rdfsLabel
 
   def annotationSummary: Future[KBAnnotationSummary] = {
-    val matrices = annotatedMatrixCount
-    val taxa = annotatedTaxonCount
+    val matrices   = annotatedMatrixCount
+    val taxa       = annotatedTaxonCount
     val characters = annotatedCharacterCount
-    val states = annotatedStateCount
-    val built = buildDate
+    val states     = annotatedStateCount
+    val built      = buildDate
     for {
-      builtTime <- built
-      matrixCount <- matrices
-      taxonCount <- taxa
+      builtTime      <- built
+      matrixCount    <- matrices
+      taxonCount     <- taxa
       characterCount <- characters
-      stateCount <- states
+      stateCount     <- states
     } yield KBAnnotationSummary(
       builtTime,
       matrixCount,
@@ -245,10 +245,10 @@ OPTIONAL {
   }
 
   def getKBMetadata: Future[KBMetadata] = {
-    val builtFut = buildDate
+    val builtFut      = buildDate
     val ontologiesFut = kbOntologies
     for {
-      built <- builtFut
+      built      <- builtFut
       ontologies <- ontologiesFut
     } yield KBMetadata(built, ontologies)
   }
@@ -275,10 +275,10 @@ OPTIONAL {
       )
       .map(_.toSet)
   }
+
 }
 
-case class KBMetadata(built: Instant, ontologies: Set[(IRI, IRI)])
-    extends JSONResultItem {
+case class KBMetadata(built: Instant, ontologies: Set[(IRI, IRI)]) extends JSONResultItem {
 
   def toJSON: JsObject =
     Map(
@@ -288,37 +288,37 @@ case class KBMetadata(built: Instant, ontologies: Set[(IRI, IRI)])
         .map {
           case (ont, version) =>
             JsObject(
-              "@id" -> ont.toString.toJson,
+              "@id"     -> ont.toString.toJson,
               "version" -> version.toString.toJson
             ).toJson
         }
         .toJson
     ).toJson.asJsObject
+
 }
 
 case class KBAnnotationSummary(
-    built: Instant,
-    annotatedMatrices: Int,
-    annotatedTaxa: Int,
-    annotatedCharacters: Int,
-    annotatedStates: Int
+  built: Instant,
+  annotatedMatrices: Int,
+  annotatedTaxa: Int,
+  annotatedCharacters: Int,
+  annotatedStates: Int
 ) {
 
   def toJSON: JsObject =
     Map(
-      "build_time" -> built.toString.toJson,
-      "annotated_matrices" -> annotatedMatrices.toJson,
-      "annotated_taxa" -> annotatedTaxa.toJson,
+      "build_time"           -> built.toString.toJson,
+      "annotated_matrices"   -> annotatedMatrices.toJson,
+      "annotated_taxa"       -> annotatedTaxa.toJson,
       "annotated_characters" -> annotatedCharacters.toJson,
-      "annotated_states" -> annotatedStates.toJson
+      "annotated_states"     -> annotatedStates.toJson
     ).toJson.asJsObject
 
 }
 
 object KBAnnotationSummary {
 
-  implicit val KBAnnotationSummaryMarshaller
-      : ToEntityMarshaller[KBAnnotationSummary] =
+  implicit val KBAnnotationSummaryMarshaller: ToEntityMarshaller[KBAnnotationSummary] =
     Marshaller.combined(result => result.toJSON)
 
 }

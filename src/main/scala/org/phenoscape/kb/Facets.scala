@@ -19,26 +19,27 @@ object Facets {
   type CountFn = IRI => Future[Int]
 
   def facet(
-      focus: IRI,
-      query: CountFn,
-      refine: MoreSpecificFn,
-      deepen: Boolean
+    focus: IRI,
+    query: CountFn,
+    refine: MoreSpecificFn,
+    deepen: Boolean
   ): Future[List[Facet]] =
     for {
       partitions <- partition(focus, query, refine)
-      expanded <- expandMax(partitions, query, refine)
-      deepened <- if (deepen)
-        Future.sequence(expanded.map(maxDepth(_, query, refine)))
-      else Future.successful(expanded)
+      expanded   <- expandMax(partitions, query, refine)
+      deepened   <- if (deepen)
+                    Future.sequence(expanded.map(maxDepth(_, query, refine)))
+                  else Future.successful(expanded)
       //_ = println(s"Deepened: $deepened")
     } yield deepened.map { case (term, count) => Facet(term, count) }.toList
+
   //yield expanded.map { case (term, count) => Facet(term, count) }.toList
 
   private def partition(
-      focus: IRI,
-      query: CountFn,
-      refine: MoreSpecificFn
-  ): Future[Map[MinimalTerm, Int]] = {
+    focus: IRI,
+    query: CountFn,
+    refine: MoreSpecificFn
+  ): Future[Map[MinimalTerm, Int]] =
     //println(s"Get children of $focus")
     refine(focus).map { children =>
       Future
@@ -48,16 +49,15 @@ object Facets {
         })
         .map(_.toMap.filter { case (term, count) => count > 0 })
     }.flatten
-  }
 
   private def expandMax(
-      accPartitions: Map[MinimalTerm, Int],
-      query: CountFn,
-      refine: MoreSpecificFn
-  ): Future[Map[MinimalTerm, Int]] = {
+    accPartitions: Map[MinimalTerm, Int],
+    query: CountFn,
+    refine: MoreSpecificFn
+  ): Future[Map[MinimalTerm, Int]] =
     if (accPartitions.nonEmpty && accPartitions.size < minimumSize) {
       val (maxChild, maxChildCount) = accPartitions.maxBy(_._2)
-      val subpartitionsFut = partition(maxChild.iri, query, refine)
+      val subpartitionsFut          = partition(maxChild.iri, query, refine)
       subpartitionsFut.flatMap { subpartitions =>
         if (subpartitions.size > 1) {
           val newPartitions = (accPartitions - maxChild) ++ subpartitions
@@ -73,12 +73,11 @@ object Facets {
         } else Future.successful(accPartitions)
       }
     } else Future.successful(accPartitions)
-  }
 
   private def maxDepth(
-      entry: (MinimalTerm, Int),
-      query: CountFn,
-      refine: MoreSpecificFn
+    entry: (MinimalTerm, Int),
+    query: CountFn,
+    refine: MoreSpecificFn
   ): Future[(MinimalTerm, Int)] = {
     // println(s"Deepening: $entry")
     val (focus, count) = entry
@@ -99,11 +98,9 @@ object Facets {
   object Facet {
 
     implicit val FacetResultsMarshaller: ToEntityMarshaller[Seq[Facet]] =
-      Marshaller.combined(results =>
-        new JsObject(Map("results" -> results.map(_.toJSON).toJson))
-      )
+      Marshaller.combined(results => new JsObject(Map("results" -> results.map(_.toJSON).toJson)))
 
-    implicit val FacetMarshaller: ToEntityMarshaller[Facet] =
+    implicit val FacetMarshaller: ToEntityMarshaller[Facet]             =
       Marshaller.combined(facet => facet.toJSON)
 
   }

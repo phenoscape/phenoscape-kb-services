@@ -22,52 +22,55 @@ import spray.json.DefaultJsonProtocol._
 
 object EQForGene {
 
-  private val factory = OWLManager.getOWLDataFactory
-  private val rdfType = ObjectProperty(Vocab.rdfType)
-  private val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
+  private val factory         = OWLManager.getOWLDataFactory
+  private val rdfType         = ObjectProperty(Vocab.rdfType)
+  private val rdfsSubClassOf  = ObjectProperty(Vocab.rdfsSubClassOf)
   private val rdfsIsDefinedBy = factory.getRDFSIsDefinedBy
-  private val UBERON = IRI.create("http://purl.obolibrary.org/obo/uberon.owl")
-  private val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
+  private val UBERON          = IRI.create("http://purl.obolibrary.org/obo/uberon.owl")
+  private val PATO            = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
+
   private val has_part_some =
     NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
+
   private val has_part_inhering_in_some =
     NamedRestrictionGenerator.getClassRelationIRI(
       Vocab.has_part_inhering_in.getIRI
     )
-  private implicit val timeout: Timeout = Timeout(10 minutes)
+
+  implicit private val timeout: Timeout = Timeout(10 minutes)
 
   def query(geneID: IRI): Future[JsArray] = {
     val result = for {
       annotations <- annotationsForGene(geneID)
     } yield {
-      val allAnnotationsFuture = Future.sequence(for {
-        annotationID <- annotations
-      } yield {
-        val entitiesFuture = entitiesForAnnotation(annotationID)
-        val qualitiesFuture = qualitiesForAnnotation(annotationID)
+      val allAnnotationsFuture = Future.sequence(
         for {
-          entities <- entitiesFuture
-          qualities <- qualitiesFuture
-        } yield Map("entity" -> entities, "quality" -> qualities).toJson
-      })
+          annotationID <- annotations
+        } yield {
+          val entitiesFuture  = entitiesForAnnotation(annotationID)
+          val qualitiesFuture = qualitiesForAnnotation(annotationID)
+          for {
+            entities  <- entitiesFuture
+            qualities <- qualitiesFuture
+          } yield Map("entity" -> entities, "quality" -> qualities).toJson
+        }
+      )
       allAnnotationsFuture.map(annotations => JsArray(annotations.toVector))
     }
     result.flatMap(identity) //FIXME this method is a bit messy
   }
 
-  def annotationsForGene(geneID: IRI): Future[Iterable[String]] = {
+  def annotationsForGene(geneID: IRI): Future[Iterable[String]] =
     App.executeSPARQLQuery(
       annotationsQuery(geneID),
       _.getResource("annotation").getURI
     )
-  }
 
-  def annotationsQuery(geneIRI: IRI): Query = {
+  def annotationsQuery(geneIRI: IRI): Query =
     select_distinct('annotation) from "http://kb.phenoscape.org/" where bgp(
       t('annotation, rdfType, Vocab.AnnotatedPhenotype),
       t('annotation, Vocab.associated_with_gene, geneIRI)
     )
-  }
 
   def qualitiesForAnnotation(annotationID: String): Future[Iterable[String]] = {
     val allSuperQualities = App.executeSPARQLQuery(
@@ -75,10 +78,10 @@ object EQForGene {
       _.getResource("quality").getURI
     )
     for {
-      superQualities <- allSuperQualities
+      superQualities      <- allSuperQualities
       superSuperQualities <- superClassesForSuperQualities(superQualities)
     } yield {
-      val superclasses = HashMultiset.create[String]
+      val superclasses     = HashMultiset.create[String]
       superSuperQualities.foreach(superclasses.add)
       val nearestQualities =
         superclasses.entrySet.asScala.filter(_.getCount == 1).map(_.getElement)
@@ -87,7 +90,7 @@ object EQForGene {
   }
 
   def superClassesForSuperQualities(
-      superQualities: Iterable[String]
+    superQualities: Iterable[String]
   ): Future[Iterable[String]] = {
     val superclasses = Future.sequence(superQualities.map { superClass =>
       App.executeSPARQLQuery(
@@ -122,10 +125,10 @@ object EQForGene {
       _.getResource("description").getURI
     )
     for {
-      entityTypesResult <- entityTypes
+      entityTypesResult  <- entityTypes
       entitySuperClasses <- superClassesForEntityTypes(entityTypesResult)
     } yield {
-      val superclasses = HashMultiset.create[String]
+      val superclasses    = HashMultiset.create[String]
       entitySuperClasses.foreach(superclasses.add)
       val nearestEntities =
         superclasses.entrySet.asScala.filter(_.getCount == 1).map(_.getElement)
@@ -134,7 +137,7 @@ object EQForGene {
   }
 
   def superClassesForEntityTypes(
-      entityTypes: Iterable[String]
+    entityTypes: Iterable[String]
   ): Future[Iterable[String]] = {
     val superclasses = Future.sequence(entityTypes.map { entityType =>
       App.executeSPARQLQuery(

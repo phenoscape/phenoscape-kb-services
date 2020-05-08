@@ -34,34 +34,42 @@ object Similarity {
   private val combined_score = ObjectProperty(
     "http://purl.org/phenoscape/vocab.owl#combined_score"
   )
+
   private val has_expect_score = ObjectProperty(
     "http://purl.org/phenoscape/vocab.owl#has_expect_score"
   )
+
   private val has_subsumer = ObjectProperty(
     "http://purl.org/phenoscape/vocab.owl#has_subsumer"
   )
+
   private val for_query_profile = ObjectProperty(
     "http://purl.org/phenoscape/vocab.owl#for_query_profile"
   )
+
   private val for_corpus_profile = ObjectProperty(
     "http://purl.org/phenoscape/vocab.owl#for_corpus_profile"
   )
+
   private val has_ic = ObjectProperty(
     "http://purl.org/phenoscape/vocab.owl#has_ic"
   )
-  val TaxaCorpus = IRI.create("http://kb.phenoscape.org/sim/taxa")
+
+  val TaxaCorpus  = IRI.create("http://kb.phenoscape.org/sim/taxa")
   val GenesCorpus = IRI.create("http://kb.phenoscape.org/sim/genes")
+
   private val has_phenotypic_profile = ObjectProperty(
     Vocab.has_phenotypic_profile
   )
+
   private val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
 
   val availableCorpora = Seq(TaxaCorpus, GenesCorpus)
 
   def evolutionaryProfilesSimilarToGene(
-      gene: IRI,
-      limit: Int = 20,
-      offset: Int = 0
+    gene: IRI,
+    limit: Int = 20,
+    offset: Int = 0
   ): Future[Seq[SimilarityMatch]] =
     App.executeSPARQLQuery(
       similarityProfileQuery(gene, TaxaCorpus, limit, offset),
@@ -69,10 +77,10 @@ object Similarity {
     )
 
   def querySimilarProfiles(
-      queryItem: IRI,
-      corpus: IRI,
-      limit: Int = 20,
-      offset: Int = 0
+    queryItem: IRI,
+    corpus: IRI,
+    limit: Int = 20,
+    offset: Int = 0
   ): Future[Seq[SimilarityMatch]] =
     App.executeSPARQLQuery(
       similarityProfileQuery(queryItem, corpus, limit, offset),
@@ -80,69 +88,58 @@ object Similarity {
     )
 
   def bestAnnotationsMatchesForComparison(
-      queryItem: IRI,
-      queryGraph: IRI,
-      corpusItem: IRI,
-      corpusGraph: IRI
+    queryItem: IRI,
+    queryGraph: IRI,
+    corpusItem: IRI,
+    corpusGraph: IRI
   ): Future[Seq[UnlabelledAnnotationPair]] = {
-    val queryInd = Individual(queryItem)
+    val queryInd  = Individual(queryItem)
     val corpusInd = Individual(corpusItem)
     (for {
-      subsumers <- bestSubsumersForComparison(
-        queryItem,
-        corpusItem,
-        corpusGraph
-      )
+      subsumers              <- bestSubsumersForComparison(
+                     queryItem,
+                     corpusItem,
+                     corpusGraph
+                   )
       subsumersWithDisparity <- Future.sequence(
-        subsumers.map(addDisparity(_, queryGraph, corpusGraph))
-      )
-    } yield {
-      subsumersWithDisparity
-        .sortBy(_.subsumer.ic)
-        .foldRight(Future(Seq.empty[UnlabelledAnnotationPair])) {
-          (subsumerWithDisparity, pairsFuture) =>
-            (for {
-              pairs <- pairsFuture
-            } yield {
-              if (pairs.size < 20) {
-                val queryAnnotationsFuture = subsumedAnnotationIRIs(
-                  queryInd,
-                  Class(subsumerWithDisparity.subsumer.term.iri)
-                )
-                val corpusAnnotationsFuture = subsumedAnnotationIRIs(
-                  corpusInd,
-                  Class(subsumerWithDisparity.subsumer.term.iri)
-                )
-                val newPairsFuture = for {
-                  pairs <- pairsFuture
-                  queryAnnotations <- queryAnnotationsFuture
-                  corpusAnnotations <- corpusAnnotationsFuture
-                } yield {
-                  for {
-                    queryAnnotation <- queryAnnotations
-                    if !pairs.exists(pair =>
-                      pair.queryAnnotation == queryAnnotation
-                    )
-                    corpusAnnotation <- corpusAnnotations.headOption
-                  } yield {
-                    UnlabelledAnnotationPair(
-                      queryAnnotation,
-                      corpusAnnotation,
-                      subsumerWithDisparity
-                    )
-                  }
-                }
-                newPairsFuture.map(pairs ++ _)
-              } else {
-                pairsFuture
-              }
-            }).flatMap(identity)
-        }
-    }).flatMap(identity).map(_.take(20))
+                                  subsumers.map(addDisparity(_, queryGraph, corpusGraph))
+                                )
+    } yield subsumersWithDisparity
+      .sortBy(_.subsumer.ic)
+      .foldRight(Future(Seq.empty[UnlabelledAnnotationPair])) { (subsumerWithDisparity, pairsFuture) =>
+        (for {
+          pairs <- pairsFuture
+        } yield
+          if (pairs.size < 20) {
+            val queryAnnotationsFuture  = subsumedAnnotationIRIs(
+              queryInd,
+              Class(subsumerWithDisparity.subsumer.term.iri)
+            )
+            val corpusAnnotationsFuture = subsumedAnnotationIRIs(
+              corpusInd,
+              Class(subsumerWithDisparity.subsumer.term.iri)
+            )
+            val newPairsFuture          = for {
+              pairs             <- pairsFuture
+              queryAnnotations  <- queryAnnotationsFuture
+              corpusAnnotations <- corpusAnnotationsFuture
+            } yield for {
+              queryAnnotation  <- queryAnnotations
+              if !pairs.exists(pair => pair.queryAnnotation == queryAnnotation)
+              corpusAnnotation <- corpusAnnotations.headOption
+            } yield UnlabelledAnnotationPair(
+              queryAnnotation,
+              corpusAnnotation,
+              subsumerWithDisparity
+            )
+            newPairsFuture.map(pairs ++ _)
+          } else
+            pairsFuture).flatMap(identity)
+      }).flatMap(identity).map(_.take(20))
   }
 
   def addLabels(
-      unlabelleds: Seq[UnlabelledAnnotationPair]
+    unlabelleds: Seq[UnlabelledAnnotationPair]
   ): Future[Seq[AnnotationPair]] = {
     val labelled = unlabelleds.foldLeft(
       Future(Map.empty[IRI, String], Seq.empty[AnnotationPair])
@@ -150,7 +147,7 @@ object Similarity {
       (for {
         (labelMap, pairs) <- accFuture
       } yield {
-        val queryAnnotationLabelFuture = labelMap
+        val queryAnnotationLabelFuture  = labelMap
           .get(pair.queryAnnotation)
           .map(Future.successful)
           .getOrElse(
@@ -167,39 +164,37 @@ object Similarity {
               .map(_.label.getOrElse(pair.corpusAnnotation.toString))
           )
         for {
-          queryAnnotationLabel <- queryAnnotationLabelFuture
+          queryAnnotationLabel  <- queryAnnotationLabelFuture
           corpusAnnotationLabel <- corpusAnnotationLabelFuture
-        } yield {
-          (
-            labelMap + (pair.queryAnnotation -> queryAnnotationLabel) + (pair.corpusAnnotation -> corpusAnnotationLabel),
-            pairs :+ AnnotationPair(
-              MinimalTerm(pair.queryAnnotation, Some(queryAnnotationLabel)),
-              MinimalTerm(pair.corpusAnnotation, Some(corpusAnnotationLabel)),
-              pair.bestSubsumer
-            )
+        } yield (
+          labelMap + (pair.queryAnnotation -> queryAnnotationLabel) + (pair.corpusAnnotation -> corpusAnnotationLabel),
+          pairs :+ AnnotationPair(
+            MinimalTerm(pair.queryAnnotation, Some(queryAnnotationLabel)),
+            MinimalTerm(pair.corpusAnnotation, Some(corpusAnnotationLabel)),
+            pair.bestSubsumer
           )
-        }
+        )
       }).flatMap(identity)
     }
     labelled.map(_._2)
   }
 
   def bestSubsumersForComparison(
-      queryItem: IRI,
-      corpusItem: IRI,
-      corpusGraph: IRI
+    queryItem: IRI,
+    corpusItem: IRI,
+    corpusGraph: IRI
   ): Future[Seq[Subsumer]] =
     for {
-      results <- App.executeSPARQLQuery(
-        comparisonSubsumersQuery(queryItem, corpusItem, corpusGraph),
-        Subsumer.fromQuery(_)
-      )
+      results   <- App.executeSPARQLQuery(
+                   comparisonSubsumersQuery(queryItem, corpusItem, corpusGraph),
+                   Subsumer.fromQuery(_)
+                 )
       subsumers <- Future.sequence(results)
     } yield subsumers.filter(_.ic > 0)
 
   def subsumedAnnotationIRIs(
-      instance: OWLNamedIndividual,
-      subsumer: OWLClass
+    instance: OWLNamedIndividual,
+    subsumer: OWLClass
   ): Future[Seq[IRI]] =
     App.executeSPARQLQuery(
       subsumedAnnotationsQuery(instance, subsumer),
@@ -207,11 +202,11 @@ object Similarity {
     )
 
   def subsumedAnnotations(
-      instance: OWLNamedIndividual,
-      subsumer: OWLClass
+    instance: OWLNamedIndividual,
+    subsumer: OWLClass
   ): Future[Seq[MinimalTerm]] =
     for {
-      irisFuture <- subsumedAnnotationIRIs(instance, subsumer)
+      irisFuture    <- subsumedAnnotationIRIs(instance, subsumer)
       labelledTerms <- Future.sequence(irisFuture.map(Term.computedLabel))
     } yield labelledTerms
 
@@ -238,9 +233,9 @@ object Similarity {
   }
 
   def icDisparity(
-      term: OWLClass,
-      queryGraph: IRI,
-      corpusGraph: IRI
+    term: OWLClass,
+    queryGraph: IRI,
+    corpusGraph: IRI
   ): Future[Double] = {
     val query = select_distinct('graph, 'ic) where (new ElementNamedGraph(
       new Node_Variable("graph"),
@@ -248,30 +243,28 @@ object Similarity {
     ))
     for {
       results <- App.executeSPARQLQuery(
-        query,
-        result =>
-          (
-            result.getResource("graph").getURI,
-            result.getLiteral("ic").getDouble
-          )
-      )
+                   query,
+                   result =>
+                     (
+                       result.getResource("graph").getURI,
+                       result.getLiteral("ic").getDouble
+                     )
+                 )
     } yield {
-      val values = results.toMap
+      val values        = results.toMap
       val differenceOpt = for {
         corpusIC <- values.get(corpusGraph.toString)
-        queryIC <- values.get(queryGraph.toString)
-      } yield {
-        corpusIC - queryIC
-      }
+        queryIC  <- values.get(queryGraph.toString)
+      } yield corpusIC - queryIC
       differenceOpt.getOrElse(0.0)
     }
   }
 
   def addDisparity(
-      subsumer: Subsumer,
-      queryGraph: IRI,
-      corpusGraph: IRI
-  ): Future[SubsumerWithDisparity] =
+    subsumer: Subsumer,
+    queryGraph: IRI,
+    corpusGraph: IRI
+  ): Future[SubsumerWithDisparity]              =
     icDisparity(Class(subsumer.term.iri), queryGraph, corpusGraph)
       .map(SubsumerWithDisparity(subsumer, _))
 
@@ -294,10 +287,10 @@ object Similarity {
   }
 
   def similarityProfileQuery(
-      queryItem: IRI,
-      corpusGraph: IRI,
-      resultLimit: Int,
-      resultOffset: Int
+    queryItem: IRI,
+    corpusGraph: IRI,
+    resultLimit: Int,
+    resultOffset: Int
   ): Query = {
     val query = select_distinct(
       'corpus_item,
@@ -323,9 +316,9 @@ object Similarity {
   }
 
   def comparisonSubsumersQuery(
-      queryItem: IRI,
-      corpusItem: IRI,
-      corpusGraph: IRI
+    queryItem: IRI,
+    corpusItem: IRI,
+    corpusGraph: IRI
   ): Query =
     select_distinct('subsumer, 'ic) from "http://kb.phenoscape.org/" from corpusGraph.toString where (
       bgp(
@@ -339,8 +332,8 @@ object Similarity {
     )
 
   def subsumedAnnotationsQuery(
-      instance: OWLNamedIndividual,
-      subsumer: OWLClass
+    instance: OWLNamedIndividual,
+    subsumer: OWLClass
   ): Query =
     select_distinct('annotation) from "http://kb.phenoscape.org/" where (bgp(
       t(instance, has_phenotypic_profile / rdfType, 'annotation)
@@ -364,43 +357,42 @@ object Similarity {
       )
 
   def stateSimilarity(
-      leftStudyIRI: IRI,
-      leftCharacterNum: Int,
-      leftSymbol: String,
-      rightStudyIRI: IRI,
-      rightCharacterNum: Int,
-      rightSymbol: String
+    leftStudyIRI: IRI,
+    leftCharacterNum: Int,
+    leftSymbol: String,
+    rightStudyIRI: IRI,
+    rightCharacterNum: Int,
+    rightSymbol: String
   ): Future[Double] = {
-    val leftSubsumersFut =
+    val leftSubsumersFut  =
       stateSubsumers(leftStudyIRI, leftCharacterNum, leftSymbol)
     val rightSubsumersFut =
       stateSubsumers(rightStudyIRI, rightCharacterNum, rightSymbol)
     for {
-      leftSubsumers <- leftSubsumersFut
+      leftSubsumers  <- leftSubsumersFut
       rightSubsumers <- rightSubsumersFut
     } yield {
       val intersectionCount = leftSubsumers.intersect(rightSubsumers).size
-      val unionCount = (leftSubsumers ++ rightSubsumers).size
+      val unionCount        = (leftSubsumers ++ rightSubsumers).size
       intersectionCount.toDouble / unionCount.toDouble
     }
   }
 
   def pairwiseJaccardSimilarity(iris: Set[IRI]): Future[Seq[JaccardScore]] =
-    Future.sequence(iris.map(iri => classSubsumers(iri).map(iri -> _))).map {
-      irisSubsumers =>
-        val irisToSubsumers = irisSubsumers.toMap
-        (for {
-          combo <- iris.toSeq.combinations(2)
-          left = combo(0)
-          right = combo(1)
-          intersectionCount = irisToSubsumers(left)
-            .intersect(irisToSubsumers(right))
-            .size
-          unionCount = (irisToSubsumers(left) ++ irisToSubsumers(right)).size
-        } yield JaccardScore(
-          Set(left, right),
-          intersectionCount.toDouble / unionCount.toDouble
-        )).toSeq
+    Future.sequence(iris.map(iri => classSubsumers(iri).map(iri -> _))).map { irisSubsumers =>
+      val irisToSubsumers = irisSubsumers.toMap
+      (for {
+        combo            <- iris.toSeq.combinations(2)
+        left              = combo(0)
+        right             = combo(1)
+        intersectionCount = irisToSubsumers(left)
+                              .intersect(irisToSubsumers(right))
+                              .size
+        unionCount        = (irisToSubsumers(left) ++ irisToSubsumers(right)).size
+      } yield JaccardScore(
+        Set(left, right),
+        intersectionCount.toDouble / unionCount.toDouble
+      )).toSeq
     }
 
   private def classSubsumers(iri: IRI): Future[Set[IRI]] = {
@@ -421,9 +413,9 @@ object Similarity {
   }
 
   private def stateSubsumers(
-      studyIRI: IRI,
-      characterNum: Int,
-      symbol: String
+    studyIRI: IRI,
+    characterNum: Int,
+    symbol: String
   ): Future[Set[IRI]] = {
     val query: QueryText =
       sparql"""
@@ -450,11 +442,11 @@ object Similarity {
 
   def frequency(terms: Set[IRI], corpus: IRI): Future[TermFrequencyTable] = {
     import scalaz.Scalaz._
-    val values =
+    val values           =
       if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ |+| _)
       else sparql""
     val query: QueryText = corpus match {
-      case TaxaCorpus =>
+      case TaxaCorpus  =>
         sparql"""
               SELECT ?term (COUNT(DISTINCT ?profile) AS ?count)
               FROM $KBMainGraph
@@ -514,22 +506,20 @@ object Similarity {
 }
 
 case class SimilarityMatch(
-    corpusProfile: MinimalTerm,
-    medianScore: Double,
-    expectScore: Double
+  corpusProfile: MinimalTerm,
+  medianScore: Double,
+  expectScore: Double
 ) extends JSONResultItem {
 
-  def toJSON: JsObject = {
+  def toJSON: JsObject =
     Map(
       "match_profile" -> corpusProfile.toJSON,
-      "median_score" -> medianScore.toJson,
-      "expect_score" -> expectScore.toJson
+      "median_score"  -> medianScore.toJson,
+      "expect_score"  -> expectScore.toJson
     ).toJson.asJsObject
-  }
 
-  override def toString(): String = {
+  override def toString(): String =
     s"${corpusProfile.iri.toString}\t${corpusProfile.label}\t$medianScore\t$expectScore"
-  }
 
 }
 
@@ -538,8 +528,7 @@ object SimilarityMatch {
   implicit val SimilarityMatchMarshaller: ToEntityMarshaller[SimilarityMatch] =
     Marshaller.stringMarshaller(MediaTypes.`text/plain`).compose(_.toString)
 
-  implicit val SimilarityMatchesTextMarshaller
-      : ToEntityMarshaller[Seq[SimilarityMatch]] = Marshaller
+  implicit val SimilarityMatchesTextMarshaller: ToEntityMarshaller[Seq[SimilarityMatch]] = Marshaller
     .stringMarshaller(MediaTypes.`text/tab-separated-values`)
     .compose { matches =>
       val header = "match IRI\tmatch label\tmedian score\texpect score"
@@ -569,55 +558,50 @@ object SimilarityMatch {
 //}
 
 case class UnlabelledAnnotationPair(
-    queryAnnotation: IRI,
-    corpusAnnotation: IRI,
-    bestSubsumer: SubsumerWithDisparity
+  queryAnnotation: IRI,
+  corpusAnnotation: IRI,
+  bestSubsumer: SubsumerWithDisparity
 ) extends JSONResultItem {
 
-  def toJSON: JsObject = {
+  def toJSON: JsObject =
     Map(
-      "query_annotation" -> Map("@id" -> queryAnnotation.toString).toJson,
+      "query_annotation"  -> Map("@id" -> queryAnnotation.toString).toJson,
       "corpus_annotation" -> Map("@id" -> corpusAnnotation.toString).toJson,
-      "best_subsumer" -> bestSubsumer.toJSON
+      "best_subsumer"     -> bestSubsumer.toJSON
     ).toJson.asJsObject
-  }
 
 }
 
 case class AnnotationPair(
-    queryAnnotation: MinimalTerm,
-    corpusAnnotation: MinimalTerm,
-    bestSubsumer: SubsumerWithDisparity
+  queryAnnotation: MinimalTerm,
+  corpusAnnotation: MinimalTerm,
+  bestSubsumer: SubsumerWithDisparity
 ) extends JSONResultItem {
 
-  def toJSON: JsObject = {
+  def toJSON: JsObject =
     Map(
-      "query_annotation" -> queryAnnotation.toJSON,
+      "query_annotation"  -> queryAnnotation.toJSON,
       "corpus_annotation" -> corpusAnnotation.toJSON,
-      "best_subsumer" -> bestSubsumer.toJSON
+      "best_subsumer"     -> bestSubsumer.toJSON
     ).toJson.asJsObject
-  }
 
 }
 
 case class Subsumer(term: MinimalTerm, ic: Double) extends JSONResultItem {
 
-  def toJSON: JsObject = {
+  def toJSON: JsObject =
     Map("term" -> term.toJSON, "ic" -> ic.toJson).toJson.asJsObject
-  }
 
 }
 
-case class SubsumerWithDisparity(subsumer: Subsumer, disparity: Double)
-    extends JSONResultItem {
+case class SubsumerWithDisparity(subsumer: Subsumer, disparity: Double) extends JSONResultItem {
 
-  def toJSON: JsObject = {
+  def toJSON: JsObject =
     Map(
-      "term" -> subsumer.term.toJSON,
-      "ic" -> subsumer.ic.toJson,
+      "term"      -> subsumer.term.toJSON,
+      "ic"        -> subsumer.ic.toJson,
       "disparity" -> disparity.toJson
     ).toJson.asJsObject
-  }
 
 }
 
@@ -634,9 +618,8 @@ object Subsumer {
 
 case class JaccardScore(terms: Set[IRI], score: Double) extends JSONResultItem {
 
-  def toJSON: JsObject = {
+  def toJSON: JsObject =
     Map("terms" -> terms.map(_.toString).toJson, "score" -> score.toJson).toJson
       .asJsObject()
-  }
 
 }
