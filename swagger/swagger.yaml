@@ -1312,6 +1312,9 @@ paths:
             application/json:
               '@id': http://purl.obolibrary.org/obo/VTO_9020379
               label: Diplocaulus
+              synonyms:
+                - property: http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym
+                  value: Permoplatyops
               extinct: true
               rank:
                 '@id': http://purl.obolibrary.org/obo/TAXRANK_0000005

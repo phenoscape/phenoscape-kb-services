@@ -11,6 +11,7 @@ import org.apache.jena.rdf.model.Resource
 import org.apache.jena.rdf.model.ResourceFactory
 import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.expr.{E_Coalesce, Expr, ExprList, ExprVar}
+import org.apache.jena.sparql.path.{P_Link, P_OneOrMore1}
 import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueString
@@ -31,7 +32,9 @@ import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
-import org.semanticweb.owlapi.model.IRI
+import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.semanticweb.owlapi.model.{IRI, OWLClassExpression, OWLEntity, OWLObject}
 import org.semanticweb.owlapi.model.OWLClassExpression
 import akka.http.scaladsl.marshalling.Marshaller
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
@@ -47,8 +50,27 @@ object Taxon {
   val is_extinct = ObjectProperty("http://purl.obolibrary.org/obo/vto#is_extinct")
   val has_rank = ObjectProperty("http://purl.obolibrary.org/obo/vto#has_rank")
 
-  def withIRI(iri: IRI): Future[Option[TaxonInfo]] =
-    App.executeSPARQLQuery(buildTaxonQuery(iri), Taxon.fromIRIQuery(iri)).map(_.headOption)
+  def withIRI(iri: IRI): Future[Option[TaxonInfo]] = {
+    def fromIRIQuery(result: QuerySolution) = (
+        iri,
+        result.getLiteral("label").getLexicalForm,
+        Option(result.getLiteral("rank_label")).map(label => MinimalTerm(IRI.create(result.getResource("rank").getURI), Some(label.getLexicalForm))),
+        Option(result.getLiteral("common_name")).map(_.getString),
+        Option(result.getLiteral("is_extinct")).map(_.getBoolean).getOrElse(false)
+      )
+
+    val taxonFuture = App.executeSPARQLQuery(buildTaxonQuery(iri), fromIRIQuery).map(_.headOption)
+    val synonymsFuture = taxonSynonyms(iri)
+
+    for {
+      taxon <- taxonFuture
+      synonyms <- synonymsFuture
+    } yield {
+      taxon.map {
+        case (iri, label, rank_label, common_name, is_extinct) => TaxonInfo(iri, label, rank_label, common_name, synonyms, is_extinct)
+      }
+    }
+  }
 
   def withPhenotypeExpression(entity: OWLClassExpression = OWLThing, quality: OWLClassExpression = OWLThing, inTaxonOpt: Option[IRI], publicationOpt: Option[IRI], includeParts: Boolean, includeHistoricalHomologs: Boolean, includeSerialHomologs: Boolean, limit: Int = 20, offset: Int = 0): Future[Seq[Taxon]] = {
     for {
@@ -283,22 +305,24 @@ object Taxon {
     }
   }
 
-  //  def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil, limit: Int = 20, offset: Int = 0): Query = {
-  //    val query = buildBasicQuery(entity, taxon, publications)
-  //    query.addResultVar('taxon)
-  //    query.addResultVar('taxon_label)
-  //    query.setOffset(offset)
-  //    if (limit > 0) query.setLimit(limit)
-  //    query.addOrderBy('taxon_label)
-  //    query.addOrderBy('taxon)
-  //    query
-  //  }
-  //
-  //  def buildTotalQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {
-  //    val query = buildBasicQuery(entity, taxon, publications)
-  //    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
-  //    query
-  //  }
+
+  def taxonSynonyms(iri: IRI): Future[Seq[(IRI, String)]] = {
+    val query =
+      sparql"""
+      SELECT DISTINCT ?relation ?synonym
+      FROM $KBMainGraph
+      WHERE {
+        VALUES ?relation {
+      		  $hasExactSynonym
+      		  $hasRelatedSynonym
+      		  $hasNarrowSynonym
+      		  $hasBroadSynonym
+          }
+    		  $iri ?relation ?synonym .
+      }
+      """
+    App.executeSPARQLQueryString(query.text, result => IRI.create(result.getResource("relation").getURI) -> result.getLiteral("synonym").getLexicalForm)
+  }
 
   def buildTaxonQuery(iri: IRI): Query =
     select_distinct('label, 'is_extinct, 'rank, 'rank_label, 'common_name) from "http://kb.phenoscape.org/" where(
@@ -369,12 +393,6 @@ object Taxon {
     IRI.create(result.getResource("taxon").getURI),
     result.getLiteral("taxon_label").getLexicalForm)
 
-  def fromIRIQuery(iri: IRI)(result: QuerySolution): TaxonInfo = TaxonInfo(
-    iri,
-    result.getLiteral("label").getLexicalForm,
-    Option(result.getLiteral("rank_label")).map(label => MinimalTerm(IRI.create(result.getResource("rank").getURI), Some(label.getLexicalForm))),
-    Option(result.getLiteral("common_name")).map(_.getString),
-    Option(result.getLiteral("is_extinct")).map(_.getBoolean).getOrElse(false))
 
   def newickTreeWithRoot(iri: IRI): Future[String] = {
     val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
@@ -455,16 +473,18 @@ case class Taxon(iri: IRI, label: String) extends JSONResultItem {
 
 }
 
-case class TaxonInfo(iri: IRI, label: String, rank: Option[MinimalTerm], commonName: Option[String], extinct: Boolean) extends JSONResultItem {
+case class TaxonInfo(iri: IRI, label: String, rank: Option[MinimalTerm], commonName: Option[String], synonyms: Seq[(IRI, String)], extinct: Boolean) extends JSONResultItem {
 
-  def toJSON: JsObject = {
-    (Map(
+  def toJSON: JsObject =
+    Map(
       "@id" -> iri.toString.toJson,
       "label" -> label.toJson,
-      "extinct" -> extinct.toJson) ++
-      rank.map("rank" -> _.toJSON) ++
-      commonName.map("common_name" -> _.toJson)).toJson.asJsObject
-  }
-
+      "extinct" -> extinct.toJson,
+      "synonyms" -> synonyms.map {
+        case (iri, value) =>
+          JsObject("property" -> iri.toString.toJson, "value" -> value.toJson).toJson
+      }.toJson,
+      "rank" -> rank.map(_.toJSON).toJson,
+      "common_name" -> commonName.map(_.toJson).toJson
+    ).toJson.asJsObject
 }
-
