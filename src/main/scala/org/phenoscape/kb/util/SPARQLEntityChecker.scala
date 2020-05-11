@@ -62,9 +62,10 @@ object SPARQLEntityChecker extends OWLEntityChecker {
     (qs: QuerySolution) => func(IRI.create(qs.getResource("iri").getURI))
 
   private def queryResult[T >: Null](label: String, entityType: IRI, entityConstructor: IRI => T): T = {
-    val queryLabel = if (label.startsWith("'") && label.endsWith("'")) label.drop(1).dropRight(1)
-    else label
-    val query = buildQuery(queryLabel, entityType)
+    val queryLabel =
+      if (label.startsWith("'") && label.endsWith("'")) label.drop(1).dropRight(1)
+      else label
+    val query      = buildQuery(queryLabel, entityType)
     Await.result(App.executeSPARQLQueryString(query, resultFrom(entityConstructor)), 60.seconds).headOption.orNull
   }
 

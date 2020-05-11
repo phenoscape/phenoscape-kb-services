@@ -29,7 +29,8 @@ object Graph {
       t('existential_node, classRelation, focalTerm),
       t('existential_subclass, rdfsSubClassOf, 'existential_node),
       t('existential_subclass, classRelation, 'term),
-      t('term, rdfsLabel, 'term_label))
+      t('term, rdfsLabel, 'term_label)
+    )
   }
 
   private def buildPropertyNeighborsQuerySubject(focalTerm: IRI, property: IRI): Query = {
@@ -38,7 +39,8 @@ object Graph {
       t('existential_node, classRelation, focalTerm),
       t('existential_node, rdfsSubClassOf, 'existential_superclass),
       t('existential_superclass, classRelation, 'term),
-      t('term, rdfsLabel, 'term_label))
+      t('term, rdfsLabel, 'term_label)
+    )
   }
 
   def ancestorMatrix(terms: Set[IRI]): Future[AncestorMatrix] = {
@@ -47,7 +49,7 @@ object Graph {
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
       val valuesElements = terms.map(t => sparql" $t ").reduce(_ |+| _)
-      val query =
+      val query          =
         sparql"""
        SELECT DISTINCT ?term ?ancestor
        FROM $KBClosureGraph
@@ -56,21 +58,23 @@ object Graph {
          ?term $rdfsSubClassOf ?ancestor .
        }
           """
-      val futurePairs = App.executeSPARQLQueryString(query.text, qs => {
-        val term = qs.getResource("term").getURI
-        val ancestor = qs.getResource("ancestor").getURI
-        (term, ancestor)
-      })
+      val futurePairs    = App.executeSPARQLQueryString(query.text,
+                                                     qs => {
+                                                       val term     = qs.getResource("term").getURI
+                                                       val ancestor = qs.getResource("ancestor").getURI
+                                                       (term, ancestor)
+                                                     })
       for {
         pairs <- futurePairs
       } yield {
-        val termsSequence = terms.map(_.toString).toSeq.sorted
-        val header = s",${termsSequence.mkString(",")}"
+        val termsSequence     = terms.map(_.toString).toSeq.sorted
+        val header            = s",${termsSequence.mkString(",")}"
         val groupedByAncestor = pairs.groupBy(_._2)
-        val valuesLines = groupedByAncestor.map { case (ancestor, ancPairs) =>
-          val termsForAncestor = ancPairs.map(_._1).toSet
-          val values = termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
-          s"$ancestor,${values.mkString(",")}"
+        val valuesLines       = groupedByAncestor.map {
+          case (ancestor, ancPairs) =>
+            val termsForAncestor = ancPairs.map(_._1).toSet
+            val values           = termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
+            s"$ancestor,${values.mkString(",")}"
         }
         AncestorMatrix(s"$header\n${valuesLines.mkString("\n")}")
       }
@@ -81,7 +85,8 @@ object Graph {
 
   object AncestorMatrix {
 
-    implicit val matrixMarshaller: ToEntityMarshaller[AncestorMatrix] = Marshaller.stringMarshaller(MediaTypes.`text/csv`).compose(_.csv)
+    implicit val matrixMarshaller: ToEntityMarshaller[AncestorMatrix] =
+      Marshaller.stringMarshaller(MediaTypes.`text/csv`).compose(_.csv)
 
   }
 
