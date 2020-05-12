@@ -24,8 +24,7 @@ object ResultCount {
 
 case class ResultCount(count: Int) {
 
-  def toJSON: JsObject = {
+  def toJSON: JsObject =
     Map("total" -> count).toJson.asJsObject
-  }
 
 }

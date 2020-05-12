@@ -13,11 +13,12 @@ object QueryUtil {
 
   object QualitySpec {
 
-    def fromIRI(iri: IRI): QualitySpec = iri match {
-      case KBVocab.InferredPresence => InferredPresence
-      case KBVocab.InferredAbsence  => InferredAbsence
-      case other                    => PhenotypicQuality(Some(other))
-    }
+    def fromIRI(iri: IRI): QualitySpec =
+      iri match {
+        case KBVocab.InferredPresence => InferredPresence
+        case KBVocab.InferredAbsence  => InferredAbsence
+        case other                    => PhenotypicQuality(Some(other))
+      }
 
   }
 

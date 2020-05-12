@@ -4,7 +4,8 @@ object Util {
 
   implicit class TraversableOps[A](self: Traversable[A]) {
 
-    def groupMap[K, B](key: A => K)(f: A => B): Map[K, Set[B]] = self.groupBy(key).map { case (k, vs) => k -> vs.map(f).toSet }
+    def groupMap[K, B](key: A => K)(f: A => B): Map[K, Set[B]] =
+      self.groupBy(key).map { case (k, vs) => k -> vs.map(f).toSet }
 
   }
 
