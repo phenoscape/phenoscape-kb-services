@@ -51,7 +51,8 @@ libraryDependencies ++= {
     "org.bbop"               %  "oboformat"               % "0.5.5" exclude("net.sourceforge.owlapi", "owlapi-apibinding"), // exclude("log4j", "log4j"),
     "ch.qos.logback"         %  "logback-classic"         % "1.2.3",
     "org.codehaus.groovy"    %  "groovy-all"              % "2.5.11",
-    "org.phenoscape"         %% "sparql-interpolator"     % "1.1",
+    "org.phenoscape"         %% "sparql-utils"            % "1.2",
+    "org.phenoscape"         %% "sparql-utils-owlapi"     % "1.2",
     "com.lihaoyi"            %% "utest"                   % "0.7.4" % Test
   )
 }

@@ -12,7 +12,7 @@ import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.kb.queries.QueryUtil.{PhenotypicQuality, QualitySpec}
 import org.phenoscape.kb.queries.TaxonAnnotations
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.phenoscape.kb.util.StreamingSPARQLResults
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.sparql.SPARQLInterpolation._
