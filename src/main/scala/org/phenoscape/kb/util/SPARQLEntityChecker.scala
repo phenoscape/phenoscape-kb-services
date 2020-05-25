@@ -12,6 +12,7 @@ import org.apache.jena.vocabulary.RDFS
 import org.phenoscape.kb.KBVocab.KBMainGraph
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.sparql.SPARQLInterpolation._
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.expression.OWLEntityChecker
 import org.semanticweb.owlapi.model.IRI

@@ -5,9 +5,10 @@ import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.queries.QueryUtil.QualitySpec
 import org.phenoscape.kb.util.BlazegraphNamedSubquery
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.semanticweb.owlapi.model.IRI
 import scalaz.Scalaz._
 import scalaz._
@@ -38,7 +39,7 @@ object DirectPhenotypesForTaxon {
     } yield {
       val unifiedQueries    = BlazegraphNamedSubquery.unifyQueries(subqueries)
       val namedQueriesBlock =
-        if (unifiedQueries.nonEmpty) unifiedQueries.map(_.namedQuery).reduce(_ |+| _) else sparql""
+        if (unifiedQueries.nonEmpty) unifiedQueries.map(_.namedQuery).reduce(_ + _) else sparql""
       val paging            = if (limit > 0) sparql"LIMIT $limit OFFSET $offset" else sparql""
       val query             =
         if (countOnly)
@@ -122,8 +123,8 @@ object DirectPhenotypesForTaxon {
       val blocks        = (components match {
         case Nil          => List(sparql"")
         case head :: Nil  => components
-        case head :: tail => head :: tail.map(sparql" UNION " |+| _)
-      }).reduce(_ |+| _)
+        case head :: tail => head :: tail.map(sparql" UNION " + _)
+      }).reduce(_ + _)
       sparql"""
       WHERE {
         $blocks
@@ -137,7 +138,7 @@ object DirectPhenotypesForTaxon {
                                    phenotypeQueries: Set[BlazegraphNamedSubquery]): QueryText = {
     // triple pattern without variables must go inside filter
     val taxonConstraints = (for { inTaxon <- inTaxa } yield sparql"FILTER EXISTS { $taxon $rdfsSubClassOf $inTaxon . }")
-      .fold(sparql"")(_ |+| _)
+      .fold(sparql"")(_ + _)
     val subQueryRefs     = QueryText(phenotypeQueries.map(q => sparql"$q").map(_.text).mkString("\n"))
     sparql"""
       {

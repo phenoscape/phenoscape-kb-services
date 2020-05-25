@@ -24,6 +24,7 @@ import spray.json._
 import spray.json.DefaultJsonProtocol._
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 
 object Phenotype {
 

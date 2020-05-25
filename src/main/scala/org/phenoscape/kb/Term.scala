@@ -25,6 +25,7 @@ import org.phenoscape.owl.util.ExpressionsUtil
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.manchestersyntax.parser.ManchesterOWLSyntaxClassExpressionParser
 import org.semanticweb.owlapi.manchestersyntax.renderer.{ManchesterOWLSyntaxOWLObjectRendererImpl, ParserException}
@@ -430,7 +431,7 @@ object Term {
     val deprecatedFilter =
       if (includeDeprecated) sparql"" else sparql" FILTER NOT EXISTS { ?term $owlDeprecated true . } "
     val definedByPattern = if (definedBys.nonEmpty) {
-      val definedByValues = definedBys.map(ont => sparql" $ont ").reduce(_ |+| _)
+      val definedByValues = definedBys.map(ont => sparql" $ont ").reduce(_ + _)
       sparql"""
                 VALUES ?definingOnt { $definedByValues }
                 ?term $rdfsIsDefinedBy ?definingOnt .
@@ -439,7 +440,7 @@ object Term {
     val termToTextRel    = (if (properties.nonEmpty) properties else List(RDFSLabel.getIRI))
       .map(p => sparql"$p")
       .intersperse(sparql" | ")
-      .reduce(_ |+| _)
+      .reduce(_ + _)
     sparql"""
             SELECT DISTINCT ?term ?term_label ?ont
             FROM $KBMainGraph
@@ -502,9 +503,7 @@ object Term {
   }
 
   def buildLabelsQuery(iris: IRI*): Query = {
-    import scalaz.Scalaz._
-    import scalaz._
-    val terms                = iris.map(iri => sparql" $iri ").fold(sparql"")(_ |+| _)
+    val terms                = iris.map(iri => sparql" $iri ").fold(sparql"")(_ + _)
     val queryText: QueryText =
       sparql"""
     SELECT ?term (MIN(?term_lbl) AS ?term_label)
