@@ -10,6 +10,7 @@ import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolation.QueryText
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.semanticweb.owlapi.model.IRI
 
 import scala.concurrent.Future
@@ -48,7 +49,7 @@ object Graph {
     import Scalaz._
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
-      val valuesElements = terms.map(t => sparql" $t ").reduce(_ |+| _)
+      val valuesElements = terms.map(t => sparql" $t ").reduce(_ + _)
       val query          =
         sparql"""
        SELECT DISTINCT ?term ?ancestor

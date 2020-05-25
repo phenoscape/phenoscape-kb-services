@@ -33,6 +33,7 @@ import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpre
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.semanticweb.owlapi.model.{IRI, OWLClassExpression, OWLEntity, OWLObject}
 import org.semanticweb.owlapi.model.OWLClassExpression

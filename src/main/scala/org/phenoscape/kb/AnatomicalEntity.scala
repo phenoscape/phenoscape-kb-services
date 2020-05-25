@@ -8,6 +8,7 @@ import org.phenoscape.kb.Similarity.rdfsSubClassOf
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation._
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.owl.{NamedRestrictionGenerator, Vocab}
 import org.semanticweb.owlapi.model.IRI
@@ -124,7 +125,7 @@ object AnatomicalEntity {
   private def queryImpliesPresenceOfMulti(terms: Iterable[IRI]): QueryText = {
     import scalaz._
     import Scalaz._
-    val valuesList = terms.map(t => sparql" $t ").fold(sparql"")(_ |+| _)
+    val valuesList = terms.map(t => sparql" $t ").fold(sparql"")(_ + _)
     sparql"""
             PREFIX hint: <http://www.bigdata.com/queryHints#>
             SELECT DISTINCT ?x ?y

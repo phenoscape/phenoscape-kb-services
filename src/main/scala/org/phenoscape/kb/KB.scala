@@ -25,6 +25,7 @@ import spray.json.DefaultJsonProtocol._
 import java.util.Date
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.sparql.SPARQLInterpolation._
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.phenoscape.sparql.SPARQLInterpolation.QueryText
 import org.openrdf.model.vocabulary.DCTERMS
 import org.apache.jena.vocabulary.DCTerms

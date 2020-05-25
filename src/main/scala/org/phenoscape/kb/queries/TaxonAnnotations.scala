@@ -9,6 +9,7 @@ import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.semanticweb.owlapi.model.IRI
 import scalaz.Scalaz._
 import scalaz._
@@ -41,7 +42,7 @@ object TaxonAnnotations {
     } yield {
       val unifiedQueries    = BlazegraphNamedSubquery.unifyQueries(subqueries)
       val namedQueriesBlock =
-        if (unifiedQueries.nonEmpty) unifiedQueries.map(_.namedQuery).reduce(_ |+| _) else sparql""
+        if (unifiedQueries.nonEmpty) unifiedQueries.map(_.namedQuery).reduce(_ + _) else sparql""
       val paging            = if (limit > 0) sparql"LIMIT $limit OFFSET $offset" else sparql""
       val query             =
         if (countOnly)
@@ -125,8 +126,8 @@ object TaxonAnnotations {
       val blocks        = (components match {
         case Nil          => List(sparql"")
         case head :: Nil  => components
-        case head :: tail => head :: tail.map(sparql" UNION " |+| _)
-      }).reduce(_ |+| _)
+        case head :: tail => head :: tail.map(sparql" UNION " + _)
+      }).reduce(_ + _)
       sparql"""
       WHERE {
         $blocks
@@ -139,7 +140,7 @@ object TaxonAnnotations {
                                    publicationOpt: Option[IRI],
                                    phenotypeQueries: Set[BlazegraphNamedSubquery]): QueryText = {
     val taxonConstraints =
-      (for { taxon <- inTaxa } yield sparql"?taxon $rdfsSubClassOf $taxon . ").fold(sparql"")(_ |+| _)
+      (for { taxon <- inTaxa } yield sparql"?taxon $rdfsSubClassOf $taxon . ").fold(sparql"")(_ + _)
     val subQueryRefs     = QueryText(phenotypeQueries.map(q => sparql"$q").map(_.text).mkString("\n"))
     val publicationVal   = publicationOpt.map(pub => sparql"VALUES ?matrix { $pub }").getOrElse(sparql"")
     sparql"""
