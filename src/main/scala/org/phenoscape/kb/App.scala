@@ -17,33 +17,36 @@ import org.apache.jena.sparql.syntax.ElementService
 import org.phenoscape.kb.Main.system
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.owlet.SPARQLComposer._
+import org.phenoscape.sparql.FromQuerySolution
 import org.semanticweb.owlapi.model.IRI
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import org.phenoscape.sparql.FromQuerySolution.mapSolution
+import org.phenoscape.sparql.FromQuerySolutionOWL._
 
 object App {
 
-  implicit val timeout                 = Timeout(10 minutes)
-  private val Prior                    = IRI.create("http://www.bigdata.com/queryHints#Prior")
-  private val RunFirst                 = IRI.create("http://www.bigdata.com/queryHints#runFirst")
-  private val HintQuery                = IRI.create("http://www.bigdata.com/queryHints#Query")
-  private val HintAnalytic             = IRI.create("http://www.bigdata.com/queryHints#analytic")
-  private val HintOptimizer            = IRI.create("http://www.bigdata.com/queryHints#optimizer")
-  val BigdataRunPriorFirst             = bgp(t(Prior, RunFirst, "true" ^^ XSDDatatype.XSDboolean))
-  val BigdataAnalyticQuery             = t(HintQuery, HintAnalytic, "true" ^^ XSDDatatype.XSDboolean)
-  val BigdataNoOptimizer               = t(HintQuery, HintOptimizer, "None" ^^ XSDDatatype.XSDstring)
+  implicit val timeout      = Timeout(10 minutes)
+  private val Prior         = IRI.create("http://www.bigdata.com/queryHints#Prior")
+  private val RunFirst      = IRI.create("http://www.bigdata.com/queryHints#runFirst")
+  private val HintQuery     = IRI.create("http://www.bigdata.com/queryHints#Query")
+  private val HintAnalytic  = IRI.create("http://www.bigdata.com/queryHints#analytic")
+  private val HintOptimizer = IRI.create("http://www.bigdata.com/queryHints#optimizer")
+  val BigdataRunPriorFirst  = bgp(t(Prior, RunFirst, "true" ^^ XSDDatatype.XSDboolean))
+  val BigdataAnalyticQuery  = t(HintQuery, HintAnalytic, "true" ^^ XSDDatatype.XSDboolean)
+  val BigdataNoOptimizer    = t(HintQuery, HintOptimizer, "None" ^^ XSDDatatype.XSDstring)
 
   val `application/sparql-results+xml` =
     MediaType.applicationWithFixedCharset("sparql-results+xml", HttpCharsets.`UTF-8`, "xml")
 
-  val `application/sparql-query`       =
+  val `application/sparql-query` =
     MediaType.applicationWithFixedCharset("sparql-query", HttpCharsets.`UTF-8`, "rq", "sparql")
 
-  val `application/rdf+xml`            = MediaType.applicationWithFixedCharset("rdf+xml", HttpCharsets.`UTF-8`, "rdf")
-  val `application/ld+json`            = MediaType.applicationWithFixedCharset("ld+json", HttpCharsets.`UTF-8`, "jsonld")
+  val `application/rdf+xml` = MediaType.applicationWithFixedCharset("rdf+xml", HttpCharsets.`UTF-8`, "rdf")
+  val `application/ld+json` = MediaType.applicationWithFixedCharset("ld+json", HttpCharsets.`UTF-8`, "jsonld")
 
   val conf            = ConfigFactory.load()
   val KBEndpoint: Uri = Uri(conf.getString("kb-services.kb.endpoint"))
@@ -59,6 +62,17 @@ object App {
     for {
       resultSet <- sparqlSelectQuery(query)
     } yield resultSet.asScala.map(resultMapper).toSeq
+
+  def executeSPARQLQueryCase[T: FromQuerySolution](query: Query): Future[Seq[T]] =
+    executeSPARQLQueryStringCase[T](query.toString)
+
+  def executeSPARQLQueryStringCase[T: FromQuerySolution](query: String): Future[Seq[T]] =
+    for {
+      resultSet    <- sparqlSelectQuery(query)
+      results       = resultSet.asScala.map(mapSolution[T])
+      asFutures     = results.map(Future.fromTry)
+      validResults <- Future.sequence(asFutures)
+    } yield validResults.toSeq
 
   def executeSPARQLQueryString[T](queryString: String, resultMapper: QuerySolution => T): Future[Seq[T]] =
     for {
