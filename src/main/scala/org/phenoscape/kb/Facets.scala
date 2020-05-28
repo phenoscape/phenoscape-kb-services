@@ -21,8 +21,8 @@ object Facets {
   def facet(focus: IRI, query: CountFn, refine: MoreSpecificFn, deepen: Boolean): Future[List[Facet]] =
     for {
       partitions <- partition(focus, query, refine)
-      expanded   <- expandMax(partitions, query, refine)
-      deepened   <- if (deepen) Future.sequence(expanded.map(maxDepth(_, query, refine))) else Future.successful(expanded)
+      expanded <- expandMax(partitions, query, refine)
+      deepened <- if (deepen) Future.sequence(expanded.map(maxDepth(_, query, refine))) else Future.successful(expanded)
       //_ = println(s"Deepened: $deepened")
     } yield deepened.map { case (term, count) => Facet(term, count) }.toList
 
@@ -44,7 +44,7 @@ object Facets {
                         refine: MoreSpecificFn): Future[Map[MinimalTerm, Int]] =
     if (accPartitions.nonEmpty && accPartitions.size < minimumSize) {
       val (maxChild, maxChildCount) = accPartitions.maxBy(_._2)
-      val subpartitionsFut          = partition(maxChild.iri, query, refine)
+      val subpartitionsFut = partition(maxChild.iri, query, refine)
       subpartitionsFut.flatMap { subpartitions =>
         if (subpartitions.size > 1) {
           val newPartitions = (accPartitions - maxChild) ++ subpartitions
@@ -78,7 +78,7 @@ object Facets {
     implicit val FacetResultsMarshaller: ToEntityMarshaller[Seq[Facet]] =
       Marshaller.combined(results => new JsObject(Map("results" -> results.map(_.toJSON).toJson)))
 
-    implicit val FacetMarshaller: ToEntityMarshaller[Facet]             = Marshaller.combined(facet => facet.toJSON)
+    implicit val FacetMarshaller: ToEntityMarshaller[Facet] = Marshaller.combined(facet => facet.toJSON)
 
   }
 

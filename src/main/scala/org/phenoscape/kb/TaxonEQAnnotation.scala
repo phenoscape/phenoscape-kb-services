@@ -5,8 +5,8 @@ import org.phenoscape.scowl._
 
 object TaxonEQAnnotation {
 
-  val ps_entity_term         = ObjectProperty(entity_term.getIRI)
-  val ps_quality_term        = ObjectProperty(quality_term.getIRI)
+  val ps_entity_term = ObjectProperty(entity_term.getIRI)
+  val ps_quality_term = ObjectProperty(quality_term.getIRI)
   val ps_related_entity_term = ObjectProperty(related_entity_term.getIRI)
 
   //  private def buildQuery(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing, publications: Iterable[IRI] = Nil): Query = {

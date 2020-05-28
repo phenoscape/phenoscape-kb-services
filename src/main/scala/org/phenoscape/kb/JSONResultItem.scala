@@ -23,7 +23,7 @@ object JSONResultItem {
   implicit val JSONResultItemsMarshaller: ToEntityMarshaller[Seq[JSONResultItem]] =
     Marshaller.combined(results => new JsObject(Map("results" -> results.map(_.toJSON).toJson)))
 
-  val jsonStreamingSupport: JsonEntityStreamingSupport                            = EntityStreamingSupport
+  val jsonStreamingSupport: JsonEntityStreamingSupport = EntityStreamingSupport
     .json()
     .withFramingRenderer(
       Flow[ByteString].intersperse(ByteString("{\"results\":["), ByteString(","), ByteString("]}"))
