@@ -29,6 +29,12 @@ import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLEntity
 import spray.json._
 import spray.json.DefaultJsonProtocol._
+import org.phenoscape.sparql.SPARQLInterpolation._
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
+import org.phenoscape.sparql.FromQuerySolutionOWL._
+import org.phenoscape.kb.KBVocab.KBMainGraph
+
+import scala.language.higherKinds
 
 object Study {
 
@@ -37,15 +43,18 @@ object Study {
   val Chordata = Class(CHORDATA)
 
   def withIRI(iri: IRI): Future[Option[Study]] =
-    App.executeSPARQLQuery(buildStudyQuery(iri), Study.fromIRIQuery(iri)).map(_.headOption)
+    App.executeSPARQLQueryCase[Study](buildStudyQuery(iri)).map(_.headOption)
 
   def buildStudyQuery(iri: IRI): Query =
-    select_distinct('label, 'citation) from "http://kb.phenoscape.org/" where (bgp(
-      t(iri, rdfsLabel, 'label),
-      t(iri, dcBibliographicCitation, 'citation)))
-
-  def fromIRIQuery(iri: IRI)(result: QuerySolution): Study =
-    Study(iri, result.getLiteral("label").getLexicalForm, result.getLiteral("citation").getLexicalForm)
+    sparql"""
+          SELECT DISTINCT ?iri ?label ?citation
+          FROM $KBMainGraph
+          WHERE {
+            VALUES ?iri { $iri }
+            ?iri $rdfsLabel ?label .
+            ?iri $dcBibliographicCitation ?citation .
+          }
+          """.toQuery
 
   def queryStudies(entity: Option[IRI],
                    quality: QualitySpec,
@@ -433,7 +442,7 @@ object Study {
 
 }
 
-case class Study(iri: IRI, label: String, citation: String) extends JSONResultItem {
+final case class Study(iri: IRI, label: String, citation: String) extends JSONResultItem {
 
   def toJSON: JsObject =
     (Map("@id" -> iri.toString.toJson, "label" -> label.toJson, "citation" -> citation.toJson)).toJson.asJsObject

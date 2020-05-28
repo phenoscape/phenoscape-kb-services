@@ -17,12 +17,15 @@ import org.apache.jena.sparql.syntax.ElementService
 import org.phenoscape.kb.Main.system
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.owlet.SPARQLComposer._
+import org.phenoscape.sparql.FromQuerySolution
 import org.semanticweb.owlapi.model.IRI
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import org.phenoscape.sparql.FromQuerySolution.mapSolution
+import org.phenoscape.sparql.FromQuerySolutionOWL._
 
 object App {
 
@@ -59,6 +62,17 @@ object App {
     for {
       resultSet <- sparqlSelectQuery(query)
     } yield resultSet.asScala.map(resultMapper).toSeq
+
+  def executeSPARQLQueryCase[T: FromQuerySolution](query: Query): Future[Seq[T]] =
+    executeSPARQLQueryStringCase[T](query.toString)
+
+  def executeSPARQLQueryStringCase[T: FromQuerySolution](query: String): Future[Seq[T]] =
+    for {
+      resultSet    <- sparqlSelectQuery(query)
+      results       = resultSet.asScala.map(mapSolution[T])
+      asFutures     = results.map(Future.fromTry)
+      validResults <- Future.sequence(asFutures)
+    } yield validResults.toSeq
 
   def executeSPARQLQueryString[T](queryString: String, resultMapper: QuerySolution => T): Future[Seq[T]] =
     for {
