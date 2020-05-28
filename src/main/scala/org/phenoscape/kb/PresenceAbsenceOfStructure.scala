@@ -82,37 +82,37 @@ object PresenceAbsenceOfStructure {
                             taxonClass: OWLClassExpression,
                             variableOnly: Boolean,
                             includeParts: Boolean): Future[DataSet] = {
-    val entityClass  = if (includeParts) mainEntityClass or (part_of some mainEntityClass) else mainEntityClass
+    val entityClass = if (includeParts) mainEntityClass or (part_of some mainEntityClass) else mainEntityClass
     val buildDateFut = KB.buildDate
     for {
-      query     <- App.expandWithOwlet(buildMatrixQuery(entityClass, taxonClass))
-      model     <- App.executeSPARQLConstructQuery(query)
+      query <- App.expandWithOwlet(buildMatrixQuery(entityClass, taxonClass))
+      model <- App.executeSPARQLConstructQuery(query)
       buildDate <- buildDateFut
     } yield {
-      val dataset                                    = new DataSet()
+      val dataset = new DataSet()
       dataset.setCurators("Phenoscape KB built on " + buildDate.toString)
       val characters: mutable.Map[String, Character] = mutable.Map()
-      val states: mutable.Map[String, State]         = mutable.Map()
-      val taxa: mutable.Map[String, MatrixTaxon]     = mutable.Map()
-      val presencesAndAbsences                       = {
-        val allPresences  = model.listStatements(null, has_presence_of, null).asScala.toSet
-        val allAbsences   = model.listStatements(null, has_absence_of, null).asScala.toSet
+      val states: mutable.Map[String, State] = mutable.Map()
+      val taxa: mutable.Map[String, MatrixTaxon] = mutable.Map()
+      val presencesAndAbsences = {
+        val allPresences = model.listStatements(null, has_presence_of, null).asScala.toSet
+        val allAbsences = model.listStatements(null, has_absence_of, null).asScala.toSet
         val allStatements = allPresences ++ allAbsences
         if (variableOnly) {
-          val presentEntities  = model.listObjectsOfProperty(has_presence_of).asScala.toSet
-          val absentEntities   = model.listObjectsOfProperty(has_absence_of).asScala.toSet
+          val presentEntities = model.listObjectsOfProperty(has_presence_of).asScala.toSet
+          val absentEntities = model.listObjectsOfProperty(has_absence_of).asScala.toSet
           val variableEntities = absentEntities & presentEntities
           allStatements.filter(s => variableEntities(s.getObject))
         } else
           allStatements
       }
       for (statement <- presencesAndAbsences) {
-        val taxon                            = statement.getSubject
-        val entity                           = statement.getObject.asResource
+        val taxon = statement.getSubject
+        val entity = statement.getObject.asResource
         val presenceAbsence: PresenceAbsence =
           if (statement.getPredicate.getURI == has_presence_of.getIRI.toString) Presence else Absence
-        val characterID                      = unOBO(entity.getURI)
-        val character                        = characters.getOrElseUpdate(
+        val characterID = unOBO(entity.getURI)
+        val character = characters.getOrElseUpdate(
           characterID, {
             val newChar = new Character(characterID)
             newChar.setLabel(model.getProperty(entity, rdfsLabel).getObject.asLiteral.getString)
@@ -121,27 +121,27 @@ object PresenceAbsenceOfStructure {
             newChar
           }
         )
-        val stateID                          = s"${unOBO(entity.getURI)}_${presenceAbsence.symbol}"
-        val state                            = states.getOrElseUpdate(stateID, {
+        val stateID = s"${unOBO(entity.getURI)}_${presenceAbsence.symbol}"
+        val state = states.getOrElseUpdate(stateID, {
                                              val newState = new State(stateID)
                                              newState.setSymbol(presenceAbsence.symbol)
                                              newState.setLabel(presenceAbsence.label)
                                              newState
                                            })
         if (!character.getStates.contains(state)) character.addState(state)
-        val matrixTaxonID                    = unOBO(taxon.getURI)
-        val matrixTaxon                      = taxa.getOrElseUpdate(
+        val matrixTaxonID = unOBO(taxon.getURI)
+        val matrixTaxon = taxa.getOrElseUpdate(
           matrixTaxonID, {
             val newTaxon = new MatrixTaxon(matrixTaxonID)
             newTaxon.setPublicationName(model.getProperty(taxon, rdfsLabel).getObject.asLiteral.getString)
-            val oboID    = NeXMLUtil.oboID(URI.create(taxon.getURI))
+            val oboID = NeXMLUtil.oboID(URI.create(taxon.getURI))
             newTaxon.setValidName(new OBOClassImpl(oboID))
             dataset.addTaxon(newTaxon)
             newTaxon
           }
         )
-        val currentState                     = dataset.getStateForTaxon(matrixTaxon, character)
-        val stateToAssign                    = currentState match {
+        val currentState = dataset.getStateForTaxon(matrixTaxon, character)
+        val stateToAssign = currentState match {
           case polymorphic: MultipleState => addStateToMultiState(polymorphic, state)
           case `state`                    => state
           case null                       => state
@@ -149,7 +149,7 @@ object PresenceAbsenceOfStructure {
         }
         dataset.setStateForTaxon(matrixTaxon, character, stateToAssign)
       }
-      val date                                       = new SimpleDateFormat("y-M-d").format(Calendar.getInstance.getTime)
+      val date = new SimpleDateFormat("y-M-d").format(Calendar.getInstance.getTime)
       dataset.setPublicationNotes(
         s"Generated from the Phenoscape Knowledgebase on $date by Ontotrace query:\n* taxa: ${taxonClass.asOMN.getLiteralLexicalForm}\n* entities: ${entityClass.asOMN.getLiteralLexicalForm}\n* variable only: ${variableOnly}"
       )

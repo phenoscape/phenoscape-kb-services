@@ -35,11 +35,11 @@ object Gene {
 
   //FIXME this is a temporary hack until genes are directly associated with taxa in the KB
   private val geneIDPrefixToTaxon = Map(
-    "http://zfin.org"                -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_7955"), "Danio rerio"),
+    "http://zfin.org" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_7955"), "Danio rerio"),
     "http://www.informatics.jax.org" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_10090"),
                                               "Mus musculus"),
-    "http://xenbase.org"             -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_8353"), "Xenopus"),
-    "http://www.ncbi.nlm.nih.gov"    -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_9606"), "Homo sapiens")
+    "http://xenbase.org" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_8353"), "Xenopus"),
+    "http://www.ncbi.nlm.nih.gov" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_9606"), "Homo sapiens")
   )
 
   def withIRI(iri: IRI): Future[Option[Gene]] =
@@ -57,19 +57,19 @@ object Gene {
             limit: Int = 20,
             offset: Int = 0): Future[Seq[Gene]] =
     for {
-      query        <- App.expandWithOwlet(buildQuery(entity, taxon, limit, offset))
+      query <- App.expandWithOwlet(buildQuery(entity, taxon, limit, offset))
       descriptions <- App.executeSPARQLQuery(query, Gene(_))
     } yield descriptions
 
   def queryTotal(entity: OWLClassExpression = owlThing, taxon: OWLClassExpression = owlThing): Future[ResultCount] =
     for {
-      query  <- App.expandWithOwlet(buildTotalQuery(entity, taxon))
+      query <- App.expandWithOwlet(buildTotalQuery(entity, taxon))
       result <- App.executeSPARQLQuery(query)
     } yield ResultCount(result)
 
   def buildSearchQuery(text: String): Query = {
     val searchText = if (text.endsWith("*")) text else s"$text*"
-    val query      = select_distinct('gene, 'gene_label) from "http://kb.phenoscape.org/" where bgp(
+    val query = select_distinct('gene, 'gene_label) from "http://kb.phenoscape.org/" where bgp(
       t('gene_label, BDSearch, NodeFactory.createLiteral(searchText)),
       t('gene_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
       t('gene_label, BDRank, 'rank),
@@ -93,11 +93,11 @@ object Gene {
           'phenotype,
           rdfsSubClassOf,
           ((has_part some (inheres_in some entity)) or (has_part some (towards some entity))).asOMN) :: Nil
-    val taxonPatterns  =
+    val taxonPatterns =
       if (taxon == owlThing) Nil
       else
         t('annotation, associated_with_taxon, 'taxon) :: t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
-    val query          = select_distinct() from "http://kb.phenoscape.org/" where bgp(
+    val query = select_distinct() from "http://kb.phenoscape.org/" where bgp(
       t('annotation, rdfType, AnnotatedPhenotype) ::
         t('annotation, associated_with_gene, 'gene) ::
         t('gene, rdfsLabel, 'gene_label) ::
@@ -170,7 +170,7 @@ object Gene {
                                       includeParts: Boolean,
                                       includeHistoricalHomologs: Boolean,
                                       includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query  = (iri: IRI) =>
+    val query = (iri: IRI) =>
       affectingPhenotypeOfEntityTotal(Some(iri),
                                       quality,
                                       includeParts,
@@ -188,7 +188,7 @@ object Gene {
                                        includeParts: Boolean,
                                        includeHistoricalHomologs: Boolean,
                                        includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query  = (iri: IRI) =>
+    val query = (iri: IRI) =>
       affectingPhenotypeOfEntityTotal(entity, Some(iri), includeParts, includeHistoricalHomologs, includeSerialHomologs)
     val refine = (iri: IRI) => Term.querySubClasses(iri, Some(KBVocab.PATO)).map(_.toSet)
     Facets.facet(focalQuality.getOrElse(KBVocab.qualityRoot), query, refine, false)
@@ -225,12 +225,11 @@ object Gene {
         new ExprVar('annotation),
         new ExprList(List[Expr](new NodeValueNode(AnnotatedPhenotype), new NodeValueNode(owlNamedIndividual)).asJava))))
     for {
-      annotationsData      <- App.executeSPARQLConstructQuery(query)
+      annotationsData <- App.executeSPARQLConstructQuery(query)
       phenotypesWithSources = processProfileResultToAnnotationsAndSources(annotationsData)
-      labelledPhenotypes   <-
-        Future.sequence(phenotypesWithSources.map {
-          case (phenotype, sources) => Term.computedLabel(phenotype).map(SourcedMinimalTerm(_, sources))
-        })
+      labelledPhenotypes <- Future.sequence(phenotypesWithSources.map {
+        case (phenotype, sources) => Term.computedLabel(phenotype).map(SourcedMinimalTerm(_, sources))
+      })
     } yield labelledPhenotypes.toSeq.sortBy(_.term.label.map(_.toLowerCase))
   }
 
@@ -271,21 +270,21 @@ object Gene {
                      new ExprList(
                        List[Expr](new NodeValueNode(owlNamedIndividual), new NodeValueNode(owlClass)).asJava))))
     for {
-      annotationsData    <- App.executeSPARQLConstructQuery(query)
+      annotationsData <- App.executeSPARQLConstructQuery(query)
       entitiesWithSources = processProfileResultToAnnotationsAndSources(annotationsData)
-      labelledEntities   <- Future.sequence(entitiesWithSources.map {
-                            case (entity, sources) => Term.computedLabel(entity).map(SourcedMinimalTerm(_, sources))
-                          })
+      labelledEntities <- Future.sequence(entitiesWithSources.map {
+        case (entity, sources) => Term.computedLabel(entity).map(SourcedMinimalTerm(_, sources))
+      })
     } yield labelledEntities.toSeq.sortBy(_.term.label.map(_.toLowerCase))
   }
 
   case class Phenotype(iri: IRI)
 
   private def formatResult(result: QuerySolution): String = {
-    val gene      = result.getResource("gene").getURI
+    val gene = result.getResource("gene").getURI
     val geneLabel = result.getLiteral("gene_label").getLexicalForm
-    val taxon     = result.getLiteral("taxon_label").getLexicalForm
-    val source    = Option(result.getResource("source")).map(_.getURI).getOrElse("")
+    val taxon = result.getLiteral("taxon_label").getLexicalForm
+    val source = Option(result.getResource("source")).map(_.getURI).getOrElse("")
     s"$gene\t$geneLabel\t$taxon\t$source"
   }
 
@@ -326,8 +325,8 @@ object Gene {
 
 case class Gene(iri: IRI, label: Option[String], taxon: Taxon) extends LabeledTerm with JSONResultItem {
 
-  def toJSON: JsObject          =
-    Map("@id"   -> iri.toString.toJson,
+  def toJSON: JsObject =
+    Map("@id" -> iri.toString.toJson,
         "label" -> label.map(_.toJson).getOrElse(JsNull),
         "taxon" -> taxon.toJSON).toJson.asJsObject
 

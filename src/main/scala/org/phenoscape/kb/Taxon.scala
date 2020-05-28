@@ -46,10 +46,10 @@ import spray.json.DefaultJsonProtocol._
 
 object Taxon {
 
-  val phylopic    = ObjectProperty("http://purl.org/phenoscape/phylopics.owl#phylopic")
+  val phylopic = ObjectProperty("http://purl.org/phenoscape/phylopics.owl#phylopic")
   val group_label = ObjectProperty("http://purl.org/phenoscape/phylopics.owl#group_label")
-  val is_extinct  = ObjectProperty("http://purl.obolibrary.org/obo/vto#is_extinct")
-  val has_rank    = ObjectProperty("http://purl.obolibrary.org/obo/vto#has_rank")
+  val is_extinct = ObjectProperty("http://purl.obolibrary.org/obo/vto#is_extinct")
+  val has_rank = ObjectProperty("http://purl.obolibrary.org/obo/vto#has_rank")
 
   def withIRI(iri: IRI): Future[Option[TaxonInfo]] = {
     def fromIRIQuery(result: QuerySolution) =
@@ -62,11 +62,11 @@ object Taxon {
         Option(result.getLiteral("is_extinct")).map(_.getBoolean).getOrElse(false)
       )
 
-    val taxonFuture    = App.executeSPARQLQuery(buildTaxonQuery(iri), fromIRIQuery).map(_.headOption)
+    val taxonFuture = App.executeSPARQLQuery(buildTaxonQuery(iri), fromIRIQuery).map(_.headOption)
     val synonymsFuture = taxonSynonyms(iri)
 
     for {
-      taxon    <- taxonFuture
+      taxon <- taxonFuture
       synonyms <- synonymsFuture
     } yield taxon.map {
       case (iri, label, rank_label, common_name, is_extinct) =>
@@ -92,7 +92,7 @@ object Taxon {
                                            includeSerialHomologs,
                                            limit,
                                            offset)
-      taxa  <- App.executeSPARQLQuery(query, Taxon(_))
+      taxa <- App.executeSPARQLQuery(query, Taxon(_))
     } yield taxa
 
   def withPhenotype(entity: Option[IRI],
@@ -119,7 +119,7 @@ object Taxon {
                                             false,
                                             limit,
                                             offset)
-      taxa  <- App.executeSPARQLQueryString(query, Taxon(_))
+      taxa <- App.executeSPARQLQueryString(query, Taxon(_))
     } yield taxa
   }
 
@@ -131,7 +131,7 @@ object Taxon {
                                    includeHistoricalHomologs: Boolean,
                                    includeSerialHomologs: Boolean): Future[Int] =
     for {
-      query  <- buildTaxaWithPhenotypeTotalQuery(entity,
+      query <- buildTaxaWithPhenotypeTotalQuery(entity,
                                                 quality,
                                                 inTaxonOpt,
                                                 includeParts,
@@ -150,7 +150,7 @@ object Taxon {
                          includeSerialHomologs: Boolean): Future[Int] = {
     val entityOpt = entity.filterNot(_ == OWLThing.getIRI) //FIXME do this filter in caller
     for {
-      query  <- TaxaWithPhenotype.buildQuery(entityOpt,
+      query <- TaxaWithPhenotype.buildQuery(entityOpt,
                                             quality,
                                             inTaxonOpt,
                                             phenotypeOpt,
@@ -172,7 +172,7 @@ object Taxon {
                                      includeParts: Boolean,
                                      includeHistoricalHomologs: Boolean,
                                      includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query  = (iri: IRI) =>
+    val query = (iri: IRI) =>
       withPhenotypeTotal(Some(iri),
                          quality,
                          inTaxonOpt,
@@ -195,7 +195,7 @@ object Taxon {
                                       includeParts: Boolean,
                                       includeHistoricalHomologs: Boolean,
                                       includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query  = (iri: IRI) =>
+    val query = (iri: IRI) =>
       withPhenotypeTotal(entity,
                          PhenotypicQuality(Some(iri)),
                          inTaxonOpt,
@@ -215,7 +215,7 @@ object Taxon {
                                     includeParts: Boolean,
                                     includeHistoricalHomologs: Boolean,
                                     includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query  = (iri: IRI) =>
+    val query = (iri: IRI) =>
       withPhenotypeTotal(entity,
                          quality,
                          Some(iri),
@@ -228,7 +228,7 @@ object Taxon {
     Facets.facet(focalTaxon.getOrElse(KBVocab.taxonRoot), query, refine, true)
   }
 
-  private def facetResultToMap(facets: List[(MinimalTerm, Int)])                                                    =
+  private def facetResultToMap(facets: List[(MinimalTerm, Int)]) =
     Map("facets" -> facets.map { case (term, count) => Map("term" -> term, "count" -> count) })
 
   def variationProfileFor(taxon: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
@@ -283,8 +283,8 @@ object Taxon {
       query.addOrderBy('phenotype)
       query
     }
-    val results     = for {
-      query  <- queryFuture
+    val results = for {
+      query <- queryFuture
       result <- App.executeSPARQLQuery(query, AnnotatedCharacterDescription.fromQuerySolution)
     } yield result
     results.flatMap(Future.sequence(_))
@@ -300,7 +300,7 @@ object Taxon {
                           limit: Int = 20,
                           offset: Int = 0): Future[Seq[AnnotatedCharacterDescription]] = {
     val results = for {
-      query  <- DirectPhenotypesForTaxon.buildQuery(taxon,
+      query <- DirectPhenotypesForTaxon.buildQuery(taxon,
                                                    entityOpt,
                                                    quality,
                                                    phenotypeOpt,
@@ -328,9 +328,9 @@ object Taxon {
                                           includeParts,
                                           includeHistoricalHomologs,
                                           includeSerialHomologs)
-      query     = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(rawQuery))
-      _         = query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
-      result   <- App.executeSPARQLQuery(query).map(ResultCount.count)
+      query = select() from "http://kb.phenoscape.org/" where (new ElementSubQuery(rawQuery))
+      _ = query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
+      result <- App.executeSPARQLQuery(query).map(ResultCount.count)
     } yield result
 
   def directPhenotypesTotalFor(taxon: IRI,
@@ -341,7 +341,7 @@ object Taxon {
                                includeHistoricalHomologs: Boolean,
                                includeSerialHomologs: Boolean): Future[Int] =
     for {
-      query  <- DirectPhenotypesForTaxon.buildQuery(taxon,
+      query <- DirectPhenotypesForTaxon.buildQuery(taxon,
                                                    entityOpt,
                                                    quality,
                                                    phenotypeOpt,
@@ -361,9 +361,9 @@ object Taxon {
                                       includeHistoricalHomologs: Boolean,
                                       includeSerialHomologs: Boolean): Future[Query] = {
     val phenotypePattern = if (entityOpt.nonEmpty || qualityOpt.nonEmpty) {
-      val entity           = entityOpt.getOrElse(owlThing)
-      val quality          = qualityOpt.getOrElse(owlThing)
-      val actualEntity     = (includeHistoricalHomologs, includeSerialHomologs) match {
+      val entity = entityOpt.getOrElse(owlThing)
+      val quality = qualityOpt.getOrElse(owlThing)
+      val actualEntity = (includeHistoricalHomologs, includeSerialHomologs) match {
         case (false, false) => entity
         case (true, false)  => entity or (homologous_to some entity)
         case (false, true)  => entity or (serially_homologous_to some entity)
@@ -372,7 +372,7 @@ object Taxon {
       val entityExpression = if (includeParts) (actualEntity or (part_of some actualEntity)) else actualEntity
       t('phenotype, rdfsSubClassOf, ((has_part some quality) and (phenotype_of some entityExpression)).asOMN) :: Nil
     } else Nil
-    val query            = select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
+    val query = select_distinct('state, 'description, 'matrix, 'matrix_label, 'phenotype) where (
       bgp(
         t(taxon, exhibits_state, 'state) ::
           t('state, describes_phenotype, 'phenotype) ::
@@ -435,15 +435,15 @@ object Taxon {
                                                includeParts: Boolean,
                                                includeHistoricalHomologs: Boolean,
                                                includeSerialHomologs: Boolean): Future[Query] = {
-    val actualEntity     = (includeHistoricalHomologs, includeSerialHomologs) match {
+    val actualEntity = (includeHistoricalHomologs, includeSerialHomologs) match {
       case (false, false) => entity
       case (true, false)  => entity or (homologous_to some entity)
       case (false, true)  => entity or (serially_homologous_to some entity)
       case (true, true)   => entity or (homologous_to some entity) or (serially_homologous_to some entity)
     }
     val entityExpression = if (includeParts) (actualEntity or (part_of some actualEntity)) else actualEntity
-    val taxonPatterns    = inTaxonOpt.map(t('taxon, rdfsSubClassOf *, _)).toList
-    val query            = select_distinct('taxon, 'taxon_label) where (
+    val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf *, _)).toList
+    val query = select_distinct('taxon, 'taxon_label) where (
       bgp(
         App.BigdataAnalyticQuery ::
           t('state, describes_phenotype, 'phenotype) ::
@@ -567,7 +567,7 @@ object Taxon {
 
   def buildPhylopicQuery(taxon: IRI): Query = {
     val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
-    val query          =
+    val query =
       select('super,
              'label,
              'picOpt) from "http://kb.phenoscape.org/" from "http://purl.org/phenoscape/phylopics.owl" where (bgp(
@@ -591,7 +591,7 @@ object Taxon {
 
   def newickTreeWithRoot(iri: IRI): Future[String] = {
     val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
-    val query          = construct(t('child, rdfsSubClassOf, 'parent),
+    val query = construct(t('child, rdfsSubClassOf, 'parent),
                           t('child, rdfsLabel, 'label)) from "http://kb.phenoscape.org/" where (
       bgp(
         t('parent, rdfsSubClassOf *, iri),
@@ -614,15 +614,15 @@ object Taxon {
   }
 
   private def newickFor(parent: Resource, model: Model): String = {
-    val reserved     = Set(';', ',', ':', '(', ')', ' ', '"')
-    val parentLabel  = model.getProperty(parent, RDFS.label).getLiteral.getLexicalForm
+    val reserved = Set(';', ',', ':', '(', ')', ' ', '"')
+    val parentLabel = model.getProperty(parent, RDFS.label).getLiteral.getLexicalForm
     //val escapedLabel = if (parentLabel.exists(reserved)) s"'$parentLabel'" else parentLabel
     val escapedLabel = s"'${parentLabel.replaceAllLiterally("'", "\"")}'"
-    val parentCount  = model.listObjectsOfProperty(parent, RDFS.subClassOf).asScala.size
+    val parentCount = model.listObjectsOfProperty(parent, RDFS.subClassOf).asScala.size
     if (parentCount > 1) println(s"WARNING: $parentCount parents for $parent")
-    val children     = model.listResourcesWithProperty(RDFS.subClassOf, parent).asScala.toSeq
-    val childList    = children.map(newickFor(_, model)).mkString(", ")
-    val subtree      = if (children.isEmpty) "" else s"($childList)"
+    val children = model.listResourcesWithProperty(RDFS.subClassOf, parent).asScala.toSeq
+    val childList = children.map(newickFor(_, model)).mkString(", ")
+    val subtree = if (children.isEmpty) "" else s"($childList)"
     s"$subtree$escapedLabel"
   }
 
@@ -657,7 +657,7 @@ object CommonGroup {
 
 case class Taxon(iri: IRI, label: String) extends JSONResultItem {
 
-  def toJSON: JsObject            =
+  def toJSON: JsObject =
     Map("@id" -> iri.toString.toJson, "label" -> label.toJson).toJson.asJsObject
 
   override def toString(): String =
@@ -675,14 +675,14 @@ case class TaxonInfo(iri: IRI,
 
   def toJSON: JsObject =
     Map(
-      "@id"         -> iri.toString.toJson,
-      "label"       -> label.toJson,
-      "extinct"     -> extinct.toJson,
-      "synonyms"    -> synonyms.map {
+      "@id" -> iri.toString.toJson,
+      "label" -> label.toJson,
+      "extinct" -> extinct.toJson,
+      "synonyms" -> synonyms.map {
         case (iri, value) =>
           JsObject("property" -> iri.toString.toJson, "value" -> value.toJson).toJson
       }.toJson,
-      "rank"        -> rank.map(_.toJSON).toJson,
+      "rank" -> rank.map(_.toJSON).toJson,
       "common_name" -> commonName.map(_.toJson).toJson
     ).toJson.asJsObject
 
