@@ -12,14 +12,15 @@ import scalaz._
 
 object OWLFormats {
 
-  implicit val ManchesterSyntaxClassExpressionUnmarshaller: Unmarshaller[String, OWLClassExpression] = Unmarshaller.strict { text =>
-    ManchesterSyntaxClassExpressionParser.parse(text) match {
-      case Success(expression) => expression
-      case Failure(message)    => throw new IllegalArgumentException(s"Invalid Manchester syntax: $message")
+  implicit val ManchesterSyntaxClassExpressionUnmarshaller: Unmarshaller[String, OWLClassExpression] =
+    Unmarshaller.strict { text =>
+      ManchesterSyntaxClassExpressionParser.parse(text) match {
+        case Success(expression) => expression
+        case Failure(message)    => throw new IllegalArgumentException(s"Invalid Manchester syntax: $message")
+      }
     }
-  }
 
-  implicit val OWLClassExpressionMarshaller: ToEntityMarshaller[OWLClassExpression] = Marshaller.stringMarshaller(MediaTypes.`text/plain`).compose(expression =>
-    expression.asOMN.getLiteralLexicalForm)
+  implicit val OWLClassExpressionMarshaller: ToEntityMarshaller[OWLClassExpression] =
+    Marshaller.stringMarshaller(MediaTypes.`text/plain`).compose(expression => expression.asOMN.getLiteralLexicalForm)
 
 }

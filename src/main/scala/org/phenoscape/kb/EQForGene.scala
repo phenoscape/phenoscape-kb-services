@@ -29,40 +29,44 @@ object EQForGene {
   private val UBERON = IRI.create("http://purl.obolibrary.org/obo/uberon.owl")
   private val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
   private val has_part_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
-  private val has_part_inhering_in_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part_inhering_in.getIRI)
-  private implicit val timeout: Timeout = Timeout(10 minutes)
+
+  private val has_part_inhering_in_some =
+    NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part_inhering_in.getIRI)
+
+  implicit private val timeout: Timeout = Timeout(10 minutes)
 
   def query(geneID: IRI): Future[JsArray] = {
     val result = for {
       annotations <- annotationsForGene(geneID)
     } yield {
-      val allAnnotationsFuture = Future.sequence(for {
-        annotationID <- annotations
-      } yield {
-        val entitiesFuture = entitiesForAnnotation(annotationID)
-        val qualitiesFuture = qualitiesForAnnotation(annotationID)
+      val allAnnotationsFuture = Future.sequence(
         for {
-          entities <- entitiesFuture
-          qualities <- qualitiesFuture
-        } yield Map("entity" -> entities, "quality" -> qualities).toJson
-      })
+          annotationID <- annotations
+        } yield {
+          val entitiesFuture = entitiesForAnnotation(annotationID)
+          val qualitiesFuture = qualitiesForAnnotation(annotationID)
+          for {
+            entities <- entitiesFuture
+            qualities <- qualitiesFuture
+          } yield Map("entity" -> entities, "quality" -> qualities).toJson
+        }
+      )
       allAnnotationsFuture.map(annotations => JsArray(annotations.toVector))
     }
     result.flatMap(identity) //FIXME this method is a bit messy
   }
 
-  def annotationsForGene(geneID: IRI): Future[Iterable[String]] = {
+  def annotationsForGene(geneID: IRI): Future[Iterable[String]] =
     App.executeSPARQLQuery(annotationsQuery(geneID), _.getResource("annotation").getURI)
-  }
 
-  def annotationsQuery(geneIRI: IRI): Query = {
+  def annotationsQuery(geneIRI: IRI): Query =
     select_distinct('annotation) from "http://kb.phenoscape.org/" where bgp(
       t('annotation, rdfType, Vocab.AnnotatedPhenotype),
       t('annotation, Vocab.associated_with_gene, geneIRI))
-  }
 
   def qualitiesForAnnotation(annotationID: String): Future[Iterable[String]] = {
-    val allSuperQualities = App.executeSPARQLQuery(annotationSuperQualityQuery(annotationID), _.getResource("quality").getURI)
+    val allSuperQualities =
+      App.executeSPARQLQuery(annotationSuperQualityQuery(annotationID), _.getResource("quality").getURI)
     for {
       superQualities <- allSuperQualities
       superSuperQualities <- superClassesForSuperQualities(superQualities)
@@ -98,7 +102,8 @@ object EQForGene {
   }
 
   def entitiesForAnnotation(annotationID: String): Future[Iterable[String]] = {
-    val entityTypes = App.executeSPARQLQuery(annotationEntityTypesQuery(annotationID), _.getResource("description").getURI)
+    val entityTypes =
+      App.executeSPARQLQuery(annotationEntityTypesQuery(annotationID), _.getResource("description").getURI)
     for {
       entityTypesResult <- entityTypes
       entitySuperClasses <- superClassesForEntityTypes(entityTypesResult)
