@@ -27,7 +27,7 @@ object DirectPhenotypesForTaxon {
                  includeSerialHomologs: Boolean,
                  countOnly: Boolean,
                  limit: Int,
-                 offset: Int): Future[String]                                          =
+                 offset: Int): Future[String] =
     for {
       (whereClause, subqueries) <- constructWhereClause(taxon,
                                                         entity,
@@ -37,11 +37,11 @@ object DirectPhenotypesForTaxon {
                                                         includeHistoricalHomologs,
                                                         includeSerialHomologs)
     } yield {
-      val unifiedQueries    = BlazegraphNamedSubquery.unifyQueries(subqueries)
+      val unifiedQueries = BlazegraphNamedSubquery.unifyQueries(subqueries)
       val namedQueriesBlock =
         if (unifiedQueries.nonEmpty) unifiedQueries.map(_.namedQuery).reduce(_ + _) else sparql""
-      val paging            = if (limit > 0) sparql"LIMIT $limit OFFSET $offset" else sparql""
-      val query             =
+      val paging = if (limit > 0) sparql"LIMIT $limit OFFSET $offset" else sparql""
+      val query =
         if (countOnly)
           sparql"""
       SELECT (COUNT(*) AS ?count)
@@ -75,29 +75,29 @@ object DirectPhenotypesForTaxon {
     includeParts: Boolean,
     includeHistoricalHomologs: Boolean,
     includeSerialHomologs: Boolean): Future[(QueryText, Set[BlazegraphNamedSubquery])] = {
-    val validHomologyRelation                                                                 =
+    val validHomologyRelation =
       (if (includeHistoricalHomologs) Set(homologous_to.getIRI) else Set.empty[IRI]) ++ (if (includeSerialHomologs)
                                                                                            Set(
                                                                                              serially_homologous_to.getIRI)
                                                                                          else Set.empty[IRI])
     val homologyQueryPartsFut: ListT[Future, (List[QueryText], Set[BlazegraphNamedSubquery])] = for {
-      entityTerm                          <- entity.toList |> Future.successful |> ListT.apply
+      entityTerm <- entity.toList |> Future.successful |> ListT.apply
       if includeHistoricalHomologs || includeSerialHomologs
-      annotations                         <- AnatomicalEntity.homologyAnnotations(entityTerm, true).map(List(_)) |> ListT.apply
-      uniquedPositiveAnnotations           =
+      annotations <- AnatomicalEntity.homologyAnnotations(entityTerm, true).map(List(_)) |> ListT.apply
+      uniquedPositiveAnnotations =
         annotations.filterNot(_.negated).map(ann => (ann.`object`, ann.objectTaxon, ann.relation)).toSet
       (otherEntity, otherTaxon, relation) <- uniquedPositiveAnnotations.toList |> Future.successful |> ListT.apply
       if validHomologyRelation(relation)
     } yield {
       var homComponents = List.empty[QueryText]
       var homSubqueries = Set.empty[BlazegraphNamedSubquery]
-      val homSubquery   = TaxaWithPhenotype.phenotypeSubQueryFor(Option(otherEntity), quality, phenotypeOpt, false)
-      val basicHom      = coreTaxonToPhenotype(taxon, Set(otherTaxon), homSubquery)
+      val homSubquery = TaxaWithPhenotype.phenotypeSubQueryFor(Option(otherEntity), quality, phenotypeOpt, false)
+      val basicHom = coreTaxonToPhenotype(taxon, Set(otherTaxon), homSubquery)
       homComponents = basicHom :: homComponents
       homSubquery.foreach(q => homSubqueries += q)
       if (includeParts) {
         val homPartsSubquery = TaxaWithPhenotype.phenotypeSubQueryFor(Option(otherEntity), quality, phenotypeOpt, true)
-        val homParts         = coreTaxonToPhenotype(taxon, Set(otherTaxon), homPartsSubquery)
+        val homParts = coreTaxonToPhenotype(taxon, Set(otherTaxon), homPartsSubquery)
         homComponents = homParts :: homComponents
         homPartsSubquery.foreach(q => homSubqueries += q)
       }
@@ -108,19 +108,19 @@ object DirectPhenotypesForTaxon {
     } yield {
       val (homologyWhereBlocks, homologySubqueries) = homologyQueryParts.unzip
 
-      var components    = homologyWhereBlocks.flatten
-      var subqueries    = homologySubqueries.toSet.flatten
+      var components = homologyWhereBlocks.flatten
+      var subqueries = homologySubqueries.toSet.flatten
       val basicSubquery = TaxaWithPhenotype.phenotypeSubQueryFor(entity, quality, phenotypeOpt, false)
-      val basic         = coreTaxonToPhenotype(taxon, Set.empty, basicSubquery)
+      val basic = coreTaxonToPhenotype(taxon, Set.empty, basicSubquery)
       components = basic :: components
       basicSubquery.foreach(q => subqueries += q)
       if (includeParts) {
         val partsSubquery = TaxaWithPhenotype.phenotypeSubQueryFor(entity, quality, phenotypeOpt, true)
-        val parts         = coreTaxonToPhenotype(taxon, Set.empty, partsSubquery)
+        val parts = coreTaxonToPhenotype(taxon, Set.empty, partsSubquery)
         components = parts :: components
         partsSubquery.foreach(q => subqueries += q)
       }
-      val blocks        = (components match {
+      val blocks = (components match {
         case Nil          => List(sparql"")
         case head :: Nil  => components
         case head :: tail => head :: tail.map(sparql" UNION " + _)
@@ -139,7 +139,7 @@ object DirectPhenotypesForTaxon {
     // triple pattern without variables must go inside filter
     val taxonConstraints = (for { inTaxon <- inTaxa } yield sparql"FILTER EXISTS { $taxon $rdfsSubClassOf $inTaxon . }")
       .fold(sparql"")(_ + _)
-    val subQueryRefs     = QueryText(phenotypeQueries.map(q => sparql"$q").map(_.text).mkString("\n"))
+    val subQueryRefs = QueryText(phenotypeQueries.map(q => sparql"$q").map(_.text).mkString("\n"))
     sparql"""
       {
       $taxon $exhibits_state ?state .

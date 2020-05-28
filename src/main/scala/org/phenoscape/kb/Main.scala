@@ -49,8 +49,8 @@ object Main extends HttpApp with App {
 
   import system.dispatcher
 
-  val factory   = OWLManager.getOWLDataFactory
-  val owlClass  = OWLRDFVocabulary.OWL_CLASS.getIRI
+  val factory = OWLManager.getOWLDataFactory
+  val owlClass = OWLRDFVocabulary.OWL_CLASS.getIRI
   val rdfsLabel = factory.getRDFSLabel.getIRI
 
   implicit val IRIUnmarshaller: Unmarshaller[String, IRI] = Unmarshaller.strict(IRI.create)
@@ -87,7 +87,7 @@ object Main extends HttpApp with App {
 
   // This is present just to support clients that have not been updated to use a JSON array.
   // However having both will result in less informative error messages.
-  val IRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]]   =
+  val IRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] =
     Unmarshaller.strict(_.split(",", -1).map(IRI.create))
 
   implicit val comboIRISeqUnmarshaller: Unmarshaller[String, Seq[IRI]] =
@@ -98,9 +98,9 @@ object Main extends HttpApp with App {
       (r.request.uri, r.request.headers.find(_.is("accept")), r.request.method)
   }
 
-  val memoryCache                                                                        = routeCache[(Uri, Option[HttpHeader], HttpMethod)]
+  val memoryCache = routeCache[(Uri, Option[HttpHeader], HttpMethod)]
 
-  val conf       = ConfigFactory.load()
+  val conf = ConfigFactory.load()
   val serverPort = conf.getInt("kb-services.port")
   val serverHost = conf.getString("kb-services.host")
 
@@ -148,7 +148,7 @@ object Main extends HttpApp with App {
                              'limit.as[Int].?(100)) {
                     (text, termType, properties, definedByOpt, includeDeprecated, limit) =>
                       complete {
-                        val props      = properties.getOrElse(
+                        val props = properties.getOrElse(
                           List(rdfsLabel, hasExactSynonym.getIRI, hasNarrowSynonym.getIRI, hasBroadSynonym.getIRI))
                         val definedBys = definedByOpt.getOrElse(Nil)
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
@@ -470,10 +470,10 @@ object Main extends HttpApp with App {
                      total) =>
                       complete {
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                        val entityIsNamed  = entityOpt.forall(!_.isAnonymous)
+                        val entityIsNamed = entityOpt.forall(!_.isAnonymous)
                         val qualityIsNamed = qualityOpt.forall(!_.isAnonymous)
                         if (entityIsNamed && qualityIsNamed) {
-                          val entityIRI   = entityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+                          val entityIRI = entityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
                           val qualitySpec = qualityOpt
                             .map(_.asOWLClass)
                             .filterNot(_.isOWLThing)
@@ -560,10 +560,10 @@ object Main extends HttpApp with App {
                        total) =>
                         complete {
                           implicit val marshaller = Taxon.ComboTaxaMarshaller
-                          val entityIsNamed       = entityOpt.forall(!_.isAnonymous)
-                          val qualityIsNamed      = qualityOpt.forall(!_.isAnonymous)
+                          val entityIsNamed = entityOpt.forall(!_.isAnonymous)
+                          val qualityIsNamed = qualityOpt.forall(!_.isAnonymous)
                           if (entityIsNamed && qualityIsNamed) {
-                            val entityIRI   = entityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
+                            val entityIRI = entityOpt.map(_.asOWLClass).filterNot(_.isOWLThing).map(_.getIRI)
                             val qualitySpec = qualityOpt
                               .map(_.asOWLClass)
                               .filterNot(_.isOWLThing)
@@ -638,7 +638,7 @@ object Main extends HttpApp with App {
                           import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                           val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
                           facetBy match {
-                            case "entity"  =>
+                            case "entity" =>
                               Taxon.facetTaxaWithPhenotypeByEntity(entityOpt,
                                                                    qualitySpec,
                                                                    taxonOpt,
@@ -654,7 +654,7 @@ object Main extends HttpApp with App {
                                                                     includeParts,
                                                                     includeHistoricalHomologs,
                                                                     includeSerialHomologs)
-                            case "taxon"   =>
+                            case "taxon" =>
                               Taxon.facetTaxaWithPhenotypeByTaxon(taxonOpt,
                                                                   entityOpt,
                                                                   qualitySpec,
@@ -687,7 +687,7 @@ object Main extends HttpApp with App {
                           import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                           val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
                           facetBy match {
-                            case "entity"  =>
+                            case "entity" =>
                               TaxonPhenotypeAnnotation.facetTaxonAnnotationsByEntity(entityOpt,
                                                                                      qualitySpec,
                                                                                      taxonOpt,
@@ -703,7 +703,7 @@ object Main extends HttpApp with App {
                                                                                       includeParts,
                                                                                       includeHistoricalHomologs,
                                                                                       includeSerialHomologs)
-                            case "taxon"   =>
+                            case "taxon" =>
                               TaxonPhenotypeAnnotation.facetTaxonAnnotationsByTaxon(taxonOpt,
                                                                                     entityOpt,
                                                                                     qualitySpec,
@@ -772,8 +772,8 @@ object Main extends HttpApp with App {
                               val contentType = optAccept.getOrElse(
                                 MediaTypes.`text/tab-separated-values`.toContentType(HttpCharsets.`UTF-8`))
                               contentType.mediaType match {
-                                case MediaTypes.`application/json`          =>
-                                  implicit val jsonStreaming                                          = JSONResultItem.jsonStreamingSupport
+                                case MediaTypes.`application/json` =>
+                                  implicit val jsonStreaming = JSONResultItem.jsonStreamingSupport
                                   implicit val jsonMarshaller: ToByteStringMarshaller[JSONResultItem] =
                                     Marshaller.withFixedContentType(MediaTypes.`application/json`.toContentType) { j =>
                                       ByteString(j.toJSON.toString)
@@ -789,7 +789,7 @@ object Main extends HttpApp with App {
                                                                                   limit,
                                                                                   offset)
                                 case MediaTypes.`text/tab-separated-values` =>
-                                  implicit val tsvStreaming  = EntityStreamingSupport.csv().withContentType(contentType)
+                                  implicit val tsvStreaming = EntityStreamingSupport.csv().withContentType(contentType)
                                   implicit val tsvMarshaller =
                                     TaxonPhenotypeAnnotation.AnnotationByteStringTSVMarshaller
                                   TaxonPhenotypeAnnotation.queryAnnotationsStream(entity,
@@ -1098,7 +1098,7 @@ object Main extends HttpApp with App {
                         complete {
                           import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                           facetBy match {
-                            case "entity"  =>
+                            case "entity" =>
                               Gene.facetGenesWithPhenotypeByEntity(entityOpt,
                                                                    qualityOpt,
                                                                    includeParts,
@@ -1196,7 +1196,7 @@ object Main extends HttpApp with App {
                           import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                           val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
                           facetBy match {
-                            case "entity"  =>
+                            case "entity" =>
                               Study.facetStudiesByEntity(entityOpt,
                                                          qualitySpec,
                                                          taxonOpt,
@@ -1212,7 +1212,7 @@ object Main extends HttpApp with App {
                                                           includeParts,
                                                           includeHistoricalHomologs,
                                                           includeSerialHomologs)
-                            case "taxon"   =>
+                            case "taxon" =>
                               Study.facetStudiesByTaxon(taxonOpt,
                                                         entityOpt,
                                                         qualitySpec,
@@ -1334,7 +1334,7 @@ object Main extends HttpApp with App {
                           import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                           val qualitySpec = qualitySpecOpt.getOrElse(PhenotypicQuality(None))
                           facetBy match {
-                            case "entity"  =>
+                            case "entity" =>
                               Phenotype.facetPhenotypeByEntity(entityOpt,
                                                                qualitySpec,
                                                                taxonOpt,
@@ -1350,7 +1350,7 @@ object Main extends HttpApp with App {
                                                                 includeParts,
                                                                 includeHistoricalHomologs,
                                                                 includeSerialHomologs)
-                            case "taxon"   =>
+                            case "taxon" =>
                               Phenotype.facetPhenotypeByTaxon(taxonOpt,
                                                               entityOpt,
                                                               qualitySpec,

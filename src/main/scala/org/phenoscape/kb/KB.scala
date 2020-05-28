@@ -37,17 +37,17 @@ object KB {
   val rdfsLabel = org.phenoscape.kb.KBVocab.rdfsLabel
 
   def annotationSummary: Future[KBAnnotationSummary] = {
-    val matrices   = annotatedMatrixCount
-    val taxa       = annotatedTaxonCount
+    val matrices = annotatedMatrixCount
+    val taxa = annotatedTaxonCount
     val characters = annotatedCharacterCount
-    val states     = annotatedStateCount
-    val built      = buildDate
+    val states = annotatedStateCount
+    val built = buildDate
     for {
-      builtTime      <- built
-      matrixCount    <- matrices
-      taxonCount     <- taxa
+      builtTime <- built
+      matrixCount <- matrices
+      taxonCount <- taxa
       characterCount <- characters
-      stateCount     <- states
+      stateCount <- states
     } yield KBAnnotationSummary(builtTime, matrixCount, taxonCount, characterCount, stateCount)
   }
 
@@ -180,10 +180,10 @@ OPTIONAL {
   }
 
   def getKBMetadata: Future[KBMetadata] = {
-    val builtFut      = buildDate
+    val builtFut = buildDate
     val ontologiesFut = kbOntologies
     for {
-      built      <- builtFut
+      built <- builtFut
       ontologies <- ontologiesFut
     } yield KBMetadata(built, ontologies)
   }
@@ -218,7 +218,7 @@ case class KBMetadata(built: Instant, ontologies: Set[(IRI, IRI)]) extends JSONR
         .map {
           case (ont, version) =>
             JsObject(
-              "@id"     -> ont.toString.toJson,
+              "@id" -> ont.toString.toJson,
               "version" -> version.toString.toJson
             ).toJson
         }
@@ -235,11 +235,11 @@ case class KBAnnotationSummary(built: Instant,
 
   def toJSON: JsObject =
     Map(
-      "build_time"           -> built.toString.toJson,
-      "annotated_matrices"   -> annotatedMatrices.toJson,
-      "annotated_taxa"       -> annotatedTaxa.toJson,
+      "build_time" -> built.toString.toJson,
+      "annotated_matrices" -> annotatedMatrices.toJson,
+      "annotated_taxa" -> annotatedTaxa.toJson,
       "annotated_characters" -> annotatedCharacters.toJson,
-      "annotated_states"     -> annotatedStates.toJson
+      "annotated_states" -> annotatedStates.toJson
     ).toJson.asJsObject
 
 }
