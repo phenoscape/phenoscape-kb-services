@@ -10,6 +10,7 @@ import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolation.QueryText
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.semanticweb.owlapi.model.IRI
 
 import scala.concurrent.Future
@@ -48,8 +49,8 @@ object Graph {
     import Scalaz._
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
-      val valuesElements = terms.map(t => sparql" $t ").reduce(_ |+| _)
-      val query          =
+      val valuesElements = terms.map(t => sparql" $t ").reduce(_ + _)
+      val query =
         sparql"""
        SELECT DISTINCT ?term ?ancestor
        FROM $KBClosureGraph
@@ -58,22 +59,22 @@ object Graph {
          ?term $rdfsSubClassOf ?ancestor .
        }
           """
-      val futurePairs    = App.executeSPARQLQueryString(query.text,
+      val futurePairs = App.executeSPARQLQueryString(query.text,
                                                      qs => {
-                                                       val term     = qs.getResource("term").getURI
+                                                       val term = qs.getResource("term").getURI
                                                        val ancestor = qs.getResource("ancestor").getURI
                                                        (term, ancestor)
                                                      })
       for {
         pairs <- futurePairs
       } yield {
-        val termsSequence     = terms.map(_.toString).toSeq.sorted
-        val header            = s",${termsSequence.mkString(",")}"
+        val termsSequence = terms.map(_.toString).toSeq.sorted
+        val header = s",${termsSequence.mkString(",")}"
         val groupedByAncestor = pairs.groupBy(_._2)
-        val valuesLines       = groupedByAncestor.map {
+        val valuesLines = groupedByAncestor.map {
           case (ancestor, ancPairs) =>
             val termsForAncestor = ancPairs.map(_._1).toSet
-            val values           = termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
+            val values = termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
             s"$ancestor,${values.mkString(",")}"
         }
         AncestorMatrix(s"$header\n${valuesLines.mkString("\n")}")

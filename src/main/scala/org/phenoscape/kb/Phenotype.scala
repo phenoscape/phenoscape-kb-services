@@ -24,30 +24,31 @@ import spray.json._
 import spray.json.DefaultJsonProtocol._
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 
 object Phenotype {
 
   implicit val timeout = Timeout(10 minutes)
 
-  private val has_part_some             = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
-  private val phenotype_of_some: IRI    = NamedRestrictionGenerator.getClassRelationIRI(Vocab.phenotype_of.getIRI)
+  private val has_part_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
+  private val phenotype_of_some: IRI = NamedRestrictionGenerator.getClassRelationIRI(Vocab.phenotype_of.getIRI)
 
   private val has_part_inhering_in_some =
     NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part_inhering_in.getIRI)
 
   def info(phenotype: IRI, annotatedStatesOnly: Boolean): Future[Phenotype] = {
-    val eqsFuture    = eqForPhenotype(phenotype)
+    val eqsFuture = eqForPhenotype(phenotype)
     val statesFuture = characterStatesForPhenotype(phenotype, annotatedStatesOnly)
-    val labelFuture  = Term.label(phenotype)
+    val labelFuture = Term.label(phenotype)
     for {
-      eqs      <- eqsFuture
-      states   <- statesFuture
+      eqs <- eqsFuture
+      states <- statesFuture
       labelOpt <- labelFuture
     } yield Phenotype(phenotype, labelOpt.flatMap(_.label).getOrElse(""), states, eqs)
   }
 
   def characterStatesForPhenotype(phenotype: IRI, annotatedStatesOnly: Boolean): Future[Set[CharacterState]] = {
-    val taxonConstraint  = if (annotatedStatesOnly) sparql"?taxon $exhibits_state ?state ." else sparql""
+    val taxonConstraint = if (annotatedStatesOnly) sparql"?taxon $exhibits_state ?state ." else sparql""
     val query: QueryText =
       sparql"""
        SELECT DISTINCT ?character ?character_label ?state ?state_label ?matrix ?matrix_label
@@ -83,7 +84,7 @@ object Phenotype {
   }
 
   def eqForPhenotype(phenotype: IRI): Future[NearestEQSet] = {
-    val entitiesFuture        = entitiesForPhenotype(phenotype, has_part_inhering_in_some)
+    val entitiesFuture = entitiesForPhenotype(phenotype, has_part_inhering_in_some)
     val generalEntitiesFuture =
       entitiesForPhenotype(phenotype,
                            phenotype_of_some
@@ -91,9 +92,9 @@ object Phenotype {
     //val relatedEntitiesFuture = ???
     val qualitiesFuture = qualitiesForPhenotype(phenotype)
     for {
-      entities        <- entitiesFuture
+      entities <- entitiesFuture
       generalEntities <- generalEntitiesFuture
-      qualities       <- qualitiesFuture
+      qualities <- qualitiesFuture
     } yield NearestEQSet(entities,
                          qualities,
                          generalEntities -- entities
@@ -102,7 +103,7 @@ object Phenotype {
 
   def entitiesForPhenotype(phenotype: IRI, relation: IRI): Future[Set[IRI]] =
     for {
-      entityTypesResult  <- App.executeSPARQLQuery(entitySuperClassesQuery(phenotype, relation),
+      entityTypesResult <- App.executeSPARQLQuery(entitySuperClassesQuery(phenotype, relation),
                                                   result => IRI.create(result.getResource("description").getURI))
       entitySuperClasses <- superClassesForEntityTypes(entityTypesResult, relation)
     } yield {
@@ -113,7 +114,7 @@ object Phenotype {
 
   def qualitiesForPhenotype(phenotype: IRI): Future[Set[IRI]] =
     for {
-      superQualities      <- App.executeSPARQLQuery(qualitySuperClasses(phenotype),
+      superQualities <- App.executeSPARQLQuery(qualitySuperClasses(phenotype),
                                                result => IRI.create(result.getResource("description").getURI))
       superSuperQualities <- superClassesForSuperQualities(superQualities)
     } yield {
@@ -133,7 +134,7 @@ object Phenotype {
                            limit: Int = 20,
                            offset: Int = 0): Future[Seq[MinimalTerm]] =
     for {
-      query      <- TaxonPhenotypes.buildQuery(entity,
+      query <- TaxonPhenotypes.buildQuery(entity,
                                           quality,
                                           inTaxonOpt,
                                           phenotypeOpt,
@@ -156,7 +157,7 @@ object Phenotype {
                                 includeHistoricalHomologs: Boolean,
                                 includeSerialHomologs: Boolean): Future[Int] =
     for {
-      query  <- TaxonPhenotypes.buildQuery(entity,
+      query <- TaxonPhenotypes.buildQuery(entity,
                                           quality,
                                           inTaxonOpt,
                                           phenotypeOpt,
@@ -177,7 +178,7 @@ object Phenotype {
                              includeParts: Boolean,
                              includeHistoricalHomologs: Boolean,
                              includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query  = (iri: IRI) =>
+    val query = (iri: IRI) =>
       queryTaxonPhenotypesTotal(Some(iri),
                                 quality,
                                 inTaxonOpt,
@@ -200,7 +201,7 @@ object Phenotype {
                               includeParts: Boolean,
                               includeHistoricalHomologs: Boolean,
                               includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query  = (iri: IRI) =>
+    val query = (iri: IRI) =>
       queryTaxonPhenotypesTotal(entity,
                                 PhenotypicQuality(Some(iri)),
                                 inTaxonOpt,
@@ -220,7 +221,7 @@ object Phenotype {
                             includeParts: Boolean,
                             includeHistoricalHomologs: Boolean,
                             includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query  = (iri: IRI) =>
+    val query = (iri: IRI) =>
       queryTaxonPhenotypesTotal(entity,
                                 quality,
                                 Some(iri),
@@ -288,10 +289,10 @@ final case class Phenotype(iri: IRI, label: String, states: Set[CharacterState],
 
   override def toJSON: JsObject =
     Map(
-      "@id"    -> iri.toString.toJson,
-      "label"  -> label.toJson,
+      "@id" -> iri.toString.toJson,
+      "label" -> label.toJson,
       "states" -> states.map(_.toJSON).toJson,
-      "eqs"    -> eqs.toJSON
+      "eqs" -> eqs.toJSON
     ).toJson.asJsObject
 
 }
@@ -301,8 +302,8 @@ final case class NearestEQSet(entities: Set[IRI], qualities: Set[IRI], relatedEn
 
   override def toJSON: JsObject =
     Map(
-      "entities"         -> entities.map(_.toString).toSeq.sorted.toJson,
-      "qualities"        -> qualities.map(_.toString).toSeq.sorted.toJson,
+      "entities" -> entities.map(_.toString).toSeq.sorted.toJson,
+      "qualities" -> qualities.map(_.toString).toSeq.sorted.toJson,
       "related_entities" -> relatedEntities.map(_.toString).toSeq.sorted.toJson
     ).toJson.asJsObject
 

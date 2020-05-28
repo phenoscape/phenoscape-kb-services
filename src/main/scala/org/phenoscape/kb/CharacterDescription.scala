@@ -34,7 +34,7 @@ object CharacterDescription {
             limit: Int = 20,
             offset: Int = 0): Future[Seq[CharacterDescription]] =
     for {
-      query        <- App.expandWithOwlet(buildQuery(entity, taxon, publications, limit, offset))
+      query <- App.expandWithOwlet(buildQuery(entity, taxon, publications, limit, offset))
       descriptions <- App.executeSPARQLQuery(query, CharacterDescription(_))
     } yield descriptions
 
@@ -42,7 +42,7 @@ object CharacterDescription {
                  taxon: OWLClassExpression = owlThing,
                  publications: Iterable[IRI] = Nil): Future[ResultCount] =
     for {
-      query  <- App.expandWithOwlet(buildTotalQuery(entity, taxon, publications))
+      query <- App.expandWithOwlet(buildTotalQuery(entity, taxon, publications))
       result <- App.executeSPARQLQuery(query)
     } yield ResultCount(result)
 
@@ -58,7 +58,7 @@ object CharacterDescription {
     App.executeSPARQLQuery(buildCharacterDescriptionQuery(iri), fromQuerySolution(iri)).map(_.headOption)
 
   def annotatedCharacterDescriptionWithAnnotation(iri: IRI): Future[Option[AnnotatedCharacterDescription]] = {
-    val query  = select_distinct('state, 'description, 'matrix, 'matrix_label) where bgp(
+    val query = select_distinct('state, 'description, 'matrix, 'matrix_label) where bgp(
       t('state, describes_phenotype, iri),
       t('state, dcDescription, 'description),
       t('matrix, has_character / may_have_state_value, 'state),
@@ -93,11 +93,11 @@ object CharacterDescription {
         t('phenotype, ps_entity_term | ps_related_entity_term, 'entity) :: t('entity,
                                                                              rdfsSubClassOf,
                                                                              entity.asOMN) :: Nil
-    val taxonPatterns  =
+    val taxonPatterns =
       if (taxon == owlThing) Nil
       else
         t('taxon, exhibits_state, 'state) :: t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
-    val filters        =
+    val filters =
       if (publications.isEmpty) Nil
       else
         new ElementFilter(
@@ -218,7 +218,7 @@ object CharacterDescription {
   def eqAnnotationsForPhenotype(iri: IRI): Future[Seq[MinimalTerm]] = {
     val query = select_distinct('eq) from "http://kb.phenoscape.org/" where bgp(t(iri, rdfsSubClassOf, 'eq))
     for {
-      eqs        <- App.executeSPARQLQuery(query, result => IRI.create(result.getResource("eq").getURI))
+      eqs <- App.executeSPARQLQuery(query, result => IRI.create(result.getResource("eq").getURI))
       labeledEQs <- Future.sequence(eqs.map(Term.computedLabel))
     } yield labeledEQs
       .groupBy(_.label)
@@ -238,10 +238,10 @@ case class CharacterDescription(iri: IRI, description: String, matrix: Character
 
   def toJSON: JsObject =
     Map(
-      "@id"         -> iri.toString.toJson,
+      "@id" -> iri.toString.toJson,
       "description" -> description.toJson,
-      "matrix"      -> matrix.toJSON,
-      "character"   -> character.toJSON
+      "matrix" -> matrix.toJSON,
+      "character" -> character.toJSON
     ).toJson.asJsObject
 
 }
@@ -249,9 +249,9 @@ case class CharacterDescription(iri: IRI, description: String, matrix: Character
 case class CharacterDescriptionAnnotation(iri: IRI, description: String, annotation: IRI) extends JSONResultItem {
 
   def toJSON: JsObject =
-    Map("@id"         -> iri.toString.toJson,
+    Map("@id" -> iri.toString.toJson,
         "description" -> description.toJson,
-        "annotation"  -> annotation.toString.toJson).toJson.asJsObject
+        "annotation" -> annotation.toString.toJson).toJson.asJsObject
 
 }
 
@@ -312,9 +312,9 @@ case class CharacterMatrix(iri: IRI, label: String) extends JSONResultItem {
 case class CharacterState(iri: IRI, label: String, character: MinimalTerm, matrix: MinimalTerm) extends JSONResultItem {
 
   override def toJSON: JsObject =
-    Map("@id"       -> iri.toString.toJson,
-        "label"     -> label.toJson,
+    Map("@id" -> iri.toString.toJson,
+        "label" -> label.toJson,
         "character" -> character.toJSON,
-        "study"     -> matrix.toJSON).toJson.asJsObject
+        "study" -> matrix.toJSON).toJson.asJsObject
 
 }

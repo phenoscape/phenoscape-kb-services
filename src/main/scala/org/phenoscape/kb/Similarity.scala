@@ -17,6 +17,7 @@ import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation._
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.owlet.SPARQLComposer
 import org.semanticweb.owlapi.model.{IRI, OWLClass, OWLNamedIndividual}
@@ -31,16 +32,16 @@ import scala.collection.immutable.ListMap
 
 object Similarity {
 
-  private val combined_score         = ObjectProperty("http://purl.org/phenoscape/vocab.owl#combined_score")
-  private val has_expect_score       = ObjectProperty("http://purl.org/phenoscape/vocab.owl#has_expect_score")
-  private val has_subsumer           = ObjectProperty("http://purl.org/phenoscape/vocab.owl#has_subsumer")
-  private val for_query_profile      = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_query_profile")
-  private val for_corpus_profile     = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_corpus_profile")
-  private val has_ic                 = ObjectProperty("http://purl.org/phenoscape/vocab.owl#has_ic")
-  val TaxaCorpus                     = IRI.create("http://kb.phenoscape.org/sim/taxa")
-  val GenesCorpus                    = IRI.create("http://kb.phenoscape.org/sim/genes")
+  private val combined_score = ObjectProperty("http://purl.org/phenoscape/vocab.owl#combined_score")
+  private val has_expect_score = ObjectProperty("http://purl.org/phenoscape/vocab.owl#has_expect_score")
+  private val has_subsumer = ObjectProperty("http://purl.org/phenoscape/vocab.owl#has_subsumer")
+  private val for_query_profile = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_query_profile")
+  private val for_corpus_profile = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_corpus_profile")
+  private val has_ic = ObjectProperty("http://purl.org/phenoscape/vocab.owl#has_ic")
+  val TaxaCorpus = IRI.create("http://kb.phenoscape.org/sim/taxa")
+  val GenesCorpus = IRI.create("http://kb.phenoscape.org/sim/genes")
   private val has_phenotypic_profile = ObjectProperty(Vocab.has_phenotypic_profile)
-  private val rdfsSubClassOf         = ObjectProperty(Vocab.rdfsSubClassOf)
+  private val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
 
   val availableCorpora = Seq(TaxaCorpus, GenesCorpus)
 
@@ -57,10 +58,10 @@ object Similarity {
                                           queryGraph: IRI,
                                           corpusItem: IRI,
                                           corpusGraph: IRI): Future[Seq[UnlabelledAnnotationPair]] = {
-    val queryInd  = Individual(queryItem)
+    val queryInd = Individual(queryItem)
     val corpusInd = Individual(corpusItem)
     (for {
-      subsumers              <- bestSubsumersForComparison(queryItem, corpusItem, corpusGraph)
+      subsumers <- bestSubsumersForComparison(queryItem, corpusItem, corpusGraph)
       subsumersWithDisparity <- Future.sequence(subsumers.map(addDisparity(_, queryGraph, corpusGraph)))
     } yield subsumersWithDisparity.sortBy(_.subsumer.ic).foldRight(Future(Seq.empty[UnlabelledAnnotationPair])) {
       (subsumerWithDisparity, pairsFuture) =>
@@ -68,16 +69,16 @@ object Similarity {
           pairs <- pairsFuture
         } yield
           if (pairs.size < 20) {
-            val queryAnnotationsFuture  =
+            val queryAnnotationsFuture =
               subsumedAnnotationIRIs(queryInd, Class(subsumerWithDisparity.subsumer.term.iri))
             val corpusAnnotationsFuture =
               subsumedAnnotationIRIs(corpusInd, Class(subsumerWithDisparity.subsumer.term.iri))
-            val newPairsFuture          = for {
-              pairs             <- pairsFuture
-              queryAnnotations  <- queryAnnotationsFuture
+            val newPairsFuture = for {
+              pairs <- pairsFuture
+              queryAnnotations <- queryAnnotationsFuture
               corpusAnnotations <- corpusAnnotationsFuture
             } yield for {
-              queryAnnotation  <- queryAnnotations
+              queryAnnotation <- queryAnnotations
               if !pairs.exists(pair => pair.queryAnnotation == queryAnnotation)
               corpusAnnotation <- corpusAnnotations.headOption
             } yield UnlabelledAnnotationPair(queryAnnotation, corpusAnnotation, subsumerWithDisparity)
@@ -93,7 +94,7 @@ object Similarity {
         (for {
           (labelMap, pairs) <- accFuture
         } yield {
-          val queryAnnotationLabelFuture  = labelMap
+          val queryAnnotationLabelFuture = labelMap
             .get(pair.queryAnnotation)
             .map(Future.successful)
             .getOrElse(Term.computedLabel(pair.queryAnnotation).map(_.label.getOrElse(pair.queryAnnotation.toString)))
@@ -102,7 +103,7 @@ object Similarity {
             .map(Future.successful)
             .getOrElse(Term.computedLabel(pair.corpusAnnotation).map(_.label.getOrElse(pair.corpusAnnotation.toString)))
           for {
-            queryAnnotationLabel  <- queryAnnotationLabelFuture
+            queryAnnotationLabel <- queryAnnotationLabelFuture
             corpusAnnotationLabel <- corpusAnnotationLabelFuture
           } yield (labelMap + (pair.queryAnnotation -> queryAnnotationLabel) + (pair.corpusAnnotation -> corpusAnnotationLabel),
                    pairs :+ AnnotationPair(MinimalTerm(pair.queryAnnotation, Some(queryAnnotationLabel)),
@@ -115,7 +116,7 @@ object Similarity {
 
   def bestSubsumersForComparison(queryItem: IRI, corpusItem: IRI, corpusGraph: IRI): Future[Seq[Subsumer]] =
     for {
-      results   <-
+      results <-
         App.executeSPARQLQuery(comparisonSubsumersQuery(queryItem, corpusItem, corpusGraph), Subsumer.fromQuery(_))
       subsumers <- Future.sequence(results)
     } yield subsumers.filter(_.ic > 0)
@@ -126,7 +127,7 @@ object Similarity {
 
   def subsumedAnnotations(instance: OWLNamedIndividual, subsumer: OWLClass): Future[Seq[MinimalTerm]] =
     for {
-      irisFuture    <- subsumedAnnotationIRIs(instance, subsumer)
+      irisFuture <- subsumedAnnotationIRIs(instance, subsumer)
       labelledTerms <- Future.sequence(irisFuture.map(Term.computedLabel))
     } yield labelledTerms
 
@@ -148,10 +149,10 @@ object Similarity {
       results <-
         App.executeSPARQLQuery(query, result => (result.getResource("graph").getURI, result.getLiteral("ic").getDouble))
     } yield {
-      val values        = results.toMap
+      val values = results.toMap
       val differenceOpt = for {
         corpusIC <- values.get(corpusGraph.toString)
-        queryIC  <- values.get(queryGraph.toString)
+        queryIC <- values.get(queryGraph.toString)
       } yield corpusIC - queryIC
       differenceOpt.getOrElse(0.0)
     }
@@ -161,7 +162,7 @@ object Similarity {
     icDisparity(Class(subsumer.term.iri), queryGraph, corpusGraph).map(SubsumerWithDisparity(subsumer, _))
 
   //FIXME this query is way too slow
-  def corpusSize(corpusGraph: IRI): Future[Int]                                                          = {
+  def corpusSize(corpusGraph: IRI): Future[Int] = {
     val query = select() from corpusGraph.toString where (bgp(t('comparison, for_corpus_profile, 'profile)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("profile"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
@@ -229,14 +230,14 @@ object Similarity {
                       rightStudyIRI: IRI,
                       rightCharacterNum: Int,
                       rightSymbol: String): Future[Double] = {
-    val leftSubsumersFut  = stateSubsumers(leftStudyIRI, leftCharacterNum, leftSymbol)
+    val leftSubsumersFut = stateSubsumers(leftStudyIRI, leftCharacterNum, leftSymbol)
     val rightSubsumersFut = stateSubsumers(rightStudyIRI, rightCharacterNum, rightSymbol)
     for {
-      leftSubsumers  <- leftSubsumersFut
+      leftSubsumers <- leftSubsumersFut
       rightSubsumers <- rightSubsumersFut
     } yield {
       val intersectionCount = leftSubsumers.intersect(rightSubsumers).size
-      val unionCount        = (leftSubsumers ++ rightSubsumers).size
+      val unionCount = (leftSubsumers ++ rightSubsumers).size
       intersectionCount.toDouble / unionCount.toDouble
     }
   }
@@ -245,11 +246,11 @@ object Similarity {
     Future.sequence(iris.map(iri => classSubsumers(iri).map(iri -> _))).map { irisSubsumers =>
       val irisToSubsumers = irisSubsumers.toMap
       (for {
-        combo            <- iris.toSeq.combinations(2)
-        left              = combo(0)
-        right             = combo(1)
+        combo <- iris.toSeq.combinations(2)
+        left = combo(0)
+        right = combo(1)
         intersectionCount = irisToSubsumers(left).intersect(irisToSubsumers(right)).size
-        unionCount        = (irisToSubsumers(left) ++ irisToSubsumers(right)).size
+        unionCount = (irisToSubsumers(left) ++ irisToSubsumers(right)).size
       } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
     }
 
@@ -286,9 +287,9 @@ object Similarity {
 
   def frequency(terms: Set[IRI], corpus: IRI): Future[TermFrequencyTable] = {
     import scalaz.Scalaz._
-    val values           = if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ |+| _) else sparql""
+    val values = if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ + _) else sparql""
     val query: QueryText = corpus match {
-      case TaxaCorpus  =>
+      case TaxaCorpus =>
         sparql"""
               SELECT ?term (COUNT(DISTINCT ?profile) AS ?count)
               FROM $KBMainGraph
@@ -345,10 +346,10 @@ object Similarity {
 case class SimilarityMatch(corpusProfile: MinimalTerm, medianScore: Double, expectScore: Double)
     extends JSONResultItem {
 
-  def toJSON: JsObject            =
+  def toJSON: JsObject =
     Map("match_profile" -> corpusProfile.toJSON,
-        "median_score"  -> medianScore.toJson,
-        "expect_score"  -> expectScore.toJson).toJson.asJsObject
+        "median_score" -> medianScore.toJson,
+        "expect_score" -> expectScore.toJson).toJson.asJsObject
 
   override def toString(): String =
     s"${corpusProfile.iri.toString}\t${corpusProfile.label}\t$medianScore\t$expectScore"
@@ -393,9 +394,9 @@ case class UnlabelledAnnotationPair(queryAnnotation: IRI, corpusAnnotation: IRI,
 
   def toJSON: JsObject =
     Map(
-      "query_annotation"  -> Map("@id" -> queryAnnotation.toString).toJson,
+      "query_annotation" -> Map("@id" -> queryAnnotation.toString).toJson,
       "corpus_annotation" -> Map("@id" -> corpusAnnotation.toString).toJson,
-      "best_subsumer"     -> bestSubsumer.toJSON
+      "best_subsumer" -> bestSubsumer.toJSON
     ).toJson.asJsObject
 
 }
@@ -406,9 +407,9 @@ case class AnnotationPair(queryAnnotation: MinimalTerm,
     extends JSONResultItem {
 
   def toJSON: JsObject =
-    Map("query_annotation"  -> queryAnnotation.toJSON,
+    Map("query_annotation" -> queryAnnotation.toJSON,
         "corpus_annotation" -> corpusAnnotation.toJSON,
-        "best_subsumer"     -> bestSubsumer.toJSON).toJson.asJsObject
+        "best_subsumer" -> bestSubsumer.toJSON).toJson.asJsObject
 
 }
 
