@@ -50,7 +50,7 @@ object Graph {
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
       val valuesElements = terms.map(t => sparql" $t ").reduce(_ + _)
-      val query          =
+      val query =
         sparql"""
        SELECT DISTINCT ?term ?ancestor
        FROM $KBClosureGraph
@@ -59,22 +59,22 @@ object Graph {
          ?term $rdfsSubClassOf ?ancestor .
        }
           """
-      val futurePairs    = App.executeSPARQLQueryString(query.text,
+      val futurePairs = App.executeSPARQLQueryString(query.text,
                                                      qs => {
-                                                       val term     = qs.getResource("term").getURI
+                                                       val term = qs.getResource("term").getURI
                                                        val ancestor = qs.getResource("ancestor").getURI
                                                        (term, ancestor)
                                                      })
       for {
         pairs <- futurePairs
       } yield {
-        val termsSequence     = terms.map(_.toString).toSeq.sorted
-        val header            = s",${termsSequence.mkString(",")}"
+        val termsSequence = terms.map(_.toString).toSeq.sorted
+        val header = s",${termsSequence.mkString(",")}"
         val groupedByAncestor = pairs.groupBy(_._2)
-        val valuesLines       = groupedByAncestor.map {
+        val valuesLines = groupedByAncestor.map {
           case (ancestor, ancPairs) =>
             val termsForAncestor = ancPairs.map(_._1).toSet
-            val values           = termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
+            val values = termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
             s"$ancestor,${values.mkString(",")}"
         }
         AncestorMatrix(s"$header\n${valuesLines.mkString("\n")}")

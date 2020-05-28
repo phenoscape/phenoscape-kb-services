@@ -53,31 +53,31 @@ object StreamingSPARQLResults {
       .via(XmlParsing.parser)
       .statefulMapConcat { () =>
         // state
-        var qs                              = new QuerySolutionMap()
-        var currentVariable                 = ""
+        var qs = new QuerySolutionMap()
+        var currentVariable = ""
         var currentLiteralType: LiteralType = Plain
-        val valueBuffer                     = StringBuilder.newBuilder
+        val valueBuffer = StringBuilder.newBuilder
         // aggregation function
         parseEvent =>
           parseEvent match {
-            case s: StartElement if s.localName == "result"  =>
+            case s: StartElement if s.localName == "result" =>
               qs = new QuerySolutionMap()
               currentVariable = ""
               immutable.Seq.empty
             case s: StartElement if s.localName == "binding" =>
               currentVariable = s.attributes("name")
               immutable.Seq.empty
-            case s: StartElement if s.localName == "uri"     =>
+            case s: StartElement if s.localName == "uri" =>
               valueBuffer.clear()
               immutable.Seq.empty
-            case s: EndElement if s.localName == "uri"       =>
+            case s: EndElement if s.localName == "uri" =>
               val value = ResourceFactory.createResource(valueBuffer.toString)
               qs.add(currentVariable, value)
               immutable.Seq.empty
-            case s: StartElement if s.localName == "bnode"   =>
+            case s: StartElement if s.localName == "bnode" =>
               valueBuffer.clear()
               immutable.Seq.empty
-            case s: EndElement if s.localName == "bnode"     =>
+            case s: EndElement if s.localName == "bnode" =>
               val value = new ResourceImpl(new AnonId(valueBuffer.toString))
               qs.add(currentVariable, value)
               immutable.Seq.empty
@@ -89,23 +89,23 @@ object StreamingSPARQLResults {
                 .orElse(s.attributes.get("xml:lang").map(Lang))
                 .getOrElse(Plain)
               immutable.Seq.empty
-            case s: EndElement if s.localName == "literal"   =>
-              val text    = valueBuffer.toString
+            case s: EndElement if s.localName == "literal" =>
+              val text = valueBuffer.toString
               val literal = currentLiteralType match {
-                case Plain         => ResourceFactory.createPlainLiteral(text)
-                case Lang(lang)    => ResourceFactory.createLangLiteral(text, lang)
+                case Plain      => ResourceFactory.createPlainLiteral(text)
+                case Lang(lang) => ResourceFactory.createLangLiteral(text, lang)
                 case DataType(uri) =>
                   val datatype = TypeMapper.getInstance().getSafeTypeByName(uri)
                   ResourceFactory.createTypedLiteral(text, datatype)
               }
               qs.add(currentVariable, literal)
               immutable.Seq.empty
-            case s: EndElement if s.localName == "result"    =>
+            case s: EndElement if s.localName == "result" =>
               immutable.Seq(qs)
-            case t: TextEvent                                =>
+            case t: TextEvent =>
               valueBuffer.append(t.text)
               immutable.Seq.empty
-            case _                                           =>
+            case _ =>
               immutable.Seq.empty
           }
       }

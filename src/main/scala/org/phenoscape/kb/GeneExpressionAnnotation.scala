@@ -28,10 +28,10 @@ import scala.language.postfixOps
 case class GeneExpressionAnnotation(gene: MinimalTerm, location: MinimalTerm, source: Option[IRI])
     extends JSONResultItem {
 
-  def toJSON: JsObject          =
-    Map("gene"     -> gene.toJSON,
+  def toJSON: JsObject =
+    Map("gene" -> gene.toJSON,
         "location" -> location.toJSON,
-        "source"   -> source.map(_.toString).getOrElse("").toJson).toJson.asJsObject
+        "source" -> source.map(_.toString).getOrElse("").toJson).toJson.asJsObject
 
   override def toString: String =
     s"${gene.iri}\t${gene.label}\t${location.iri}\t${location.label}\t$source"
@@ -47,13 +47,13 @@ object GeneExpressionAnnotation {
                        limit: Int = 20,
                        offset: Int = 0): Future[Seq[GeneExpressionAnnotation]] =
     for {
-      query       <- buildGeneExpressionAnnotationsQuery(entity, inTaxonOpt, limit, offset)
+      query <- buildGeneExpressionAnnotationsQuery(entity, inTaxonOpt, limit, offset)
       annotations <- App.executeSPARQLQuery(query, fromQueryResult)
     } yield annotations
 
   def queryAnnotationsTotal(entity: Option[OWLClassExpression], inTaxonOpt: Option[IRI]): Future[Int] =
     for {
-      query  <- buildGeneExpressionAnnotationsTotalQuery(entity, inTaxonOpt)
+      query <- buildGeneExpressionAnnotationsTotalQuery(entity, inTaxonOpt)
       result <- App.executeSPARQLQuery(query)
     } yield ResultCount.count(result)
 
@@ -68,9 +68,9 @@ object GeneExpressionAnnotation {
   private def buildBasicGeneExpressionAnnotationsQuery(entity: Option[OWLClassExpression],
                                                        inTaxonOpt: Option[IRI]): Future[Query] = {
     val locationExpression = entity.map(e => Class(ANATOMICAL_ENTITY) and (part_of some e))
-    val phenotypeTriple    = locationExpression.map(desc => t('location, rdfsSubClassOf, desc.asOMN)).toList
-    val taxonPatterns      = inTaxonOpt.map(t('taxon, rdfsSubClassOf *, _)).toList
-    val query              = select_distinct('gene, 'gene_label, 'location, 'location_label, 'source) where (bgp(
+    val phenotypeTriple = locationExpression.map(desc => t('location, rdfsSubClassOf, desc.asOMN)).toList
+    val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf *, _)).toList
+    val query = select_distinct('gene, 'gene_label, 'location, 'location_label, 'source) where (bgp(
       App.BigdataAnalyticQuery ::
         //t('annotation, rdfType, GeneExpression) ::
         t('annotation, associated_with_gene, 'gene) ::
