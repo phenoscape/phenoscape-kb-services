@@ -25,7 +25,7 @@ import scala.language.postfixOps
 
 final case class TaxonPhenotypeAnnotation(taxon: MinimalTerm, phenotype: MinimalTerm) extends JSONResultItem {
 
-  def toJSON: JsObject          =
+  def toJSON: JsObject =
     (Map("taxon" -> taxon.toJSON, "phenotype" -> phenotype.toJSON)).toJson.asJsObject
 
   override def toString: String =
@@ -48,7 +48,7 @@ object TaxonPhenotypeAnnotation {
                        limit: Int = 20,
                        offset: Int = 0): Future[Seq[TaxonPhenotypeAnnotation]] =
     for {
-      query       <- TaxonAnnotations.buildQuery(entity,
+      query <- TaxonAnnotations.buildQuery(entity,
                                            quality,
                                            inTaxonOpt,
                                            phenotypeOpt,
@@ -95,7 +95,7 @@ object TaxonPhenotypeAnnotation {
                             includeHistoricalHomologs: Boolean,
                             includeSerialHomologs: Boolean): Future[Int] =
     for {
-      query  <- TaxonAnnotations.buildQuery(entity,
+      query <- TaxonAnnotations.buildQuery(entity,
                                            quality,
                                            inTaxonOpt,
                                            phenotypeOpt,
@@ -124,7 +124,7 @@ object TaxonPhenotypeAnnotation {
                                     includeParts: Boolean,
                                     includeHistoricalHomologs: Boolean,
                                     includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query  = (iri: IRI) =>
+    val query = (iri: IRI) =>
       queryAnnotationsTotal(Some(iri),
                             quality,
                             inTaxonOpt,
@@ -147,7 +147,7 @@ object TaxonPhenotypeAnnotation {
                                      includeParts: Boolean,
                                      includeHistoricalHomologs: Boolean,
                                      includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query  = (iri: IRI) =>
+    val query = (iri: IRI) =>
       queryAnnotationsTotal(entity,
                             PhenotypicQuality(Some(iri)),
                             inTaxonOpt,
@@ -167,7 +167,7 @@ object TaxonPhenotypeAnnotation {
                                    includeParts: Boolean,
                                    includeHistoricalHomologs: Boolean,
                                    includeSerialHomologs: Boolean): Future[List[Facet]] = {
-    val query  = (iri: IRI) =>
+    val query = (iri: IRI) =>
       queryAnnotationsTotal(entity,
                             quality,
                             Some(iri),
@@ -208,7 +208,7 @@ object TaxonPhenotypeAnnotation {
     )
   }
 
-  private def facetResultToMap(facets: List[(MinimalTerm, Int)])            =
+  private def facetResultToMap(facets: List[(MinimalTerm, Int)]) =
     Map("facets" -> facets.map { case (term, count) => Map("term" -> term, "count" -> count) })
 
   val AnnotationTSVMarshaller: ToEntityMarshaller[TaxonPhenotypeAnnotation] =
@@ -225,7 +225,7 @@ object TaxonPhenotypeAnnotation {
   /**
     * Required for streaming TaxonPhenotypeAnnotations to client
     */
-  val AnnotationByteStringTSVMarshaller                                            = Marshaller.strict[TaxonPhenotypeAnnotation, ByteString] { ann =>
+  val AnnotationByteStringTSVMarshaller = Marshaller.strict[TaxonPhenotypeAnnotation, ByteString] { ann =>
     Marshalling.WithFixedContentType(MediaTypes.`text/tab-separated-values`.toContentType(HttpCharsets.`UTF-8`),
                                      () => ByteString(ann.toString))
   }
@@ -241,9 +241,9 @@ final case class AnnotationSource(publication: MinimalTerm, characterNum: Int, c
     extends JSONResultItem {
 
   def toJSON: JsObject =
-    (Map("publication"    -> publication.toJSON,
-         "character_num"  -> characterNum.toJson,
+    (Map("publication" -> publication.toJSON,
+         "character_num" -> characterNum.toJson,
          "character_text" -> character.toJson,
-         "state_text"     -> state.toJson)).toJson.asJsObject
+         "state_text" -> state.toJson)).toJson.asJsObject
 
 }

@@ -26,28 +26,28 @@ import scala.language.postfixOps
 
 object App {
 
-  implicit val timeout                 = Timeout(10 minutes)
-  private val Prior                    = IRI.create("http://www.bigdata.com/queryHints#Prior")
-  private val RunFirst                 = IRI.create("http://www.bigdata.com/queryHints#runFirst")
-  private val HintQuery                = IRI.create("http://www.bigdata.com/queryHints#Query")
-  private val HintAnalytic             = IRI.create("http://www.bigdata.com/queryHints#analytic")
-  private val HintOptimizer            = IRI.create("http://www.bigdata.com/queryHints#optimizer")
-  val BigdataRunPriorFirst             = bgp(t(Prior, RunFirst, "true" ^^ XSDDatatype.XSDboolean))
-  val BigdataAnalyticQuery             = t(HintQuery, HintAnalytic, "true" ^^ XSDDatatype.XSDboolean)
-  val BigdataNoOptimizer               = t(HintQuery, HintOptimizer, "None" ^^ XSDDatatype.XSDstring)
+  implicit val timeout = Timeout(10 minutes)
+  private val Prior = IRI.create("http://www.bigdata.com/queryHints#Prior")
+  private val RunFirst = IRI.create("http://www.bigdata.com/queryHints#runFirst")
+  private val HintQuery = IRI.create("http://www.bigdata.com/queryHints#Query")
+  private val HintAnalytic = IRI.create("http://www.bigdata.com/queryHints#analytic")
+  private val HintOptimizer = IRI.create("http://www.bigdata.com/queryHints#optimizer")
+  val BigdataRunPriorFirst = bgp(t(Prior, RunFirst, "true" ^^ XSDDatatype.XSDboolean))
+  val BigdataAnalyticQuery = t(HintQuery, HintAnalytic, "true" ^^ XSDDatatype.XSDboolean)
+  val BigdataNoOptimizer = t(HintQuery, HintOptimizer, "None" ^^ XSDDatatype.XSDstring)
 
   val `application/sparql-results+xml` =
     MediaType.applicationWithFixedCharset("sparql-results+xml", HttpCharsets.`UTF-8`, "xml")
 
-  val `application/sparql-query`       =
+  val `application/sparql-query` =
     MediaType.applicationWithFixedCharset("sparql-query", HttpCharsets.`UTF-8`, "rq", "sparql")
 
-  val `application/rdf+xml`            = MediaType.applicationWithFixedCharset("rdf+xml", HttpCharsets.`UTF-8`, "rdf")
-  val `application/ld+json`            = MediaType.applicationWithFixedCharset("ld+json", HttpCharsets.`UTF-8`, "jsonld")
+  val `application/rdf+xml` = MediaType.applicationWithFixedCharset("rdf+xml", HttpCharsets.`UTF-8`, "rdf")
+  val `application/ld+json` = MediaType.applicationWithFixedCharset("ld+json", HttpCharsets.`UTF-8`, "jsonld")
 
-  val conf            = ConfigFactory.load()
+  val conf = ConfigFactory.load()
   val KBEndpoint: Uri = Uri(conf.getString("kb-services.kb.endpoint"))
-  val Owlery: Uri     = Uri(conf.getString("kb-services.owlery.endpoint"))
+  val Owlery: Uri = Uri(conf.getString("kb-services.owlery.endpoint"))
 
   def withOwlery(triple: TripleOrPath): ElementService = service(App.Owlery.toString + "/sparql", bgp(triple))
 
@@ -72,7 +72,7 @@ object App {
   def resultSetToTSV(result: ResultSet): String = {
     val outStream = new ByteArrayOutputStream()
     ResultSetFormatter.outputAsTSV(outStream, result)
-    val tsv       = outStream.toString("utf-8")
+    val tsv = outStream.toString("utf-8")
     outStream.close()
     tsv
   }
@@ -90,7 +90,7 @@ object App {
     Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/sparql-results+xml`).map { data =>
       // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
       val inputStream = new ByteArrayInputStream(data)
-      val result      = ResultSetMgr.read(inputStream, ResultSetLang.SPARQLResultSetXML)
+      val result = ResultSetMgr.read(inputStream, ResultSetLang.SPARQLResultSetXML)
       inputStream.close()
       result
     }
@@ -99,7 +99,7 @@ object App {
     Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/sparql-results+xml`).map { data =>
       // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
       val inputStream = new ByteArrayInputStream(data)
-      val result      = ResultSetMgr.readBoolean(inputStream, ResultSetLang.SPARQLResultSetXML)
+      val result = ResultSetMgr.readBoolean(inputStream, ResultSetLang.SPARQLResultSetXML)
       inputStream.close()
       result
     }
@@ -114,55 +114,55 @@ object App {
   def expandWithOwlet(query: Query): Future[Query] =
     for {
       requestEntity <- Marshal(query).to[RequestEntity]
-      response      <- Http().singleRequest(
-                    HttpRequest(method = HttpMethods.POST,
-                                uri = Owlery.copy(path = Owlery.path / "expand"),
-                                entity = requestEntity))
-      newQuery      <- Unmarshal(response.entity).to[Query]
+      response <- Http().singleRequest(
+        HttpRequest(method = HttpMethods.POST,
+                    uri = Owlery.copy(path = Owlery.path / "expand"),
+                    entity = requestEntity))
+      newQuery <- Unmarshal(response.entity).to[Query]
     } yield newQuery
 
   def sparqlSelectQuery(query: Query): Future[ResultSet] =
     for {
       requestEntity <- Marshal(query).to[RequestEntity]
-      response      <- Http().singleRequest(
-                    HttpRequest(method = HttpMethods.POST,
-                                headers = List(headers.Accept(`application/sparql-results+xml`)),
-                                uri = KBEndpoint,
-                                entity = requestEntity))
-      result        <- Unmarshal(response.entity).to[ResultSet]
+      response <- Http().singleRequest(
+        HttpRequest(method = HttpMethods.POST,
+                    headers = List(headers.Accept(`application/sparql-results+xml`)),
+                    uri = KBEndpoint,
+                    entity = requestEntity))
+      result <- Unmarshal(response.entity).to[ResultSet]
     } yield result
 
   def sparqlSelectQuery(queryString: String): Future[ResultSet] =
     for {
       requestEntity <- Marshal(queryString).to[RequestEntity]
-      response      <- Http().singleRequest(
-                    HttpRequest(method = HttpMethods.POST,
-                                headers = List(headers.Accept(`application/sparql-results+xml`)),
-                                uri = KBEndpoint,
-                                entity = requestEntity))
-      result        <- Unmarshal(response.entity).to[ResultSet]
+      response <- Http().singleRequest(
+        HttpRequest(method = HttpMethods.POST,
+                    headers = List(headers.Accept(`application/sparql-results+xml`)),
+                    uri = KBEndpoint,
+                    entity = requestEntity))
+      result <- Unmarshal(response.entity).to[ResultSet]
     } yield result
 
   def sparqlConstructQuery(query: Query): Future[Model] =
     for {
       requestEntity <- Marshal(query).to[RequestEntity]
-      response      <- Http().singleRequest(
-                    HttpRequest(method = HttpMethods.POST,
-                                headers = List(headers.Accept(`application/rdf+xml`)),
-                                uri = KBEndpoint,
-                                entity = requestEntity))
-      model         <- Unmarshal(response.entity).to[Model]
+      response <- Http().singleRequest(
+        HttpRequest(method = HttpMethods.POST,
+                    headers = List(headers.Accept(`application/rdf+xml`)),
+                    uri = KBEndpoint,
+                    entity = requestEntity))
+      model <- Unmarshal(response.entity).to[Model]
     } yield model
 
   def sparqlAskQuery(query: Query): Future[Boolean] =
     for {
       requestEntity <- Marshal(query).to[RequestEntity]
-      response      <- Http().singleRequest(
-                    HttpRequest(method = HttpMethods.POST,
-                                headers = List(headers.Accept(`application/sparql-results+xml`)),
-                                uri = KBEndpoint,
-                                entity = requestEntity))
-      result        <- Unmarshal(response.entity).to[Boolean]
+      response <- Http().singleRequest(
+        HttpRequest(method = HttpMethods.POST,
+                    headers = List(headers.Accept(`application/sparql-results+xml`)),
+                    uri = KBEndpoint,
+                    entity = requestEntity))
+      result <- Unmarshal(response.entity).to[Boolean]
     } yield result
 
 }
