@@ -497,6 +497,12 @@ paths:
           required: false
           type: boolean
           default: true
+        - name: includeSubClasses
+          in: query
+          description: Whether to include subclasses for entity and taxon
+          required: false
+          type: boolean
+          default: false
       responses:
         200:
           description: NeXML-format evolutionary character matrix
