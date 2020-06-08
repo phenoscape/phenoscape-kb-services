@@ -30,9 +30,9 @@ resolvers += ("BBOP repository" at "http://code.berkeleybop.org/maven/repository
 
 libraryDependencies ++= {
   Seq(
-    "com.typesafe.akka"      %% "akka-stream"             % "2.6.5",
-    "com.typesafe.akka"      %% "akka-actor"              % "2.6.5",
-    "com.typesafe.akka"      %% "akka-slf4j"              % "2.6.5",
+    "com.typesafe.akka"      %% "akka-stream"             % "2.6.6",
+    "com.typesafe.akka"      %% "akka-actor"              % "2.6.6",
+    "com.typesafe.akka"      %% "akka-slf4j"              % "2.6.6",
     "com.typesafe.akka"      %% "akka-http"               % "10.1.12",
     "com.typesafe.akka"      %% "akka-http-caching"       % "10.1.12",
     "com.typesafe.akka"      %% "akka-http-spray-json"    % "10.1.12",
