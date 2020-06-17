@@ -36,7 +36,7 @@ libraryDependencies ++= {
     "com.typesafe.akka"      %% "akka-http"               % "10.1.12",
     "com.typesafe.akka"      %% "akka-http-caching"       % "10.1.12",
     "com.typesafe.akka"      %% "akka-http-spray-json"    % "10.1.12",
-    "ch.megard"              %% "akka-http-cors"          % "0.4.3",
+    "ch.megard"              %% "akka-http-cors"          % "1.0.0",
     "com.lightbend.akka"     %% "akka-stream-alpakka-xml" % "2.0.1",
     "io.spray"               %% "spray-json"              % "1.3.5",
     "net.sourceforge.owlapi" %  "owlapi-distribution"     % "4.5.16",
