@@ -28,6 +28,8 @@ resolvers += "Phenoscape Maven repository" at "https://svn.code.sf.net/p/phenosc
 
 resolvers += ("BBOP repository" at "http://code.berkeleybop.org/maven/repository").withAllowInsecureProtocol(true)
 
+testFrameworks += new TestFramework("utest.runner.Framework")
+
 libraryDependencies ++= {
   Seq(
     "com.typesafe.akka"      %% "akka-stream"             % "2.6.6",
