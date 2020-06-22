@@ -24,6 +24,8 @@ import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.{IRI, OWLClassExpression, OWLObjectProperty}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
+import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
@@ -32,15 +34,6 @@ import scala.language.implicitConversions
 object Gene {
 
   private val factory = OWLManager.getOWLDataFactory
-
-  //FIXME this is a temporary hack until genes are directly associated with taxa in the KB
-  private val geneIDPrefixToTaxon = Map(
-    "http://zfin.org" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_7955"), "Danio rerio"),
-    "http://www.informatics.jax.org" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_10090"),
-                                              "Mus musculus"),
-    "http://xenbase.org" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_8353"), "Xenopus"),
-    "http://www.ncbi.nlm.nih.gov" -> Taxon(IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_9606"), "Homo sapiens")
-  )
 
   def withIRI(iri: IRI): Future[Option[Gene]] =
     App.executeSPARQLQuery(buildGeneQuery(iri), Gene.fromIRIQuery(iri)).map(_.headOption)
@@ -69,12 +62,14 @@ object Gene {
 
   def buildSearchQuery(text: String): Query = {
     val searchText = if (text.endsWith("*")) text else s"$text*"
-    val query = select_distinct('gene, 'gene_label) from "http://kb.phenoscape.org/" where bgp(
+    val query = select_distinct('gene, 'gene_label, 'taxon, 'taxon_label) from "http://kb.phenoscape.org/" where bgp(
       t('gene_label, BDSearch, NodeFactory.createLiteral(searchText)),
       t('gene_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
       t('gene_label, BDRank, 'rank),
       t('gene, rdfsLabel, 'gene_label),
-      t('gene, rdfType, Vocab.Gene)
+      t('gene, rdfType, AnnotatedGene),
+      t('gene, in_taxon, 'taxon),
+      t('taxon, rdfsLabel, 'taxon_label)
     )
     query.addOrderBy('rank, Query.ORDER_ASCENDING)
     query.setLimit(100)
@@ -96,11 +91,16 @@ object Gene {
     val taxonPatterns =
       if (taxon == owlThing) Nil
       else
-        t('annotation, associated_with_taxon, 'taxon) :: t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
+        t('annotation, associated_with_taxon, 'taxon) :: t(
+          'taxon,
+          rdfsSubClassOf,
+          taxon.asOMN) :: Nil //FIXME this is different for Monarch data
     val query = select_distinct() from "http://kb.phenoscape.org/" where bgp(
       t('annotation, rdfType, AnnotatedPhenotype) ::
         t('annotation, associated_with_gene, 'gene) ::
         t('gene, rdfsLabel, 'gene_label) ::
+        t('gene, in_taxon, 'taxon) ::
+        t('taxon, rdfsLabel, 'taxon_label) ::
         taxonPatterns ++
         entityPatterns: _*
     )
@@ -114,6 +114,8 @@ object Gene {
     val query = buildBasicQuery(entity, taxon)
     query.addResultVar('gene)
     query.addResultVar('gene_label)
+    query.addResultVar('taxon)
+    query.addResultVar('taxon_label)
     query.setOffset(offset)
     if (limit > 0) query.setLimit(limit)
     query.addOrderBy('gene_label)
@@ -128,11 +130,19 @@ object Gene {
   }
 
   def buildGeneQuery(iri: IRI): Query =
-    select('gene_label) from "http://kb.phenoscape.org/" where bgp(t(iri, rdfsLabel, 'gene_label),
-                                                                   t(iri, rdfType, Vocab.Gene))
+    sparql"""
+      SELECT DISTINCT ?gene_label ?taxon ?taxon_label
+      FROM $KBMainGraph
+      WHERE {
+        $iri $rdfsLabel ?gene_label .
+        $iri $rdfType $AnnotatedGene .
+        $iri $in_taxon ?taxon .
+        ?taxon $rdfsLabel ?taxon_label .
+      }
+          """.toQuery
 
   def fromIRIQuery(iri: IRI)(result: QuerySolution): Gene =
-    Gene(iri, Option(result.getLiteral("gene_label")).map(_.getLexicalForm), taxonForGeneIRI(iri))
+    Gene(iri, Option(result.getLiteral("gene_label")).map(_.getLexicalForm), Taxon(result))
 
   def affectingPhenotypeOfEntity(entity: Option[IRI],
                                  quality: Option[IRI],
@@ -198,6 +208,8 @@ object Gene {
     val query = buildGeneExpressedInEntityQuery(entity)
     query.addResultVar('gene)
     query.addResultVar('gene_label)
+    query.addResultVar('taxon)
+    query.addResultVar('taxon_label)
     if (limit > 1) {
       query.setOffset(offset)
       query.setLimit(limit)
@@ -290,26 +302,24 @@ object Gene {
 
   private def buildGeneExpressedInEntityQuery(entityIRI: IRI): Query = {
     val partOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
-    select_distinct() from KBMainGraph.toString from KBClosureGraph.toString where bgp(
-      t('gene, rdfsLabel, 'gene_label),
-      t('expression, associated_with_gene, 'gene),
-      //        t('expression, rdfType, GeneExpression), // faster without, and not necessary for current model
-      t('expression, occurs_in / rdfsSubClassOf / partOfSome, entityIRI)
-    )
-  }
-
-  def taxonForGeneIRI(iri: IRI): Taxon =
-    geneIDPrefixToTaxon
-      .collectFirst {
-        case (prefix, taxon) if iri.toString.startsWith(prefix) => taxon
+    //FIXME check that * gets overridden
+    sparql"""
+      SELECT DISTINCT *
+      FROM $KBMainGraph
+      FROM $KBClosureGraph
+      WHERE {
+        ?gene $rdfsLabel ?gene_label .
+        ?expression $associated_with_gene ?gene .
+        ?expression $occurs_in/$rdfsSubClassOf/$partOfSome $entityIRI .
+        ?gene $in_taxon ?taxon .
+        ?taxon $rdfsLabel ?taxon_label .
       }
-      .getOrElse(Taxon(factory.getOWLThing.getIRI, "unknown"))
+          """.toQuery
+  }
 
   def apply(result: QuerySolution): Gene = {
     val geneURI = result.getResource("gene").getURI
-    Gene(IRI.create(geneURI),
-         Option(result.getLiteral("gene_label")).map(_.getLexicalForm),
-         taxonForGeneIRI(IRI.create(geneURI)))
+    Gene(IRI.create(geneURI), Option(result.getLiteral("gene_label")).map(_.getLexicalForm), Taxon(result))
   }
 
   implicit val GenesTextMarshaller: ToEntityMarshaller[Seq[Gene]] =
