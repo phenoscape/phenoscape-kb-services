@@ -63,4 +63,6 @@ object KBVocab {
   val InferredPresence = IRI.create("http://purl.org/phenoscape/vocab.owl#inferred_presence")
   val InferredAbsence = IRI.create("http://purl.org/phenoscape/vocab.owl#inferred_absence")
 
+  val AnnotatedGene = IRI.create("http://purl.org/phenoscape/vocab.owl#AnnotatedGene")
+
 }
