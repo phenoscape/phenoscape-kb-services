@@ -25,9 +25,11 @@ import spray.json.DefaultJsonProtocol._
 import java.util.Date
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.sparql.SPARQLInterpolation._
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.phenoscape.sparql.SPARQLInterpolation.QueryText
 import org.openrdf.model.vocabulary.DCTERMS
 import org.apache.jena.vocabulary.DCTerms
+import org.semanticweb.owlapi.model.IRI
 import java.time.Instant
 
 object KB {
@@ -50,7 +52,8 @@ object KB {
   }
 
   def annotationReport: Future[String] = {
-    val queryString = """
+    val queryString =
+      """
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ps: <http://purl.org/phenoscape/vocab.owl#>
@@ -104,45 +107,35 @@ OPTIONAL {
   }
 
   def characterCount: Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('character, rdfType, StandardCharacter)))
+    val query = select() from "http://kb.phenoscape.org/" where (bgp(t('character, rdfType, StandardCharacter)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("character"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   def stateCount: Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('state, rdfType, StandardState)))
+    val query = select() from "http://kb.phenoscape.org/" where (bgp(t('state, rdfType, StandardState)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   def annotatedCharacterCount: Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('character, rdfType, StandardCharacter),
-        t('character, may_have_state_value, 'state),
-        t('state, describes_phenotype, 'phenotype)))
+    val query = select() from "http://kb.phenoscape.org/" where (bgp(t('character, rdfType, StandardCharacter),
+                                                                     t('character, may_have_state_value, 'state),
+                                                                     t('state, describes_phenotype, 'phenotype)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("character"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   def annotatedStateCount: Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('state, rdfType, StandardState),
-        t('state, describes_phenotype, 'phenotype)))
+    val query = select() from "http://kb.phenoscape.org/" where (bgp(t('state, rdfType, StandardState),
+                                                                     t('state, describes_phenotype, 'phenotype)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   def taxonCount: Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('taxon, rdfsIsDefinedBy, VTO)),
-        new ElementFilter(new E_NotExists(triplesBlock(bgp(t('taxon, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
+    val query = select() from "http://kb.phenoscape.org/" where (bgp(t('taxon, rdfsIsDefinedBy, VTO)),
+    new ElementFilter(new E_NotExists(triplesBlock(bgp(t('taxon, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
@@ -154,26 +147,23 @@ OPTIONAL {
   }
 
   def annotatedTaxonCount: Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('taxon, exhibits_state / describes_phenotype, 'phenotype)))
+    val query =
+      select() from "http://kb.phenoscape.org/" where (bgp(t('taxon, exhibits_state / describes_phenotype, 'phenotype)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("taxon"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   def matrixCount: Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('matrix, rdfType, CharacterStateDataMatrix)))
+    val query = select() from "http://kb.phenoscape.org/" where (bgp(t('matrix, rdfType, CharacterStateDataMatrix)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("matrix"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
 
   def annotatedMatrixCount: Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('matrix, rdfType, CharacterStateDataMatrix)),
-        new ElementFilter(new E_Exists(triplesBlock(bgp(t('matrix, has_character / may_have_state_value / describes_phenotype, 'phenotype))))))
+    val query = select() from "http://kb.phenoscape.org/" where (bgp(t('matrix, rdfType, CharacterStateDataMatrix)),
+    new ElementFilter(
+      new E_Exists(
+        triplesBlock(bgp(t('matrix, has_character / may_have_state_value / describes_phenotype, 'phenotype))))))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("matrix"))))
     App.executeSPARQLQuery(query).map(ResultCount.count)
   }
@@ -189,22 +179,74 @@ OPTIONAL {
     App.executeSPARQLQueryString(query.text, res => Instant.parse(res.getLiteral("date").getLexicalForm)).map(_.head)
   }
 
+  def getKBMetadata: Future[KBMetadata] = {
+    val builtFut = buildDate
+    val ontologiesFut = kbOntologies
+    for {
+      built <- builtFut
+      ontologies <- ontologiesFut
+    } yield KBMetadata(built, ontologies)
+  }
+
+  def kbOntologies: Future[Set[(IRI, IRI)]] = {
+    val query = sparql"""
+    PREFIX owl: <http://www.w3.org/2002/07/owl#>
+    SELECT ?ont ?version
+    FROM $KBMainGraph
+    WHERE {
+      ?ont $rdfType owl:Ontology .
+  	  ?ont owl:versionIRI ?version
+    }
+  """
+
+    App
+      .executeSPARQLQueryString(
+        query.text,
+        qs => (IRI.create(qs.getResource("ont").getURI), IRI.create(qs.getResource("version").getURI)))
+      .map(_.toSet)
+  }
+
 }
 
-case class KBAnnotationSummary(built: Instant, annotatedMatrices: Int, annotatedTaxa: Int, annotatedCharacters: Int, annotatedStates: Int) {
+case class KBMetadata(built: Instant, ontologies: Set[(IRI, IRI)]) extends JSONResultItem {
 
-  def toJSON: JsObject = Map(
-    "build_time" -> built.toString.toJson,
-    "annotated_matrices" -> annotatedMatrices.toJson,
-    "annotated_taxa" -> annotatedTaxa.toJson,
-    "annotated_characters" -> annotatedCharacters.toJson,
-    "annotated_states" -> annotatedStates.toJson).toJson.asJsObject
+  def toJSON: JsObject =
+    Map(
+      "build_time" -> built.toString.toJson,
+      "ontologies" -> ontologies.toSeq
+        .sortBy(_.toString)
+        .map {
+          case (ont, version) =>
+            JsObject(
+              "@id" -> ont.toString.toJson,
+              "version" -> version.toString.toJson
+            ).toJson
+        }
+        .toJson
+    ).toJson.asJsObject
+
+}
+
+case class KBAnnotationSummary(built: Instant,
+                               annotatedMatrices: Int,
+                               annotatedTaxa: Int,
+                               annotatedCharacters: Int,
+                               annotatedStates: Int) {
+
+  def toJSON: JsObject =
+    Map(
+      "build_time" -> built.toString.toJson,
+      "annotated_matrices" -> annotatedMatrices.toJson,
+      "annotated_taxa" -> annotatedTaxa.toJson,
+      "annotated_characters" -> annotatedCharacters.toJson,
+      "annotated_states" -> annotatedStates.toJson
+    ).toJson.asJsObject
 
 }
 
 object KBAnnotationSummary {
 
-  implicit val KBAnnotationSummaryMarshaller: ToEntityMarshaller[KBAnnotationSummary] = Marshaller.combined(result =>
-    result.toJSON)
+  implicit val KBAnnotationSummaryMarshaller: ToEntityMarshaller[KBAnnotationSummary] =
+    Marshaller.combined(result => result.toJSON)
 
 }

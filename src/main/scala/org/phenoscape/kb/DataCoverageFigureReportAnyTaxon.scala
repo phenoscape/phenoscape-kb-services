@@ -73,15 +73,14 @@ object DataCoverageFigureReportAnyTaxon {
     "paired limb/fin" -> "http://purl.obolibrary.org/obo/UBERON_0004708",
     "appendage girdle region" -> "http://purl.obolibrary.org/obo/UBERON_0007823",
     "appendage girdle complex" -> "http://purl.obolibrary.org/obo/UBERON_0010707",
-    "girdle skeleton" -> "http://purl.obolibrary.org/obo/UBERON_0010719")
+    "girdle skeleton" -> "http://purl.obolibrary.org/obo/UBERON_0010719"
+  )
 
   def query(): Future[String] = {
     val results = for {
       (entityLabel, entityIRI) <- entities
-    } yield {
-      queryEntry(entityIRI).map { count =>
-        s"\t$entityLabel\t$count"
-      }
+    } yield queryEntry(entityIRI).map { count =>
+      s"\t$entityLabel\t$count"
     }
     Future.sequence(results).map { entries =>
       entries.mkString("\n")
@@ -99,13 +98,11 @@ object DataCoverageFigureReportAnyTaxon {
   def buildQuery(entityIRI: String): Query = {
     val entityClass = Class(IRI.create(entityIRI))
     val entityInd = Individual(entityIRI)
-    val query = select() from "http://kb.phenoscape.org/" where (
-      bgp(
-        t('state, describes_phenotype, 'phenotype),
-        t('state, rdfType, StandardState)),
-        App.withOwlery(
-          t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (towards value entityInd)).asOMN)),
-          App.BigdataRunPriorFirst)
+    val query = select() from "http://kb.phenoscape.org/" where (bgp(t('state, describes_phenotype, 'phenotype),
+                                                                     t('state, rdfType, StandardState)),
+    App.withOwlery(
+      t('phenotype, rdfsSubClassOf, ((IMPLIES_PRESENCE_OF some entityClass) or (towards value entityInd)).asOMN)),
+    App.BigdataRunPriorFirst)
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
     query
   }

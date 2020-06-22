@@ -25,16 +25,16 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-case class GeneExpressionAnnotation(gene: MinimalTerm, location: MinimalTerm, source: Option[IRI]) extends JSONResultItem {
+case class GeneExpressionAnnotation(gene: MinimalTerm, location: MinimalTerm, source: Option[IRI])
+    extends JSONResultItem {
 
-  def toJSON: JsObject = Map(
-    "gene" -> gene.toJSON,
-    "location" -> location.toJSON,
-    "source" -> source.map(_.toString).getOrElse("").toJson).toJson.asJsObject
+  def toJSON: JsObject =
+    Map("gene" -> gene.toJSON,
+        "location" -> location.toJSON,
+        "source" -> source.map(_.toString).getOrElse("").toJson).toJson.asJsObject
 
-  override def toString: String = {
+  override def toString: String =
     s"${gene.iri}\t${gene.label}\t${location.iri}\t${location.label}\t$source"
-  }
 
 }
 
@@ -42,44 +42,55 @@ object GeneExpressionAnnotation {
 
   implicit val timeout: Timeout = Timeout(10 minutes)
 
-  def queryAnnotations(entity: Option[OWLClassExpression], inTaxonOpt: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Seq[GeneExpressionAnnotation]] = for {
-    query <- buildGeneExpressionAnnotationsQuery(entity, inTaxonOpt, limit, offset)
-    annotations <- App.executeSPARQLQuery(query, fromQueryResult)
-  } yield annotations
+  def queryAnnotations(entity: Option[OWLClassExpression],
+                       inTaxonOpt: Option[IRI],
+                       limit: Int = 20,
+                       offset: Int = 0): Future[Seq[GeneExpressionAnnotation]] =
+    for {
+      query <- buildGeneExpressionAnnotationsQuery(entity, inTaxonOpt, limit, offset)
+      annotations <- App.executeSPARQLQuery(query, fromQueryResult)
+    } yield annotations
 
-  def queryAnnotationsTotal(entity: Option[OWLClassExpression], inTaxonOpt: Option[IRI]): Future[Int] = for {
-    query <- buildGeneExpressionAnnotationsTotalQuery(entity, inTaxonOpt)
-    result <- App.executeSPARQLQuery(query)
-  } yield ResultCount.count(result)
+  def queryAnnotationsTotal(entity: Option[OWLClassExpression], inTaxonOpt: Option[IRI]): Future[Int] =
+    for {
+      query <- buildGeneExpressionAnnotationsTotalQuery(entity, inTaxonOpt)
+      result <- App.executeSPARQLQuery(query)
+    } yield ResultCount.count(result)
 
-  def fromQueryResult(result: QuerySolution): GeneExpressionAnnotation = GeneExpressionAnnotation(
-    MinimalTerm(IRI.create(result.getResource("gene").getURI),
-      result.getLiteral("gene_label").getLexicalForm),
-    MinimalTerm(IRI.create(result.getResource("location").getURI),
-      Option(result.getLiteral("location_label")).map(v => v.getLexicalForm).getOrElse("")),
-    Option(result.getResource("source")).map(v => IRI.create(v.getURI)))
+  def fromQueryResult(result: QuerySolution): GeneExpressionAnnotation =
+    GeneExpressionAnnotation(
+      MinimalTerm(IRI.create(result.getResource("gene").getURI), Some(result.getLiteral("gene_label").getLexicalForm)),
+      MinimalTerm(IRI.create(result.getResource("location").getURI),
+                  Option(result.getLiteral("location_label")).map(v => v.getLexicalForm)),
+      Option(result.getResource("source")).map(v => IRI.create(v.getURI))
+    )
 
-  private def buildBasicGeneExpressionAnnotationsQuery(entity: Option[OWLClassExpression], inTaxonOpt: Option[IRI]): Future[Query] = {
+  private def buildBasicGeneExpressionAnnotationsQuery(entity: Option[OWLClassExpression],
+                                                       inTaxonOpt: Option[IRI]): Future[Query] = {
     val locationExpression = entity.map(e => Class(ANATOMICAL_ENTITY) and (part_of some e))
     val phenotypeTriple = locationExpression.map(desc => t('location, rdfsSubClassOf, desc.asOMN)).toList
     val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf *, _)).toList
-    val query = select_distinct('gene, 'gene_label, 'location, 'location_label, 'source) where(
-      bgp(
-        App.BigdataAnalyticQuery ::
-          //t('annotation, rdfType, GeneExpression) ::
-          t('annotation, associated_with_gene, 'gene) ::
-          t('gene, rdfsLabel, 'gene_label) ::
-          t('annotation, occurs_in / rdfType, 'location) ::
-          t('annotation, associated_with_taxon, 'taxon) ::
-          phenotypeTriple ++
-            taxonPatterns: _*),
-      optional(bgp(t('location, rdfsLabel, 'location_label))),
-      optional(bgp(t('annotation, dcSource, 'source))),
-      new ElementFilter(new E_NotOneOf(new ExprVar('location), new ExprList(List[Expr](new NodeValueNode(owlNamedIndividual)).asJava))))
+    val query = select_distinct('gene, 'gene_label, 'location, 'location_label, 'source) where (bgp(
+      App.BigdataAnalyticQuery ::
+        //t('annotation, rdfType, GeneExpression) ::
+        t('annotation, associated_with_gene, 'gene) ::
+        t('gene, rdfsLabel, 'gene_label) ::
+        t('annotation, occurs_in / rdfType, 'location) ::
+        t('annotation, associated_with_taxon, 'taxon) ::
+        phenotypeTriple ++
+        taxonPatterns: _*
+    ),
+    optional(bgp(t('location, rdfsLabel, 'location_label))),
+    optional(bgp(t('annotation, dcSource, 'source))),
+    new ElementFilter(
+      new E_NotOneOf(new ExprVar('location), new ExprList(List[Expr](new NodeValueNode(owlNamedIndividual)).asJava))))
     App.expandWithOwlet(query)
   }
 
-  def buildGeneExpressionAnnotationsQuery(entity: Option[OWLClassExpression], inTaxonOpt: Option[IRI], limit: Int = 20, offset: Int = 0): Future[Query] = {
+  def buildGeneExpressionAnnotationsQuery(entity: Option[OWLClassExpression],
+                                          inTaxonOpt: Option[IRI],
+                                          limit: Int = 20,
+                                          offset: Int = 0): Future[Query] =
     for {
       rawQuery <- buildBasicGeneExpressionAnnotationsQuery(entity, inTaxonOpt)
     } yield {
@@ -92,9 +103,9 @@ object GeneExpressionAnnotation {
       query.addOrderBy('location)
       query
     }
-  }
 
-  def buildGeneExpressionAnnotationsTotalQuery(entity: Option[OWLClassExpression], inTaxonOpt: Option[IRI]): Future[Query] = {
+  def buildGeneExpressionAnnotationsTotalQuery(entity: Option[OWLClassExpression],
+                                               inTaxonOpt: Option[IRI]): Future[Query] =
     for {
       rawQuery <- buildBasicGeneExpressionAnnotationsQuery(entity, inTaxonOpt)
     } yield {
@@ -102,13 +113,14 @@ object GeneExpressionAnnotation {
       query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
       query
     }
-  }
 
-  implicit val AnnotationTextMarshaller: ToEntityMarshaller[Seq[GeneExpressionAnnotation]] = Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { annotations =>
-    val header = "gene IRI\tgene label\tlocation IRI\tlocation label\tsource IRI"
-    s"$header\n${annotations.map(_.toString).mkString("\n")}"
-  }
+  implicit val AnnotationTextMarshaller: ToEntityMarshaller[Seq[GeneExpressionAnnotation]] =
+    Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose { annotations =>
+      val header = "gene IRI\tgene label\tlocation IRI\tlocation label\tsource IRI"
+      s"$header\n${annotations.map(_.toString).mkString("\n")}"
+    }
 
-  implicit val ComboGeneExpressionAnnotationsMarshaller: ToEntityMarshaller[Seq[GeneExpressionAnnotation]] = Marshaller.oneOf(AnnotationTextMarshaller, JSONResultItemsMarshaller)
+  implicit val ComboGeneExpressionAnnotationsMarshaller: ToEntityMarshaller[Seq[GeneExpressionAnnotation]] =
+    Marshaller.oneOf(AnnotationTextMarshaller, JSONResultItemsMarshaller)
 
 }

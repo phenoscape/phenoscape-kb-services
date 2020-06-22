@@ -31,23 +31,20 @@ object DataCoverageFigureReportCatfish {
     "post-hyoid pharyngeal arch skeleton" -> "http://purl.obolibrary.org/obo/UBERON_0005886",
     "neurocranium" -> "http://purl.obolibrary.org/obo/UBERON_0001703",
     "post-cranial axial skeletal system" -> "http://purl.obolibrary.org/obo/UBERON_0011138",
-    "integumental system" -> "http://purl.obolibrary.org/obo/UBERON_0002416")
+    "integumental system" -> "http://purl.obolibrary.org/obo/UBERON_0002416"
+  )
 
   private val Siluriformes = Class("http://purl.obolibrary.org/obo/VTO_0034991")
 
   def query(): Future[String] = {
     val results = for {
       (entityLabel, entityIRI) <- entities
-    } yield {
-      queryEntry(entityIRI, entityLabel)
-    }
+    } yield queryEntry(entityIRI, entityLabel)
     Future.sequence(results).map { groups =>
       val entries = for {
         group <- groups
         queryResult <- group
-      } yield {
-        queryResult.toString
-      }
+      } yield queryResult.toString
       entries.mkString("\n")
     }
   }
@@ -66,9 +63,7 @@ object DataCoverageFigureReportCatfish {
       _ = println(s"Expanded $entityLabel")
       result <- App.executeSPARQLQuery(expandedQuery, processResult(IRI.create(entityIRI), entityLabel, _))
       _ = println(s"Queried $entityLabel")
-    } yield {
-      result
-    }
+    } yield result
   }
 
   private def buildQuery(entityIRI: String): Query = {
@@ -79,7 +74,8 @@ object DataCoverageFigureReportCatfish {
       t('taxon, rdfsLabel, 'taxon_label),
       t('state, describes_phenotype, 'phenotype),
       t('taxon, ObjectProperty(rdfsSubClassOf) *, Siluriformes),
-      t('phenotype, rdfsSubClassOf, ((phenotype_of some (part_of some entityClass)) or (towards value entityInd)).asOMN))
+      t('phenotype, rdfsSubClassOf, ((phenotype_of some (part_of some entityClass)) or (towards value entityInd)).asOMN)
+    )
     query.getProject.add(Var.alloc("taxon"))
     query.getProject.add(Var.alloc("taxon_label"))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
