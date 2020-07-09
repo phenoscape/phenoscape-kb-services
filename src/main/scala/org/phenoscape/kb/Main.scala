@@ -254,8 +254,10 @@ object Main extends HttpApp with App {
               path("ontotrace") {
                 get {
                   parameters(
-                    'entity.as[OWLClassExpression],
-                    'taxon.as[OWLClassExpression],
+                    'entityClassExpression.as[OWLClassExpression],
+                    'entityIRIList.as[Seq[IRI]],
+                    'taxonClassExpression.as[OWLClassExpression],
+                    'taxonIRIList.as[Seq[IRI]],
                     'variable_only.as[Boolean].?(true),
                     'parts.as[Boolean].?(false),
                     'includeSubClasses.as[Boolean].?(false)
@@ -263,8 +265,10 @@ object Main extends HttpApp with App {
                     respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
                                                                     Map("filename" -> "ontotrace.xml"))) {
                       complete {
-                        PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity,
-                                                                         taxon,
+                        PresenceAbsenceOfStructure.presenceAbsenceMatrix(entityClassExpression,
+                                                                         entityIRIList,
+                                                                         taxonClassExpression,
+                                                                         taxonIRIList,
                                                                          variableOnly,
                                                                          includeParts,
                                                                          includeSubClasses)

@@ -82,14 +82,16 @@ object PresenceAbsenceOfStructure {
     App.executeSPARQLQuery(buildExhibitingAbsenceTotalQuery(entity, taxonFilter)).map(ResultCount.count)
 
   def presenceAbsenceMatrix(mainEntityClass: OWLClassExpression,
+                            entityList: Seq[IRI],
                             taxonClass: OWLClassExpression,
+                            taxonList: Seq[IRI],
                             variableOnly: Boolean,
                             includeParts: Boolean,
                             includeSubClasses: Boolean): Future[DataSet] = {
     val entityClass = if (includeParts) mainEntityClass or (part_of some mainEntityClass) else mainEntityClass
     val buildDateFut = KB.buildDate
     for {
-      query <- App.expandWithOwlet(buildMatrixQuery(entityClass, taxonClass, includeSubClasses))
+      query <- App.expandWithOwlet(buildMatrixQuery(entityClass, entityList, taxonClass, taxonList, includeSubClasses))
       model <- App.executeSPARQLConstructQuery(query)
       buildDate <- buildDateFut
     } yield {
@@ -164,24 +166,21 @@ object PresenceAbsenceOfStructure {
   private def unOBO(uri: String): String = uri.replaceAllLiterally("http://purl.obolibrary.org/obo/", "")
 
   def buildMatrixQuery(entityClass: OWLClassExpression,
+                       entityList: Seq[IRI],
                        taxonClass: OWLClassExpression,
+                       taxonList: Seq[IRI],
                        includeSubClasses: Boolean): Query = {
+    val entityListStr = entityList.mkString(" ")
+    val taxonListStr = taxonList.mkString(" ")
+
     val subClasses =
       sparql"""
                     ?entity $rdfsSubClassOf ${entityClass.asOMN} .
                     ?taxon $rdfsSubClassOf ${taxonClass.asOMN}
               """
-    val withoutSubClasses =
-      sparql"""
-               ?taxon ?relation ?entity .
-                ?taxon ${KBVocab.rdfsLabel} ?taxon_label .
-                ?entity ${KBVocab.rdfsLabel} ?entity_label .
-                VALUES ?entity {${entityClass.asOMN}}
-                VALUES ?taxon {${taxonClass.asOMN}}
-                VALUES ?relation {$has_presence_of $has_absence_of}
-              """
 
-    val all = if (includeSubClasses) sparql"$withoutSubClasses" + sparql"$subClasses" else withoutSubClasses
+    val all = if (includeSubClasses) sparql"$subClasses" else ""
+
     val query: QueryText =
       sparql"""
                CONSTRUCT {
@@ -189,9 +188,15 @@ object PresenceAbsenceOfStructure {
                 ?taxon ${KBVocab.rdfsLabel} ?taxon_label .
                 ?entity ${KBVocab.rdfsLabel} ?entity_label 
                 }
-                FROM  $KBMainGraph
-                WHERE {
-                  $all
+               FROM  $KBMainGraph
+               WHERE {
+                ?taxon ?relation ?entity .
+                ?taxon ${KBVocab.rdfsLabel} ?taxon_label .
+                ?entity ${KBVocab.rdfsLabel} ?entity_label .
+                VALUES ?entity {${entityClass.asOMN} ${entityListStr}}
+                VALUES ?taxon {${taxonClass.asOMN} ${taxonListStr}}
+                VALUES ?relation {$has_presence_of $has_absence_of}
+                ${all}
                 }
             """
     query.toQuery
