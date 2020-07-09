@@ -179,25 +179,38 @@ object PresenceAbsenceOfStructure {
                     ?taxon $rdfsSubClassOf ${taxonClass.asOMN}
               """
 
-    val all = if (includeSubClasses) sparql"$subClasses" else ""
+    val subClassesQuery = if (includeSubClasses) sparql"$subClasses" else ""
+
+    val graphPattern =
+      sparql"""
+              ?taxon ?relation ?entity .
+              ?taxon ${rdfsLabel} ?taxon_label .
+              ?entity ${rdfsLabel} ?entity_label .
+            """
 
     val query: QueryText =
       sparql"""
                CONSTRUCT {
-                ?taxon ?relation ?entity .
-                ?taxon ${KBVocab.rdfsLabel} ?taxon_label .
-                ?entity ${KBVocab.rdfsLabel} ?entity_label 
+                ${graphPattern}
                 }
                FROM  $KBMainGraph
                WHERE {
-                ?taxon ?relation ?entity .
-                ?taxon ${KBVocab.rdfsLabel} ?taxon_label .
-                ?entity ${KBVocab.rdfsLabel} ?entity_label .
-                VALUES ?entity {${entityClass.asOMN} ${entityListStr}}
-                VALUES ?taxon {${taxonClass.asOMN} ${taxonListStr}}
-                VALUES ?relation {$has_presence_of $has_absence_of}
-                ${all}
+                {
+                  ${graphPattern}
+                  ?entity ${rdfType} ${entityClass.asOMN} .
+                  ?taxon ${rdfType} ${taxonClass.asOMN} .
+                  VALUES ?relation {$has_presence_of $has_absence_of}
+                  ${subClassesQuery}
                 }
+                UNION
+                {
+                  ${graphPattern}
+                  VALUES ?entity {${entityListStr}}
+                  VALUES ?taxon {${taxonListStr}}
+                  VALUES ?relation {$has_presence_of $has_absence_of}
+                  
+                }
+               }
             """
     query.toQuery
   }
