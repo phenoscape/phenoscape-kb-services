@@ -255,9 +255,9 @@ object Main extends HttpApp with App {
                 get {
                   parameters(
                     'entityClassExpression.as[OWLClassExpression],
-                    'entityIRIList.as[Seq[IRI]],
+                    'entityIRIList.as[Seq[IRI]].?(Seq.empty[IRI]),
                     'taxonClassExpression.as[OWLClassExpression],
-                    'taxonIRIList.as[Seq[IRI]],
+                    'taxonIRIList.as[Seq[IRI]].?(Seq.empty[IRI]),
                     'variable_only.as[Boolean].?(true),
                     'parts.as[Boolean].?(false),
                     'includeSubClasses.as[Boolean].?(false)
@@ -286,9 +286,9 @@ object Main extends HttpApp with App {
                   post {
                     formFields(
                       'entityClassExpression.as[OWLClassExpression],
-                      'entityIRIList.as[Seq[IRI]],
+                      'entityIRIList.as[Seq[IRI]].?(Seq.empty[IRI]),
                       'taxonClassExpression.as[OWLClassExpression],
-                      'taxonIRIList.as[Seq[IRI]],
+                      'taxonIRIList.as[Seq[IRI]].?(Seq.empty[IRI]),
                       'variable_only.as[Boolean].?(true),
                       'parts.as[Boolean].?(false),
                       'includeSubClasses.as[Boolean].?(false)
