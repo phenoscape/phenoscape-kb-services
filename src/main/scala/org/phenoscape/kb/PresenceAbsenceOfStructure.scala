@@ -179,7 +179,7 @@ object PresenceAbsenceOfStructure {
                     ?taxon $rdfsSubClassOf ${taxonClass.asOMN}
               """
 
-    val subClassesQuery = if (includeSubClasses) sparql"$subClasses" else ""
+    val subClassesQuery = if (includeSubClasses) sparql"$subClasses" else sparql""
 
     val graphPattern =
       sparql"""

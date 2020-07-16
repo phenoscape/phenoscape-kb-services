@@ -261,39 +261,57 @@ object Main extends HttpApp with App {
                     'variable_only.as[Boolean].?(true),
                     'parts.as[Boolean].?(false),
                     'includeSubClasses.as[Boolean].?(false)
-                  ) { (entity, taxon, variableOnly, includeParts, includeSubClasses) =>
-                    respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
-                                                                    Map("filename" -> "ontotrace.xml"))) {
-                      complete {
-                        PresenceAbsenceOfStructure.presenceAbsenceMatrix(entityClassExpression,
-                                                                         entityIRIList,
-                                                                         taxonClassExpression,
-                                                                         taxonIRIList,
-                                                                         variableOnly,
-                                                                         includeParts,
-                                                                         includeSubClasses)
-                      }
-                    }
-                  }
-                } ~
-                  post {
-                    formFields(
-                      'entity.as[OWLClassExpression],
-                      'taxon.as[OWLClassExpression],
-                      'variable_only.as[Boolean].?(true),
-                      'parts.as[Boolean].?(false),
-                      'includeSubClasses.as[Boolean].?(false)
-                    ) { (entity, taxon, variableOnly, includeParts, includeSubClasses) =>
+                  ) {
+                    (entityClassExpression,
+                     entityIRIList,
+                     taxonClassExpression,
+                     taxonIRIList,
+                     variableOnly,
+                     includeParts,
+                     includeSubClasses) =>
                       respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
                                                                       Map("filename" -> "ontotrace.xml"))) {
                         complete {
-                          PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity,
-                                                                           taxon,
+                          PresenceAbsenceOfStructure.presenceAbsenceMatrix(entityClassExpression,
+                                                                           entityIRIList,
+                                                                           taxonClassExpression,
+                                                                           taxonIRIList,
                                                                            variableOnly,
                                                                            includeParts,
                                                                            includeSubClasses)
                         }
                       }
+                  }
+                } ~
+                  post {
+                    formFields(
+                      'entityClassExpression.as[OWLClassExpression],
+                      'entityIRIList.as[Seq[IRI]],
+                      'taxonClassExpression.as[OWLClassExpression],
+                      'taxonIRIList.as[Seq[IRI]],
+                      'variable_only.as[Boolean].?(true),
+                      'parts.as[Boolean].?(false),
+                      'includeSubClasses.as[Boolean].?(false)
+                    ) {
+                      (entityClassExpression,
+                       entityIRIList,
+                       taxonClassExpression,
+                       taxonIRIList,
+                       variableOnly,
+                       includeParts,
+                       includeSubClasses) =>
+                        respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
+                                                                        Map("filename" -> "ontotrace.xml"))) {
+                          complete {
+                            PresenceAbsenceOfStructure.presenceAbsenceMatrix(entityClassExpression,
+                                                                             entityIRIList,
+                                                                             taxonClassExpression,
+                                                                             taxonIRIList,
+                                                                             variableOnly,
+                                                                             includeParts,
+                                                                             includeSubClasses)
+                          }
+                        }
                     }
                   }
               } ~
