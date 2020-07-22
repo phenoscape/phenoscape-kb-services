@@ -281,19 +281,21 @@ object Main extends HttpApp with App {
                       validate(
                         !(entityClassExpression.isEmpty && entityIRIList.isEmpty) && !(taxonClassExpression.isEmpty && taxonIRIList.isEmpty),
                         "Atleast one of the class expression or IRI list is required."
-                      )
-                      respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
-                                                                      Map("filename" -> "ontotrace.xml"))) {
-                        complete {
-                          PresenceAbsenceOfStructure.presenceAbsenceMatrix(entityClassExpression,
-                                                                           entityIRIList,
-                                                                           taxonClassExpression,
-                                                                           taxonIRIList,
-                                                                           variableOnly,
-                                                                           includeParts,
-                                                                           includeSubClasses)
+                      ) {
+                        respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
+                                                                        Map("filename" -> "ontotrace.xml"))) {
+                          complete {
+                            PresenceAbsenceOfStructure.presenceAbsenceMatrix(entityClassExpression,
+                                                                             entityIRIList,
+                                                                             taxonClassExpression,
+                                                                             taxonIRIList,
+                                                                             variableOnly,
+                                                                             includeParts,
+                                                                             includeSubClasses)
+                          }
                         }
                       }
+
                   }
                 } ~
                   post {
