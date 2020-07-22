@@ -115,14 +115,6 @@ object Main extends HttpApp with App {
     negotiator.pickContentType(validTypes)
   }
 
-  val badInputExceptionHandler = ExceptionHandler {
-    case _: IllegalArgumentException =>
-      extractUri { uri =>
-        println(s"Request to $uri could not be handled normally")
-        complete(HttpResponse(StatusCodes.InternalServerError, entity = "Bad input"))
-      }
-  }
-
   def routes: Route =
     cors() {
       alwaysCache(memoryCache, cacheKeyer) {
