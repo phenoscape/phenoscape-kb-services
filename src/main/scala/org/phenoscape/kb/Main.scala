@@ -17,14 +17,15 @@ import com.typesafe.config.ConfigFactory
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.{headers, HttpCharsets, HttpHeader, HttpMethod, MediaTypes, StatusCodes, Uri}
+import akka.http.scaladsl.model.{headers, HttpCharsets, HttpHeader, HttpMethod, HttpResponse, MediaTypes, StatusCodes, Uri}
 import akka.http.scaladsl.model.HttpMethods.GET
 import akka.http.scaladsl.model.HttpMethods.POST
 import akka.http.scaladsl.model.headers.ContentDispositionTypes
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
 import akka.http.scaladsl.marshalling.{Marshal, Marshaller, ToByteStringMarshaller, ToEntityMarshaller}
-import akka.http.scaladsl.server.{ContentNegotiator, HttpApp, RequestContext, Route}
+import akka.http.scaladsl.server.{ContentNegotiator, ExceptionHandler, HttpApp, RequestContext, Route}
+import akka.http.scaladsl.server.Directives.handleExceptions
 import akka.http.scaladsl.settings.ServerSettings
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.http.scaladsl.server.directives.CachingDirectives._
@@ -112,6 +113,14 @@ object Main extends HttpApp with App {
     val validTypes = List(ContentNegotiator.Alternative(MediaTypes.`text/tab-separated-values`),
                           ContentNegotiator.Alternative(MediaTypes.`application/json`))
     negotiator.pickContentType(validTypes)
+  }
+
+  val badInputExceptionHandler = ExceptionHandler {
+    case _: IllegalArgumentException =>
+      extractUri { uri =>
+        println(s"Request to $uri could not be handled normally")
+        complete(HttpResponse(StatusCodes.InternalServerError, entity = "Bad input"))
+      }
   }
 
   def routes: Route =
@@ -254,10 +263,10 @@ object Main extends HttpApp with App {
               path("ontotrace") {
                 get {
                   parameters(
-                    'entityClassExpression.as[OWLClassExpression],
-                    'entityIRIList.as[Seq[IRI]].?(Seq.empty[IRI]),
-                    'taxonClassExpression.as[OWLClassExpression],
-                    'taxonIRIList.as[Seq[IRI]].?(Seq.empty[IRI]),
+                    'entityClassExpression.as[OWLClassExpression].?,
+                    'entityIRIList.as[Seq[IRI]].?,
+                    'taxonClassExpression.as[OWLClassExpression].?,
+                    'taxonIRIList.as[Seq[IRI]].?,
                     'variable_only.as[Boolean].?(true),
                     'parts.as[Boolean].?(false),
                     'includeSubClasses.as[Boolean].?(false)
@@ -269,6 +278,10 @@ object Main extends HttpApp with App {
                      variableOnly,
                      includeParts,
                      includeSubClasses) =>
+                      validate(
+                        !(entityClassExpression.isEmpty && entityIRIList.isEmpty) && !(taxonClassExpression.isEmpty && taxonIRIList.isEmpty),
+                        "Atleast one of the class expression or IRI list is required."
+                      )
                       respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
                                                                       Map("filename" -> "ontotrace.xml"))) {
                         complete {
@@ -285,10 +298,10 @@ object Main extends HttpApp with App {
                 } ~
                   post {
                     formFields(
-                      'entityClassExpression.as[OWLClassExpression],
-                      'entityIRIList.as[Seq[IRI]].?(Seq.empty[IRI]),
-                      'taxonClassExpression.as[OWLClassExpression],
-                      'taxonIRIList.as[Seq[IRI]].?(Seq.empty[IRI]),
+                      'entityClassExpression.as[OWLClassExpression].?,
+                      'entityIRIList.as[Seq[IRI]].?,
+                      'taxonClassExpression.as[OWLClassExpression].?,
+                      'taxonIRIList.as[Seq[IRI]].?,
                       'variable_only.as[Boolean].?(true),
                       'parts.as[Boolean].?(false),
                       'includeSubClasses.as[Boolean].?(false)
@@ -300,17 +313,24 @@ object Main extends HttpApp with App {
                        variableOnly,
                        includeParts,
                        includeSubClasses) =>
+                        validate(
+                          !(entityClassExpression == None && entityIRIList == None) && !(taxonClassExpression == None && taxonIRIList == None),
+                          "Atleast one of the class expression or IRI list is required."
+                        )
                         respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
                                                                         Map("filename" -> "ontotrace.xml"))) {
-                          complete {
-                            PresenceAbsenceOfStructure.presenceAbsenceMatrix(entityClassExpression,
-                                                                             entityIRIList,
-                                                                             taxonClassExpression,
-                                                                             taxonIRIList,
-                                                                             variableOnly,
-                                                                             includeParts,
-                                                                             includeSubClasses)
+                          handleExceptions(badInputExceptionHandler) {
+                            complete {
+                              PresenceAbsenceOfStructure.presenceAbsenceMatrix(entityClassExpression,
+                                                                               entityIRIList,
+                                                                               taxonClassExpression,
+                                                                               taxonIRIList,
+                                                                               variableOnly,
+                                                                               includeParts,
+                                                                               includeSubClasses)
+                            }
                           }
+
                         }
                     }
                   }
