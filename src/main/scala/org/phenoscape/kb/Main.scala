@@ -308,12 +308,11 @@ object Main extends HttpApp with App {
                        includeParts,
                        includeSubClasses) =>
                         validate(
-                          !(entityClassExpression == None && entityIRIList == None) && !(taxonClassExpression == None && taxonIRIList == None),
+                          !(entityClassExpression.isEmpty && entityIRIList.isEmpty) && !(taxonClassExpression.isEmpty && taxonIRIList.isEmpty),
                           "Atleast one of the class expression or IRI list is required."
-                        )
-                        respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
-                                                                        Map("filename" -> "ontotrace.xml"))) {
-                          handleExceptions(badInputExceptionHandler) {
+                        ) {
+                          respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
+                                                                          Map("filename" -> "ontotrace.xml"))) {
                             complete {
                               PresenceAbsenceOfStructure.presenceAbsenceMatrix(entityClassExpression,
                                                                                entityIRIList,
@@ -324,8 +323,8 @@ object Main extends HttpApp with App {
                                                                                includeSubClasses)
                             }
                           }
-
                         }
+
                     }
                   }
               } ~
