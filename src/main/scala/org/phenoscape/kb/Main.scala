@@ -260,16 +260,14 @@ object Main extends HttpApp with App {
                     'taxonClassExpression.as[OWLClassExpression].?,
                     'taxonIRIList.as[Seq[IRI]].?,
                     'variable_only.as[Boolean].?(true),
-                    'parts.as[Boolean].?(false),
-                    'includeSubClasses.as[Boolean].?(false)
+                    'parts.as[Boolean].?(false)
                   ) {
                     (entityClassExpression,
                      entityIRIListOpt,
                      taxonClassExpression,
                      taxonIRIListOpt,
                      variableOnly,
-                     includeParts,
-                     includeSubClasses) =>
+                     includeParts) =>
                       val nonEmptyEntityListOpt = entityIRIListOpt.flatMap(asNonEmptyList)
                       val nonEmptyTaxonListOpt = taxonIRIListOpt.flatMap(asNonEmptyList)
                       validate(
@@ -284,8 +282,7 @@ object Main extends HttpApp with App {
                                                                              taxonClassExpression,
                                                                              nonEmptyTaxonListOpt,
                                                                              variableOnly,
-                                                                             includeParts,
-                                                                             includeSubClasses)
+                                                                             includeParts)
                           }
                         }
                       }
@@ -299,16 +296,14 @@ object Main extends HttpApp with App {
                       'taxonClassExpression.as[OWLClassExpression].?,
                       'taxonIRIList.as[Seq[IRI]].?,
                       'variable_only.as[Boolean].?(true),
-                      'parts.as[Boolean].?(false),
-                      'includeSubClasses.as[Boolean].?(false)
+                      'parts.as[Boolean].?(false)
                     ) {
                       (entityClassExpression,
                        entityIRIListOpt,
                        taxonClassExpression,
                        taxonIRIListOpt,
                        variableOnly,
-                       includeParts,
-                       includeSubClasses) =>
+                       includeParts) =>
                         val nonEmptyEntityListOpt = entityIRIListOpt.flatMap(asNonEmptyList)
                         val nonEmptyTaxonListOpt = taxonIRIListOpt.flatMap(asNonEmptyList)
                         validate(
@@ -323,8 +318,7 @@ object Main extends HttpApp with App {
                                                                                taxonClassExpression,
                                                                                nonEmptyTaxonListOpt,
                                                                                variableOnly,
-                                                                               includeParts,
-                                                                               includeSubClasses)
+                                                                               includeParts)
                             }
                           }
                         }

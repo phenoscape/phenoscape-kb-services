@@ -89,15 +89,14 @@ object PresenceAbsenceOfStructure {
                             taxonClassExpr: Option[OWLClassExpression],
                             taxonList: Option[NonEmptyList[IRI]],
                             variableOnly: Boolean,
-                            includeParts: Boolean,
-                            includeSubClasses: Boolean): Future[DataSet] = {
+                            includeParts: Boolean): Future[DataSet] = {
     val entityClass =
       mainEntityClassOpt.map(classExpr => if (includeParts) classExpr or (part_of some classExpr) else classExpr)
 
     val buildDateFut = KB.buildDate
     for {
       query <- App.expandWithOwlet(
-        buildMatrixQuery(entityClass, entityList, taxonClassExpr, taxonList, includeSubClasses)
+        buildMatrixQuery(entityClass, entityList, taxonClassExpr, taxonList)
       )
       model <- App.executeSPARQLConstructQuery(query)
       buildDate <- buildDateFut
@@ -175,48 +174,23 @@ object PresenceAbsenceOfStructure {
   def buildMatrixQuery(entityClass: Option[OWLClassExpression],
                        entityList: Option[NonEmptyList[IRI]],
                        taxonClass: Option[OWLClassExpression],
-                       taxonList: Option[NonEmptyList[IRI]],
-                       includeSubClasses: Boolean): Query = {
-    val entityClassExprSubClasses = sparql""" ?entity $rdfsSubClassOf ${entityClass.get.asOMN} . """
-    val entityClassExprQuery = {
-      sparql"""
-               ?entity ${rdfType} ${entityClass.get.asOMN} .
-
-              """
-    } + {
-      if (includeSubClasses) sparql"$entityClassExprSubClasses" else sparql""""""
+                       taxonList: Option[NonEmptyList[IRI]]): Query = {
+    val entityExpressionQueryOpt = entityClass.map(cls => sparql" ?entity $rdfsSubClassOf ${cls.asOMN} . ")
+    val entityValuesOpt = entityList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map {iris =>
+      sparql"VALUES ?entity { $iris }"
     }
-    val entityListStr = entityList.mkString(" ")
-    val entityListQuery =
-      sparql"""
-                VALUES ?entity {${entityListStr}}
-              """
-    val entityQuery =
-      if (entityClass.isDefined && entityList.isDefined) sparql"$entityClassExprQuery" + sparql"$entityListQuery"
-      else if (entityClass.isDefined) entityClassExprQuery
-      else entityListQuery
-
-    val taxonClassExprSubClasses =
-      sparql"""
-               ?taxon $rdfsSubClassOf ${taxonClass.get.asOMN} .
-              """
-    val taxonClassExprQuery = {
-      sparql"""
-               ?taxon $rdfType ${taxonClass.get.asOMN} .
-              """
-    } + {
-      if (includeSubClasses) sparql"$taxonClassExprSubClasses" else sparql""""""
+    val entityQuery = (entityExpressionQueryOpt, entityValuesOpt) match {
+      case (Some(expressionQuery), Some(entityValues)) => sparql"{ $expressionQuery } UNION { $entityValues } "
+      case _ => entityExpressionQueryOpt.orElse(entityValuesOpt).getOrElse(sparql"")
     }
-    val taxonListStr = taxonList.mkString(" ")
-    val taxonListQuery =
-      sparql"""
-                VALUES ?taxon {${taxonListStr}}
-              """
-    val taxonQuery =
-      if (taxonClass.isDefined && taxonList.isDefined) sparql"$taxonClassExprQuery" + sparql"$taxonListQuery"
-      else if (taxonClass.isDefined) taxonClassExprQuery
-      else taxonListQuery
-
+    val taxonExpressionQueryOpt = taxonClass.map(cls => sparql" ?taxon $rdfsSubClassOf ${cls.asOMN} . ")
+    val taxonValuesOpt = taxonList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map {iris =>
+      sparql"VALUES ?taxon { $iris }"
+    }
+    val taxonQuery = (taxonExpressionQueryOpt, taxonValuesOpt) match {
+      case (Some(expressionQuery), Some(taxonValues)) => sparql"{ $expressionQuery } UNION { $taxonValues } "
+      case _ => taxonExpressionQueryOpt.orElse(taxonValuesOpt).getOrElse(sparql"")
+    }
     val graphPattern =
       sparql"""
               ?taxon ?relation ?entity .
