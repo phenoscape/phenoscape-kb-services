@@ -264,23 +264,25 @@ object Main extends HttpApp with App {
                     'includeSubClasses.as[Boolean].?(false)
                   ) {
                     (entityClassExpression,
-                     entityIRIList,
+                     entityIRIListOpt,
                      taxonClassExpression,
-                     taxonIRIList,
+                     taxonIRIListOpt,
                      variableOnly,
                      includeParts,
                      includeSubClasses) =>
+                      val nonEmptyEntityListOpt = entityIRIListOpt.flatMap(asNonEmptyList)
+                      val nonEmptyTaxonListOpt = taxonIRIListOpt.flatMap(asNonEmptyList)
                       validate(
-                        !(entityClassExpression.isEmpty && entityIRIList.isEmpty) && !(taxonClassExpression.isEmpty && taxonIRIList.isEmpty),
+                        !(entityClassExpression.isEmpty && nonEmptyEntityListOpt.isEmpty) && !(taxonClassExpression.isEmpty && nonEmptyTaxonListOpt.isEmpty),
                         "Atleast one of the class expression or IRI list is required."
                       ) {
                         respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
                                                                         Map("filename" -> "ontotrace.xml"))) {
                           complete {
                             PresenceAbsenceOfStructure.presenceAbsenceMatrix(entityClassExpression,
-                                                                             entityIRIList,
+                                                                             nonEmptyEntityListOpt,
                                                                              taxonClassExpression,
-                                                                             taxonIRIList,
+                                                                             nonEmptyTaxonListOpt,
                                                                              variableOnly,
                                                                              includeParts,
                                                                              includeSubClasses)
@@ -301,23 +303,25 @@ object Main extends HttpApp with App {
                       'includeSubClasses.as[Boolean].?(false)
                     ) {
                       (entityClassExpression,
-                       entityIRIList,
+                       entityIRIListOpt,
                        taxonClassExpression,
-                       taxonIRIList,
+                       taxonIRIListOpt,
                        variableOnly,
                        includeParts,
                        includeSubClasses) =>
+                        val nonEmptyEntityListOpt = entityIRIListOpt.flatMap(asNonEmptyList)
+                        val nonEmptyTaxonListOpt = taxonIRIListOpt.flatMap(asNonEmptyList)
                         validate(
-                          !(entityClassExpression.isEmpty && entityIRIList.isEmpty) && !(taxonClassExpression.isEmpty && taxonIRIList.isEmpty),
+                          !(entityClassExpression.isEmpty && nonEmptyEntityListOpt.isEmpty) && !(taxonClassExpression.isEmpty && nonEmptyTaxonListOpt.isEmpty),
                           "Atleast one of the class expression or IRI list is required."
                         ) {
                           respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
                                                                           Map("filename" -> "ontotrace.xml"))) {
                             complete {
                               PresenceAbsenceOfStructure.presenceAbsenceMatrix(entityClassExpression,
-                                                                               entityIRIList,
+                                                                               nonEmptyEntityListOpt,
                                                                                taxonClassExpression,
-                                                                               taxonIRIList,
+                                                                               nonEmptyTaxonListOpt,
                                                                                variableOnly,
                                                                                includeParts,
                                                                                includeSubClasses)
@@ -1454,6 +1458,12 @@ object Main extends HttpApp with App {
           }
         }
       }
+    }
+
+  private def asNonEmptyList[A](seq: Seq[A]): Option[NonEmptyList[A]] =
+    seq.toList match {
+      case head :: tail => Some(NonEmptyList(head, tail: _*))
+      case Nil          => None
     }
 
   val log = Logging(system, this.getClass)

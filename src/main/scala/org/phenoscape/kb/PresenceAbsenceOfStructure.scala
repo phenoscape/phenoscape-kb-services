@@ -29,6 +29,7 @@ import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.kb.KBVocab.KBMainGraph
+import scalaz.NonEmptyList
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -84,9 +85,9 @@ object PresenceAbsenceOfStructure {
     App.executeSPARQLQuery(buildExhibitingAbsenceTotalQuery(entity, taxonFilter)).map(ResultCount.count)
 
   def presenceAbsenceMatrix(mainEntityClassOpt: Option[OWLClassExpression],
-                            entityList: Option[Seq[IRI]],
+                            entityList: Option[NonEmptyList[IRI]],
                             taxonClassExpr: Option[OWLClassExpression],
-                            taxonList: Option[Seq[IRI]],
+                            taxonList: Option[NonEmptyList[IRI]],
                             variableOnly: Boolean,
                             includeParts: Boolean,
                             includeSubClasses: Boolean): Future[DataSet] = {
@@ -172,9 +173,9 @@ object PresenceAbsenceOfStructure {
   private def unOBO(uri: String): String = uri.replaceAllLiterally("http://purl.obolibrary.org/obo/", "")
 
   def buildMatrixQuery(entityClass: Option[OWLClassExpression],
-                       entityList: Option[Seq[IRI]],
+                       entityList: Option[NonEmptyList[IRI]],
                        taxonClass: Option[OWLClassExpression],
-                       taxonList: Option[Seq[IRI]],
+                       taxonList: Option[NonEmptyList[IRI]],
                        includeSubClasses: Boolean): Query = {
     val entityClassExprSubClasses = sparql""" ?entity $rdfsSubClassOf ${entityClass.get.asOMN} . """
     val entityClassExprQuery = {
