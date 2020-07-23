@@ -255,10 +255,10 @@ object Main extends HttpApp with App {
               path("ontotrace") {
                 get {
                   parameters(
-                    'entityClassExpression.as[OWLClassExpression].?,
-                    'entityIRIList.as[Seq[IRI]].?,
-                    'taxonClassExpression.as[OWLClassExpression].?,
-                    'taxonIRIList.as[Seq[IRI]].?,
+                    'entity.as[OWLClassExpression].?,
+                    'entity_list.as[Seq[IRI]].?,
+                    'taxon.as[OWLClassExpression].?,
+                    'taxon_list.as[Seq[IRI]].?,
                     'variable_only.as[Boolean].?(true),
                     'parts.as[Boolean].?(false)
                   ) {
@@ -272,7 +272,7 @@ object Main extends HttpApp with App {
                       val nonEmptyTaxonListOpt = taxonIRIListOpt.flatMap(asNonEmptyList)
                       validate(
                         !(entityClassExpression.isEmpty && nonEmptyEntityListOpt.isEmpty) && !(taxonClassExpression.isEmpty && nonEmptyTaxonListOpt.isEmpty),
-                        "Atleast one of the class expression or IRI list is required."
+                        "At least one of the class expression or IRI list is required."
                       ) {
                         respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
                                                                         Map("filename" -> "ontotrace.xml"))) {
@@ -291,10 +291,10 @@ object Main extends HttpApp with App {
                 } ~
                   post {
                     formFields(
-                      'entityClassExpression.as[OWLClassExpression].?,
-                      'entityIRIList.as[Seq[IRI]].?,
-                      'taxonClassExpression.as[OWLClassExpression].?,
-                      'taxonIRIList.as[Seq[IRI]].?,
+                      'entity.as[OWLClassExpression].?,
+                      'entity_list.as[Seq[IRI]].?,
+                      'taxon.as[OWLClassExpression].?,
+                      'taxon_list.as[Seq[IRI]].?,
                       'variable_only.as[Boolean].?(true),
                       'parts.as[Boolean].?(false)
                     ) {
