@@ -163,7 +163,11 @@ object PresenceAbsenceOfStructure {
       }
       val date = new SimpleDateFormat("y-M-d").format(Calendar.getInstance.getTime)
       dataset.setPublicationNotes(
-        s"Generated from the Phenoscape Knowledgebase on $date by Ontotrace query" // :\n* taxa: ${taxonClass.asOMN.getLiteralLexicalForm}\n* entities: ${entityClass.asOMN.getLiteralLexicalForm}\n* variable only: ${variableOnly}"
+        s"Generated from the Phenoscape Knowledgebase on $date by Ontotrace query :\n* taxa: ${taxonClassExpr
+          .map(p => p.asOMN.getLiteralLexicalForm)
+          .getOrElse("Not provided")}\n* taxa list: ${taxonList.map(_.list).getOrElse("Not provided")} \n* entities: ${mainEntityClassOpt
+          .map(p => p.asOMN.getLiteralLexicalForm)
+          .getOrElse("Not provided")}\n* entity list: ${entityList.map(_.list).getOrElse("Not provided")} \n* variable only: ${variableOnly}"
       )
       dataset
     }
