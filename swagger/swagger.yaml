@@ -521,11 +521,21 @@ paths:
           description: Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
           required: true
           type: string
+        - name: taxon_list
+          in: JSON array of term IRIs ["http://purl.obolibrary.org/obo/NCBITaxon_31210", "http://purl.obolibrary.org/obo/OGG_3000044353"]
+          description:
+          required: false
+          type:
         - name: entity
           in: formData
           description: Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
           required: true
           type: string
+        - name: entity_list
+          in: JSON array of term IRIs ["http://purl.obolibrary.org/obo/CEPH_0000112", "http://purl.obolibrary.org/obo/CEPH_0000122"]
+          description:
+          required: false
+          type:
         - name: variable_only
           in: formData
           description: whether to restrict the matrix to characters with both 'present' and 'absent' values in the matrix

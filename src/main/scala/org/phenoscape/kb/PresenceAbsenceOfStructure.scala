@@ -176,20 +176,22 @@ object PresenceAbsenceOfStructure {
                        taxonClass: Option[OWLClassExpression],
                        taxonList: Option[NonEmptyList[IRI]]): Query = {
     val entityExpressionQueryOpt = entityClass.map(cls => sparql" ?entity $rdfsSubClassOf ${cls.asOMN} . ")
-    val entityValuesOpt = entityList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map {iris =>
-      sparql"VALUES ?entity { $iris }"
+    val entityValuesOpt = entityList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map {
+      iris =>
+        sparql"VALUES ?entity { $iris }"
     }
     val entityQuery = (entityExpressionQueryOpt, entityValuesOpt) match {
       case (Some(expressionQuery), Some(entityValues)) => sparql"{ $expressionQuery } UNION { $entityValues } "
-      case _ => entityExpressionQueryOpt.orElse(entityValuesOpt).getOrElse(sparql"")
+      case _                                           => entityExpressionQueryOpt.orElse(entityValuesOpt).getOrElse(sparql"")
     }
     val taxonExpressionQueryOpt = taxonClass.map(cls => sparql" ?taxon $rdfsSubClassOf ${cls.asOMN} . ")
-    val taxonValuesOpt = taxonList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map {iris =>
-      sparql"VALUES ?taxon { $iris }"
+    val taxonValuesOpt = taxonList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map {
+      iris =>
+        sparql"VALUES ?taxon { $iris }"
     }
     val taxonQuery = (taxonExpressionQueryOpt, taxonValuesOpt) match {
       case (Some(expressionQuery), Some(taxonValues)) => sparql"{ $expressionQuery } UNION { $taxonValues } "
-      case _ => taxonExpressionQueryOpt.orElse(taxonValuesOpt).getOrElse(sparql"")
+      case _                                          => taxonExpressionQueryOpt.orElse(taxonValuesOpt).getOrElse(sparql"")
     }
     val graphPattern =
       sparql"""
