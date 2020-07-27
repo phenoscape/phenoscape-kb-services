@@ -482,35 +482,41 @@ paths:
         - application/xml
       parameters:
         - name: taxon
-          in: query
+          in: formData
           description: Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
-          required: true
+          required: false
           type: string
+        - name: taxon_list
+          in: query
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/NCBITaxon_31210", "http://purl.obolibrary.org/obo/OGG_3000044353"]
+          required: false
+          type: string
+          format: JSON
         - name: entity
-          in: query
+          in: formData
           description: Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
-          required: true
+          required: false
           type: string
-        - name: variable_only
+        - name: entity_list
           in: query
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/CEPH_0000112", "http://purl.obolibrary.org/obo/CEPH_0000122"]
+          required: false
+          type: string
+          format: JSON
+        - name: variable_only
+          in: formData
           description: whether to restrict the matrix to characters with both 'present' and 'absent' values in the matrix
           required: false
           type: boolean
           default: true
-        - name: includeSubClasses
-          in: query
-          description: Whether to include subclasses for entity and taxon
-          required: false
-          type: boolean
-          default: false
-      responses:
-        200:
-          description: NeXML-format evolutionary character matrix
+        responses:
+          200:
+            description: NeXML-format evolutionary character matrix
     post:
       tags:
         - OntoTrace
       summary: OntoTrace
-      description: Generate matrix of inferred presence/absence associations for anatomical structures subsumed by the provided entity class expression, for any taxa within the provided taxon class expression. Returns a NeXML-format evolutionary character matrix.
+      description: Generate matrix of inferred presence/absence associations for anatomical structures subsumed by the provided entity class expression or list, for any taxa within the provided taxon class expression or from the list. For entity and taxa, it is required to provide either a class expression or list. Returns a NeXML-format evolutionary character matrix.
       consumes:
         - application/x-www-form-urlencoded
       produces:
@@ -519,23 +525,25 @@ paths:
         - name: taxon
           in: formData
           description: Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
-          required: true
+          required: false
           type: string
         - name: taxon_list
-          in: JSON array of term IRIs ["http://purl.obolibrary.org/obo/NCBITaxon_31210", "http://purl.obolibrary.org/obo/OGG_3000044353"]
-          description:
+          in: query
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/NCBITaxon_31210", "http://purl.obolibrary.org/obo/OGG_3000044353"]
           required: false
-          type:
+          type: string
+          format: JSON
         - name: entity
           in: formData
           description: Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
-          required: true
+          required: false
           type: string
         - name: entity_list
-          in: JSON array of term IRIs ["http://purl.obolibrary.org/obo/CEPH_0000112", "http://purl.obolibrary.org/obo/CEPH_0000122"]
-          description:
+          in: query
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/CEPH_0000112", "http://purl.obolibrary.org/obo/CEPH_0000122"]
           required: false
-          type:
+          type: string
+          format: JSON
         - name: variable_only
           in: formData
           description: whether to restrict the matrix to characters with both 'present' and 'absent' values in the matrix
