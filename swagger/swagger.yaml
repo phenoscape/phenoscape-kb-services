@@ -477,7 +477,7 @@ paths:
       tags:
         - OntoTrace
       summary: OntoTrace
-      description: Generate matrix of inferred presence/absence associations for anatomical structures subsumed by the provided entity class expression, for any taxa within the provided taxon class expression. Returns a NeXML-format evolutionary character matrix.
+      description:  Generate matrix of inferred presence/absence associations for entity (anatomical structures) vs taxon. The entity and taxon can either be from the exact list of term IRIs provided in the list, or can be those subsumed by the provided class expression; it being necessary to provide at least one of the two. Returns a NeXML-format evolutionary character matrix.
       produces:
         - application/xml
       parameters:
@@ -488,7 +488,7 @@ paths:
           type: string
         - name: taxon_list
           in: query
-          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/NCBITaxon_31210", "http://purl.obolibrary.org/obo/OGG_3000044353"]
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/VTO_0033643", "http://purl.obolibrary.org/obo/VTO_0036426"]
           required: false
           type: string
           format: JSON
@@ -499,7 +499,7 @@ paths:
           type: string
         - name: entity_list
           in: query
-          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/CEPH_0000112", "http://purl.obolibrary.org/obo/CEPH_0000122"]
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/UBERON_0008897", "http://purl.obolibrary.org/obo/UBERON_0002535"]
           required: false
           type: string
           format: JSON
@@ -516,7 +516,7 @@ paths:
       tags:
         - OntoTrace
       summary: OntoTrace
-      description: Generate matrix of inferred presence/absence associations for anatomical structures subsumed by the provided entity class expression or list, for any taxa within the provided taxon class expression or from the list. For entity and taxa, it is required to provide either a class expression or list. Returns a NeXML-format evolutionary character matrix.
+      description: Generate matrix of inferred presence/absence associations for entity (anatomical structures) vs taxon. The entity and taxon can either be from the exact list of term IRIs provided in the list, or can be those subsumed by the provided class expression; it being necessary to provide at least one of the two. Returns a NeXML-format evolutionary character matrix.
       consumes:
         - application/x-www-form-urlencoded
       produces:
@@ -529,7 +529,7 @@ paths:
           type: string
         - name: taxon_list
           in: query
-          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/NCBITaxon_31210", "http://purl.obolibrary.org/obo/OGG_3000044353"]
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/VTO_0033643", "http://purl.obolibrary.org/obo/VTO_0036426"]
           required: false
           type: string
           format: JSON
@@ -540,7 +540,7 @@ paths:
           type: string
         - name: entity_list
           in: query
-          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/CEPH_0000112", "http://purl.obolibrary.org/obo/CEPH_0000122"]
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/UBERON_0008897", "http://purl.obolibrary.org/obo/UBERON_0002535"]
           required: false
           type: string
           format: JSON
