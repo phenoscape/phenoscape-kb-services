@@ -509,7 +509,7 @@ paths:
           required: false
           type: boolean
           default: true
-        responses:
+      responses:
           200:
             description: NeXML-format evolutionary character matrix
     post:
