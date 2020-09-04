@@ -128,6 +128,7 @@ object AnatomicalEntity {
     val valuesList = terms.map(t => sparql" $t ").fold(sparql"")(_ + _)
     sparql"""
             PREFIX hint: <http://www.bigdata.com/queryHints#>
+            PREFIX ps: <http://purl.org/phenoscape/vocab.owl#>
             SELECT DISTINCT ?x ?y
             FROM $KBClosureGraph
             FROM $KBMainGraph
@@ -135,7 +136,7 @@ object AnatomicalEntity {
               SELECT ?term ?presence
               WHERE {
                 VALUES ?term { $valuesList }
-                ?presence <http://purl.org/phenoscape/vocab.owl#implies_presence_of_some> ?term .
+                ?presence ps:implies_presence_of ?term .
               }
             } AS %SUB1
             WHERE {
