@@ -1,7 +1,7 @@
 package org.phenoscape.kb.queries
 
 import org.phenoscape.kb.AnatomicalEntity
-import org.phenoscape.kb.PresenceAbsenceOfStructure.implies_presence_of_some
+//import org.phenoscape.kb.PresenceAbsenceOfStructure.implies_presence_of_some
 import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
@@ -147,8 +147,14 @@ object TaxaWithPhenotype {
                            parts: Boolean): Set[BlazegraphNamedSubquery] =
     quality match {
       case PhenotypicQuality(qualityOpt) => phenotypicQualitySubQueryFor(entity, qualityOpt, phenotypeOpt, parts)
-      case InferredPresence              => entity.map(e => entityPhenotypeSubQueryFor(e, parts, implies_presence_of_some)).toSet
-      case InferredAbsence               => entity.map(e => entityPhenotypeSubQueryFor(e, parts, ABSENCE_OF)).toSet
+      case InferredPresence =>
+        entity
+          .map(e =>
+            entityPhenotypeSubQueryFor(e,
+                                       parts,
+                                       IRI.create("http://purl.org/phenoscape/vocab.owl#implies_presence_of")))
+          .toSet
+      case InferredAbsence => entity.map(e => entityPhenotypeSubQueryFor(e, parts, ABSENCE_OF)).toSet
     }
 
   def phenotypicQualitySubQueryFor(entity: Option[IRI],

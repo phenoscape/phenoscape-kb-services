@@ -38,7 +38,7 @@ import scala.language.{implicitConversions, postfixOps}
 
 object PresenceAbsenceOfStructure {
 
-  val implies_presence_of_some = NamedRestrictionGenerator.getClassRelationIRI(IMPLIES_PRESENCE_OF.getIRI)
+//  val implies_presence_of_some = NamedRestrictionGenerator.getClassRelationIRI(IMPLIES_PRESENCE_OF.getIRI)
 
   implicit def owlEntityToJenaProperty(prop: OWLEntity): Property = ResourceFactory.createProperty(prop.getIRI.toString)
 
@@ -180,19 +180,19 @@ object PresenceAbsenceOfStructure {
                        taxonClass: Option[OWLClassExpression],
                        taxonList: Option[NonEmptyList[IRI]]): Query = {
     val entityExpressionQueryOpt = entityClass.map(cls => sparql" ?entity $rdfsSubClassOf ${cls.asOMN} . ")
-    val entityValuesOpt = entityList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map {
-      iris =>
+    val entityValuesOpt =
+      entityList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map { iris =>
         sparql"VALUES ?entity { $iris }"
-    }
+      }
     val entityQuery = (entityExpressionQueryOpt, entityValuesOpt) match {
       case (Some(expressionQuery), Some(entityValues)) => sparql"{ $expressionQuery } UNION { $entityValues } "
       case _                                           => entityExpressionQueryOpt.orElse(entityValuesOpt).getOrElse(sparql"")
     }
     val taxonExpressionQueryOpt = taxonClass.map(cls => sparql" ?taxon $rdfsSubClassOf ${cls.asOMN} . ")
-    val taxonValuesOpt = taxonList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map {
-      iris =>
+    val taxonValuesOpt =
+      taxonList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map { iris =>
         sparql"VALUES ?taxon { $iris }"
-    }
+      }
     val taxonQuery = (taxonExpressionQueryOpt, taxonValuesOpt) match {
       case (Some(expressionQuery), Some(taxonValues)) => sparql"{ $expressionQuery } UNION { $taxonValues } "
       case _                                          => taxonExpressionQueryOpt.orElse(taxonValuesOpt).getOrElse(sparql"")
@@ -284,7 +284,7 @@ object PresenceAbsenceOfStructure {
       bgp(
         t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
-        t('phenotype, rdfsSubClassOf / implies_presence_of_some, entityIRI),
+        t('phenotype, rdfsSubClassOf / IMPLIES_PRESENCE_OF, entityIRI),
         t('state, dcDescription, 'description),
         t('matrix, has_character, 'character),
         t('character, rdfsLabel, 'character_label),
