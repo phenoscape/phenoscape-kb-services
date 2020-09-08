@@ -28,10 +28,10 @@ object EQForGene {
   private val rdfsIsDefinedBy = factory.getRDFSIsDefinedBy
   private val UBERON = IRI.create("http://purl.obolibrary.org/obo/uberon.owl")
   private val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
-  private val has_part_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
+//  private val has_part_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
 
-  private val has_part_inhering_in_some =
-    NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part_inhering_in.getIRI)
+//  private val has_part_inhering_in_some =
+//    NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part_inhering_in.getIRI)
 
   implicit private val timeout: Timeout = Timeout(10 minutes)
 
@@ -89,7 +89,7 @@ object EQForGene {
     val annotationIRI = IRI.create(annotationID)
     select_distinct('quality) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where bgp(
       t(annotationIRI, rdfType / rdfsSubClassOf, 'has_quality),
-      t('has_quality, has_part_some, 'quality),
+      t('has_quality, Vocab.has_part.getIRI, 'quality),
       t('quality, rdfsIsDefinedBy, PATO))
   }
 
@@ -97,7 +97,7 @@ object EQForGene {
     val termIRI = IRI.create(termID)
     select_distinct('quality) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where bgp(
       t(termIRI, rdfsSubClassOf, 'has_quality),
-      t('has_quality, has_part_some, 'quality),
+      t('has_quality, Vocab.has_part.getIRI, 'quality),
       t('quality, rdfsIsDefinedBy, PATO))
   }
 
@@ -126,7 +126,7 @@ object EQForGene {
     val annotationIRI = IRI.create(annotationID)
     select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where bgp(
       t(annotationIRI, rdfType / rdfsSubClassOf, 'description),
-      t('description, has_part_inhering_in_some, 'bearer),
+      t('description, Vocab.has_part_inhering_in.getIRI, 'bearer),
       t('bearer, rdfsIsDefinedBy, UBERON))
   }
 
@@ -134,7 +134,7 @@ object EQForGene {
     val termIRI = IRI.create(termID)
     select_distinct('bearer) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where bgp(
       t(termIRI, rdfsSubClassOf, 'description),
-      t('description, has_part_inhering_in_some, 'bearer),
+      t('description, Vocab.has_part_inhering_in.getIRI, 'bearer),
       t('bearer, rdfsIsDefinedBy, UBERON))
   }
 
