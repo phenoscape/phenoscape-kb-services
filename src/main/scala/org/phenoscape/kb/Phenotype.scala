@@ -30,11 +30,11 @@ object Phenotype {
 
   implicit val timeout = Timeout(10 minutes)
 
-  private val has_part_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
-  private val phenotype_of_some: IRI = NamedRestrictionGenerator.getClassRelationIRI(Vocab.phenotype_of.getIRI)
+//  private val has_part_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
+//  private val phenotype_of_some: IRI = NamedRestrictionGenerator.getClassRelationIRI(Vocab.phenotype_of.getIRI)
 
-  private val has_part_inhering_in_some =
-    NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part_inhering_in.getIRI)
+//  private val has_part_inhering_in_some =
+//    NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part_inhering_in.getIRI)
 
   def info(phenotype: IRI, annotatedStatesOnly: Boolean): Future[Phenotype] = {
     val eqsFuture = eqForPhenotype(phenotype)
@@ -84,10 +84,10 @@ object Phenotype {
   }
 
   def eqForPhenotype(phenotype: IRI): Future[NearestEQSet] = {
-    val entitiesFuture = entitiesForPhenotype(phenotype, has_part_inhering_in_some)
+    val entitiesFuture = entitiesForPhenotype(phenotype, Vocab.has_part_inhering_in.getIRI)
     val generalEntitiesFuture =
       entitiesForPhenotype(phenotype,
-                           phenotype_of_some
+                           Vocab.phenotype_of.getIRI
       ) //FIXME need to change to relatedEntities using has_part_towards_some; this must be added to the KB build
     //val relatedEntitiesFuture = ???
     val qualitiesFuture = qualitiesForPhenotype(phenotype)
@@ -273,13 +273,13 @@ object Phenotype {
   private def qualitySuperClasses(phenotype: IRI): Query =
     select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
       t(phenotype, rdfsSubClassOf, 'description),
-      t('description, has_part_some, 'quality),
+      t('description, Vocab.has_part.getIRI, 'quality),
       t('quality, rdfsIsDefinedBy, PATO)))
 
   private def qualityQualitySuperClasses(phenotype: IRI): Query =
     select_distinct('quality) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
       t(phenotype, rdfsSubClassOf, 'description),
-      t('description, has_part_some, 'quality),
+      t('description, Vocab.has_part.getIRI, 'quality),
       t('quality, rdfsIsDefinedBy, PATO)))
 
 }
