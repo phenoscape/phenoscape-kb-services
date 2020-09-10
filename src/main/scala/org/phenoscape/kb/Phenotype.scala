@@ -30,12 +30,6 @@ object Phenotype {
 
   implicit val timeout = Timeout(10 minutes)
 
-//  private val has_part_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
-//  private val phenotype_of_some: IRI = NamedRestrictionGenerator.getClassRelationIRI(Vocab.phenotype_of.getIRI)
-
-//  private val has_part_inhering_in_some =
-//    NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part_inhering_in.getIRI)
-
   def info(phenotype: IRI, annotatedStatesOnly: Boolean): Future[Phenotype] = {
     val eqsFuture = eqForPhenotype(phenotype)
     val statesFuture = characterStatesForPhenotype(phenotype, annotatedStatesOnly)
@@ -239,13 +233,15 @@ object Phenotype {
                 Some(result.getLiteral("phenotype_label").getLexicalForm))
 
   private def entitySuperClassesQuery(phenotype: IRI, relation: IRI): Query =
-    select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
+    select_distinct(
+      'description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" from "http://kb.phenoscape.org/property_graphs/redundant" where (bgp(
       t(phenotype, rdfsSubClassOf, 'description),
       t('description, relation, 'entity),
       t('entity, rdfsIsDefinedBy, Uberon)))
 
   private def entityEntitySuperClassesQuery(phenotype: IRI, relation: IRI): Query =
-    select_distinct('entity) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
+    select_distinct(
+      'entity) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" from "http://kb.phenoscape.org/property_graphs/redundant" where (bgp(
       t(phenotype, rdfsSubClassOf, 'description),
       t('description, relation, 'entity),
       t('entity, rdfsIsDefinedBy, Uberon)))
@@ -271,7 +267,8 @@ object Phenotype {
   }
 
   private def qualitySuperClasses(phenotype: IRI): Query =
-    select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
+    select_distinct(
+      'description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" from "http://kb.phenoscape.org/property_graphs/redundant" where (bgp(
       t(phenotype, rdfsSubClassOf, 'description),
       t('description, Vocab.has_part.getIRI, 'quality),
       t('quality, rdfsIsDefinedBy, PATO)))

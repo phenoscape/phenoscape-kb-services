@@ -53,6 +53,7 @@ object KBVocab {
 
   val KBMainGraph = IRI.create("http://kb.phenoscape.org/")
   val KBClosureGraph = IRI.create("http://kb.phenoscape.org/closure")
+  val KBRedundantGraph = IRI.create("http://kb.phenoscape.org/property_graphs/redundant")
 
   val entityRoot = IRI.create("http://purl.obolibrary.org/obo/UBERON_0000061")
   val qualityRoot = IRI.create("http://purl.obolibrary.org/obo/PATO_0000001")

@@ -22,7 +22,7 @@ object AnatomicalEntity {
 
   private val dcSource = ObjectProperty(IRI.create("http://purl.org/dc/elements/1.1/source"))
   private val ECO = IRI.create("http://purl.obolibrary.org/obo/eco.owl")
-  private val implies_presence_of_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.IMPLIES_PRESENCE_OF.getIRI)
+//  private val implies_presence_of_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.IMPLIES_PRESENCE_OF.getIRI)
 
   def homologyAnnotations(term: IRI, includeSubClasses: Boolean): Future[Seq[HomologyAnnotation]] =
     App.executeSPARQLQueryString(homologyAnnotationQuery(term, includeSubClasses), HomologyAnnotation(_, term))
@@ -115,28 +115,27 @@ object AnatomicalEntity {
             ASK
             FROM $KBClosureGraph
             FROM $KBMainGraph
+            FROM $KBRedundantGraph
             WHERE {
-              ?x_presence $implies_presence_of_some $x .
-              ?y_presence $implies_presence_of_some $y .
+              ?x_presence $IMPLIES_PRESENCE_OF $x .
+              ?y_presence $IMPLIES_PRESENCE_OF $y .
               ?x_presence $rdfsSubClassOf ?y_presence
             }
         """
 
   private def queryImpliesPresenceOfMulti(terms: Iterable[IRI]): QueryText = {
-    import scalaz._
-    import Scalaz._
     val valuesList = terms.map(t => sparql" $t ").fold(sparql"")(_ + _)
     sparql"""
             PREFIX hint: <http://www.bigdata.com/queryHints#>
-            PREFIX ps: <http://purl.org/phenoscape/vocab.owl#>
             SELECT DISTINCT ?x ?y
             FROM $KBClosureGraph
             FROM $KBMainGraph
+            FROM $KBRedundantGraph
             WITH {
               SELECT ?term ?presence
               WHERE {
                 VALUES ?term { $valuesList }
-                ?presence ps:implies_presence_of ?term .
+                ?presence $IMPLIES_PRESENCE_OF ?term .
               }
             } AS %SUB1
             WHERE {
@@ -154,7 +153,7 @@ object AnatomicalEntity {
                 }
               }
               FILTER EXISTS {
-                ?x_presence <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?y_presence
+                ?x_presence $rdfsSubClassOf ?y_presence
               }
               FILTER(?x != ?y)
             }

@@ -14,7 +14,7 @@ import org.apache.jena.sparql.syntax.{ElementFilter, ElementSubQuery}
 import org.apache.log4j.Logger
 import org.obo.datamodel.impl.OBOClassImpl
 import org.phenoscape.io.NeXMLUtil
-import org.phenoscape.kb.KBVocab.{owlNothing, rdfsLabel, rdfsSubClassOf}
+import org.phenoscape.kb.KBVocab.{owlNothing, rdfsLabel, rdfsSubClassOf, KBRedundantGraph}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.model.MultipleState.MODE
 import org.phenoscape.model.{Character, DataSet, MultipleState, State, Taxon => MatrixTaxon}
@@ -37,8 +37,6 @@ import scala.concurrent.Future
 import scala.language.{implicitConversions, postfixOps}
 
 object PresenceAbsenceOfStructure {
-
-//  val implies_presence_of_some = NamedRestrictionGenerator.getClassRelationIRI(IMPLIES_PRESENCE_OF.getIRI)
 
   implicit def owlEntityToJenaProperty(prop: OWLEntity): Property = ResourceFactory.createProperty(prop.getIRI.toString)
 
@@ -210,6 +208,7 @@ object PresenceAbsenceOfStructure {
                 $graphPattern
                 }
                FROM  $KBMainGraph
+               FROM $KBRedundantGraph
                WHERE {
                   $graphPattern
                   $entityQuery
@@ -225,8 +224,9 @@ object PresenceAbsenceOfStructure {
 
   def buildAbsenceStatesQuery(taxonIRI: IRI, entityIRI: IRI, limit: Int, offset: Int): Query = {
     val query =
-      buildAbsenceStatesQueryBase(taxonIRI,
-                                  entityIRI) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure"
+      buildAbsenceStatesQueryBase(
+        taxonIRI,
+        entityIRI) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" from "http://kb.phenoscape.org/property_graphs/redundant"
     if (limit > 1) {
       query.setOffset(offset)
       query.setLimit(limit)
@@ -260,8 +260,9 @@ object PresenceAbsenceOfStructure {
 
   def buildPresenceStatesQuery(taxonIRI: IRI, entityIRI: IRI, limit: Int, offset: Int): Query = {
     val query =
-      buildPresenceStatesQueryBase(taxonIRI,
-                                   entityIRI) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure"
+      buildPresenceStatesQueryBase(
+        taxonIRI,
+        entityIRI) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" from "http://kb.phenoscape.org/property_graphs/redundant"
     if (limit > 1) {
       query.setOffset(offset)
       query.setLimit(limit)
@@ -273,7 +274,7 @@ object PresenceAbsenceOfStructure {
 
   def buildPresenceStatesQueryTotal(taxonIRI: IRI, entityIRI: IRI): Query = {
     val query =
-      select() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (new ElementSubQuery(
+      select() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" from "http://kb.phenoscape.org/property_graphs/redundant" where (new ElementSubQuery(
         buildPresenceStatesQueryBase(taxonIRI, entityIRI)))
     query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountDistinct()))
     query
@@ -295,7 +296,7 @@ object PresenceAbsenceOfStructure {
 
   def buildExhibitingAbsenceBasicQuery(entityIRI: IRI, taxonFilter: Option[IRI]): Query = {
     val taxonFilterTriple = taxonFilter.map(t('taxon, rdfsSubClassOf, _)).toList
-    select_distinct() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
+    select_distinct() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" from "http://kb.phenoscape.org/property_graphs/redundant" where (bgp(
       (App.BigdataAnalyticQuery ::
         t('taxon, has_absence_of, entityIRI) ::
         t('taxon, rdfsLabel, 'taxon_label) ::
@@ -321,7 +322,7 @@ object PresenceAbsenceOfStructure {
 
   def buildExhibitingPresenceBasicQuery(entityIRI: IRI, taxonFilter: Option[IRI]): Query = {
     val taxonFilterTriple = taxonFilter.map(t('taxon, rdfsSubClassOf, _)).toList
-    select_distinct() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
+    select_distinct() from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" from "http://kb.phenoscape.org/property_graphs/redundant" where (bgp(
       (App.BigdataAnalyticQuery ::
         t('taxon, has_presence_of, entityIRI) ::
         t('taxon, rdfsLabel, 'taxon_label) ::

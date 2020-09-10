@@ -1,7 +1,6 @@
 package org.phenoscape.kb.queries
 
 import org.phenoscape.kb.AnatomicalEntity
-//import org.phenoscape.kb.PresenceAbsenceOfStructure.implies_presence_of_some
 import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
@@ -9,7 +8,7 @@ import org.phenoscape.kb.util.BlazegraphNamedSubquery
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.phenoscape.owl.NamedRestrictionGenerator
-import org.phenoscape.owl.Vocab._
+import org.phenoscape.owl.Vocab.{IMPLIES_PRESENCE_OF, _}
 import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
 import org.semanticweb.owlapi.model.IRI
@@ -21,9 +20,9 @@ import scala.language.postfixOps
 
 object TaxaWithPhenotype {
 
-  private val PhenotypeOfSome = NamedRestrictionGenerator.getClassRelationIRI(phenotype_of.getIRI)
-  private val PartOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
-  private val HasPartSome = NamedRestrictionGenerator.getClassRelationIRI(has_part.getIRI)
+//  private val PhenotypeOfSome = NamedRestrictionGenerator.getClassRelationIRI(phenotype_of.getIRI)
+//  private val PartOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
+//  private val HasPartSome = NamedRestrictionGenerator.getClassRelationIRI(has_part.getIRI)
 
   def buildQuery(entity: Option[IRI],
                  quality: QualitySpec,
@@ -56,6 +55,7 @@ object TaxaWithPhenotype {
       SELECT (COUNT(*) AS ?count)
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantGraph
       $namedQueriesBlock
       WHERE {
         SELECT DISTINCT ?taxon ?taxon_label
@@ -67,6 +67,7 @@ object TaxaWithPhenotype {
       SELECT DISTINCT ?taxon ?taxon_label
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantGraph
       $namedQueriesBlock
       $whereClause
       ORDER BY LCASE(?taxon_label) ?taxon
@@ -149,10 +150,7 @@ object TaxaWithPhenotype {
       case PhenotypicQuality(qualityOpt) => phenotypicQualitySubQueryFor(entity, qualityOpt, phenotypeOpt, parts)
       case InferredPresence =>
         entity
-          .map(e =>
-            entityPhenotypeSubQueryFor(e,
-                                       parts,
-                                       IRI.create("http://purl.org/phenoscape/vocab.owl#implies_presence_of")))
+          .map(e => entityPhenotypeSubQueryFor(e, parts, IMPLIES_PRESENCE_OF.getIRI))
           .toSet
       case InferredAbsence => entity.map(e => entityPhenotypeSubQueryFor(e, parts, ABSENCE_OF)).toSet
     }
@@ -161,12 +159,12 @@ object TaxaWithPhenotype {
                                    quality: Option[IRI],
                                    phenotype: Option[IRI],
                                    parts: Boolean): Set[BlazegraphNamedSubquery] = {
-    val entityPattern = entity.map(entityPhenotypeSubQueryFor(_, parts, PhenotypeOfSome))
+    val entityPattern = entity.map(entityPhenotypeSubQueryFor(_, parts, phenotype_of.getIRI))
     val qualityPattern = quality.map(q =>
       BlazegraphNamedSubquery(
         sparql"""
         SELECT DISTINCT ?phenotype WHERE {
-          ?p $rdfsSubClassOf/$HasPartSome $q . 
+          ?p $rdfsSubClassOf/$has_part $q . 
           GRAPH $KBMainGraph {
             ?phenotype $rdfsSubClassOf ?p .
           }
@@ -186,7 +184,7 @@ object TaxaWithPhenotype {
       BlazegraphNamedSubquery(
         sparql"""
         SELECT DISTINCT ?phenotype WHERE {
-          ?p $rdfsSubClassOf/$relation/$rdfsSubClassOf/$PartOfSome $entity .
+          ?p $rdfsSubClassOf/$relation/$rdfsSubClassOf/$part_of $entity .
           GRAPH $KBMainGraph {
             ?phenotype $rdfsSubClassOf ?p .
           }
