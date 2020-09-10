@@ -22,7 +22,6 @@ object AnatomicalEntity {
 
   private val dcSource = ObjectProperty(IRI.create("http://purl.org/dc/elements/1.1/source"))
   private val ECO = IRI.create("http://purl.obolibrary.org/obo/eco.owl")
-//  private val implies_presence_of_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.IMPLIES_PRESENCE_OF.getIRI)
 
   def homologyAnnotations(term: IRI, includeSubClasses: Boolean): Future[Seq[HomologyAnnotation]] =
     App.executeSPARQLQueryString(homologyAnnotationQuery(term, includeSubClasses), HomologyAnnotation(_, term))

@@ -20,10 +20,6 @@ import scala.language.postfixOps
 
 object TaxaWithPhenotype {
 
-//  private val PhenotypeOfSome = NamedRestrictionGenerator.getClassRelationIRI(phenotype_of.getIRI)
-//  private val PartOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
-//  private val HasPartSome = NamedRestrictionGenerator.getClassRelationIRI(has_part.getIRI)
-
   def buildQuery(entity: Option[IRI],
                  quality: QualitySpec,
                  inTaxonOpt: Option[IRI],
