@@ -116,9 +116,7 @@ object AnatomicalEntity {
             FROM $KBMainGraph
             FROM $KBRedundantGraph
             WHERE {
-              ?x_presence $IMPLIES_PRESENCE_OF $x .
-              ?y_presence $IMPLIES_PRESENCE_OF $y .
-              ?x_presence $rdfsSubClassOf ?y_presence
+              ?x $IMPLIES_PRESENCE_OF|$rdfsSubClassOf $y .
             }
         """
 
