@@ -169,7 +169,6 @@ OPTIONAL {
                 FILTER EXISTS {?matrix $has_character / $may_have_state_value / $describes_phenotype ?phenotype}
               }
               """
-    println("chutki2 \n" + query.text)
     App.executeSPARQLQueryString(query.text, res => res.getLiteral("count").getInt).map(_.head)
   }
 
