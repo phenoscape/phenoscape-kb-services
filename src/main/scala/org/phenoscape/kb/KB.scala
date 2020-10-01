@@ -160,12 +160,17 @@ OPTIONAL {
   }
 
   def annotatedMatrixCount: Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where (bgp(t('matrix, rdfType, CharacterStateDataMatrix)),
-    new ElementFilter(
-      new E_Exists(
-        triplesBlock(bgp(t('matrix, has_character / may_have_state_value / describes_phenotype, 'phenotype))))))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("matrix"))))
-    App.executeSPARQLQuery(query).map(ResultCount.count)
+    val query =
+      sparql"""
+              SELECT (COUNT(DISTINCT ?matrix) AS ?count)
+              FROM $KBMainGraph
+              WHERE {
+                ?matrix $rdfType $CharacterStateDataMatrix
+                FILTER EXISTS {?matrix $has_character / $may_have_state_value / $describes_phenotype ?phenotype}
+              }
+              """
+    println("chutki2 \n" + query.text)
+    App.executeSPARQLQueryString(query.text, res => res.getLiteral("count").getInt).map(_.head)
   }
 
   def buildDate: Future[Instant] = {
