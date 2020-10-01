@@ -55,7 +55,7 @@ object EQForGene {
   }
 
   def annotationsForGene(geneID: IRI): Future[Iterable[String]] =
-    App.executeSPARQLQuery(annotationsQuery(geneID), _.getResource("annotation").getURI)
+    App.executeSPARQLQuery(annotationsQuery(geneID), _.getResource("association").getURI)
 
   def annotationsQuery(geneIRI: IRI): Query =
     select_distinct('association) from "http://kb.phenoscape.org/" where bgp(
