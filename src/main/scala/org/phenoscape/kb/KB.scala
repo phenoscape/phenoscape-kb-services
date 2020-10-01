@@ -53,7 +53,7 @@ object KB {
 
   def annotationReport: Future[String] = {
     val queryString =
-      s"""
+      sparql"""
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX ps: <http://purl.org/phenoscape/vocab.owl#>
@@ -102,7 +102,7 @@ OPTIONAL {
   BIND(COALESCE(STR(?quality_label), "") AS ?quality_name)
   BIND(COALESCE(STR(?related_entity_label), "") AS ?related_entity_name)
 }
-      """
+      """.toQuery
     App.executeSPARQLQuery(queryString).map(App.resultSetToTSV)
   }
 
