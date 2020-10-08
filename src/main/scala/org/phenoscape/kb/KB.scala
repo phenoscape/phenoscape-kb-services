@@ -169,7 +169,7 @@ OPTIONAL {
                 FILTER EXISTS {?matrix $has_character / $may_have_state_value / $describes_phenotype ?phenotype}
               }
               """
-    App.executeSPARQLQueryString(query.text, res => res.getLiteral("count").getInt).map(_.head)
+    App.executeSPARQLQuery(query.toQuery).map(ResultCount.count)
   }
 
   def buildDate: Future[Instant] = {
