@@ -52,58 +52,61 @@ object KB {
   }
 
   def annotationReport: Future[String] = {
-    val queryString =
-      """
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX ps: <http://purl.org/phenoscape/vocab.owl#>
-PREFIX has_character: <http://purl.obolibrary.org/obo/CDAO_0000142>
-PREFIX has_state: <http://purl.obolibrary.org/obo/CDAO_0000184>
-PREFIX oboInOwl: <http://www.geneontology.org/formats/oboInOwl#>
-PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+    val query =
+      sparql"""
+          PREFIX ps: <http://purl.org/phenoscape/vocab.owl#>
+          PREFIX has_character: <http://purl.obolibrary.org/obo/CDAO_0000142>
+          PREFIX has_state: <http://purl.obolibrary.org/obo/CDAO_0000184>
+          PREFIX oboInOwl: <http://www.geneontology.org/formats/oboInOwl#>
+          PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
 
-SELECT (STR(?matrix_label) AS ?matrix_file) (STR(?char_number) AS ?character_number) (STR(?char_label) AS ?character_text) (STR(?symbol) AS ?state_symbol) (STR(?state_label) AS ?state_text) (STR(?entity) AS ?entity_id) ?entity_name (STR(?quality) AS ?quality_id) ?quality_name (STR(?related_entity) AS ?related_entity_id) ?related_entity_name ?attributes
-FROM <http://kb.phenoscape.org/>
-WITH {
-  SELECT ?quality (GROUP_CONCAT(DISTINCT ?attribute_label; separator=", ") AS ?attributes) WHERE {
-    ?attribute oboInOwl:inSubset <http://purl.obolibrary.org/obo/TEMP#character_slim> .
-    ?quality rdfs:subClassOf* ?attribute .
-    ?attribute rdfs:label ?attribute_label .
- } GROUP BY ?quality 
-} AS %attributes
-WHERE
-{ 
-?state rdfs:label ?state_label .
-?matrix has_character: ?matrix_char .
-?matrix_char rdfs:label ?char_label .
-?matrix_char ps:list_index ?char_number .
-?matrix rdfs:label ?matrix_label .
-?matrix_char ps:may_have_state_value ?state .
-?state ps:state_symbol ?symbol .
-?state ps:describes_phenotype ?phenotype .
-?phenotype ps:entity_term ?entity . 
-OPTIONAL {   
-?entity rdfs:label ?entity_label .
-}
-?phenotype ps:quality_term ?quality .
-OPTIONAL {
-?quality rdfs:label ?quality_label .
-}
-OPTIONAL {
-  ?phenotype ps:related_entity_term ?related_entity .
-    OPTIONAL {
-  ?related_entity rdfs:label ?related_entity_label .
-  }
-}
-OPTIONAL {
-  INCLUDE %attributes
-}
-  BIND(COALESCE(STR(?entity_label), "") AS ?entity_name)
-  BIND(COALESCE(STR(?quality_label), "") AS ?quality_name)
-  BIND(COALESCE(STR(?related_entity_label), "") AS ?related_entity_name)
-}
-      """
-    App.executeSPARQLQuery(queryString).map(App.resultSetToTSV)
+         SELECT (?matrix_label AS ?matrix_file) (?char_number AS ?character_number) (?char_label AS ?character_text) (?symbol AS ?state_symbol) (?state_label AS ?state_text) (?entity AS ?entity_id) ?entity_name (?quality AS ?quality_id) ?quality_name (?related_entity AS ?related_entity_id) ?related_entity_name ?attributes
+
+         FROM $KBMainGraph
+          
+          WITH {
+            SELECT ?quality (GROUP_CONCAT(DISTINCT ?attribute_label; separator=", ") AS ?attributes) WHERE {
+              ?attribute oboInOwl:inSubset <http://purl.obolibrary.org/obo/TEMP#character_slim> .
+              ?quality ${KBVocab.rdfsSubClassOf}* ?attribute .
+              ?attribute $rdfsLabel ?attribute_label .
+           } GROUP BY ?quality 
+          } AS %attributes
+       
+        WHERE
+        { 
+          ?state $rdfsLabel ?state_label .
+          ?matrix has_character: ?matrix_char .
+          ?matrix_char $rdfsLabel ?char_label .
+          ?matrix_char ps:list_index ?char_number .
+          ?matrix $rdfsLabel ?matrix_label .
+          ?matrix_char ps:may_have_state_value ?state .
+          ?state ps:state_symbol ?symbol .
+          ?state ps:describes_phenotype ?phenotype .
+          ?phenotype ps:entity_term ?entity . 
+          
+          OPTIONAL {   
+          ?entity $rdfsLabel ?entity_label .
+          }
+          ?phenotype ps:quality_term ?quality .
+          OPTIONAL {
+          ?quality $rdfsLabel ?quality_label .
+          }
+          OPTIONAL {
+            ?phenotype ps:related_entity_term ?related_entity .
+              OPTIONAL {
+            ?related_entity $rdfsLabel ?related_entity_label .
+            }
+          }
+          OPTIONAL {
+            INCLUDE %attributes
+          }
+            
+          BIND(COALESCE(STR(?entity_label), "") AS ?entity_name)
+          BIND(COALESCE(STR(?quality_label), "") AS ?quality_name)
+          BIND(COALESCE(STR(?related_entity_label), "") AS ?related_entity_name)
+        }
+              """
+    App.executeSPARQLQuery(query.toQuery).map(App.resultSetToTSV)
   }
 
   def characterCount: Future[Int] = {
