@@ -73,7 +73,7 @@ object EQForGene {
           FROM $KBMainGraph
           FROM $KBRedundantRelationGraph
           WHERE {
-            ?annotationIRI $associationHasObject ?phenotype .
+            $annotationIRI $associationHasObject ?phenotype .
             ?phenotype $has_part ?quality .
             ?quality $rdfsIsDefinedBy $PATO .
             
@@ -85,7 +85,6 @@ object EQForGene {
             }
           }
           """
-    print("chutki 1 \n" + query.text)
     query.toQuery
   }
 
@@ -100,7 +99,7 @@ object EQForGene {
           FROM $KBMainGraph
           FROM $KBRedundantRelationGraph
           WHERE {
-            ?annotationIRI $associationHasObject ?phenotype .
+            $annotationIRI $associationHasObject ?phenotype .
 
             ?phenotype $has_part_inhering_in ?bearer .
             ?bearer $rdfsIsDefinedBy  $Uberon .
@@ -113,7 +112,6 @@ object EQForGene {
             }
           }
           """
-    print("chutki 2 \n" + query.text)
     query.toQuery
 
   }
