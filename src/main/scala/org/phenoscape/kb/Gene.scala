@@ -246,8 +246,6 @@ object Gene {
               }
               """
 
-    print("chutki" + query.toString)
-
     for {
       annotationsData <- App.executeSPARQLConstructQuery(query.toQuery)
       phenotypesWithSources = processProfileResultToAnnotationsAndSources(annotationsData)
