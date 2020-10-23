@@ -44,7 +44,7 @@ object KBVocab {
   val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
   val homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000007")
   val serially_homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000027")
-
+  val dc_source = ObjectProperty("http://purl.org/dc/elements/1.1/source")
   val oban = "http://purl.org/oban/"
   val association = IRI.create(s"${oban}association")
   val associationHasSubject = ObjectProperty(s"${oban}association_has_subject")

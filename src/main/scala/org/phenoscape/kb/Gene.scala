@@ -231,7 +231,7 @@ object Gene {
       sparql"""
               CONSTRUCT {
                 $iri $hasAnnotation ?phenotype .
-                ?phenotype $dcSource ?source .
+                ?phenotype $dc_source ?source .
               }
               FROM $KBMainGraph
               WHERE {
@@ -240,7 +240,7 @@ object Gene {
                              $associationHasObject  ?phenotype ;
                              $associationHasPredicate $has_phenotype
                 OPTIONAL {
-                  ?association  $dcSource  ?source 
+                  ?association  $dc_source  ?source 
                 }
                 FILTER ( ?association NOT IN ($AnnotatedPhenotype, $owlNamedIndividual) )
               }
@@ -269,7 +269,7 @@ object Gene {
       }
       .map { annotation =>
         IRI.create(annotation.getURI) -> model
-          .listObjectsOfProperty(annotation, dcSource)
+          .listObjectsOfProperty(annotation, dc_source)
           .asScala
           .collect {
             case resource: Resource => Option(resource.getURI)
