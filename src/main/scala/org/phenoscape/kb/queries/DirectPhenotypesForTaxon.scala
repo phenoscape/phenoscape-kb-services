@@ -63,6 +63,7 @@ object DirectPhenotypesForTaxon {
       ORDER BY LCASE(?description) ?phenotype
       $paging
       """
+      print("chutki \n" + query.text)
       BlazegraphNamedSubquery.updateReferencesFor(unifiedQueries, query.text)
     }
 
