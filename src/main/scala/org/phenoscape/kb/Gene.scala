@@ -26,6 +26,7 @@ import spray.json.DefaultJsonProtocol._
 import spray.json._
 import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
@@ -226,20 +227,27 @@ object Gene {
   }
 
   def phenotypicProfile(iri: IRI): Future[Seq[SourcedMinimalTerm]] = {
-    val query = construct(t(iri, hasAnnotation.asNode, 'phenotype),
-                          t('phenotype, dcSource, 'source)) from "http://kb.phenoscape.org" where (bgp(
-      t('association, rdfType, association),
-      t('association, associationHasSubject, iri),
-      t('association, associationHasObject, 'phenotype),
-      t('association, associationHasPredicate, has_phenotype)
-    ),
-    optional(bgp(t('association, dcSource, 'source))),
-    new ElementFilter(
-      new E_NotOneOf(
-        new ExprVar('annotation),
-        new ExprList(List[Expr](new NodeValueNode(AnnotatedPhenotype), new NodeValueNode(owlNamedIndividual)).asJava))))
+    val query =
+      sparql"""
+              CONSTRUCT {
+                $iri $hasAnnotation ?phenotype .
+                ?phenotype $dc_source ?source .
+              }
+              FROM $KBMainGraph
+              WHERE {
+                ?association $rdfType $association ;
+                             $associationHasSubject  $iri ;
+                             $associationHasObject  ?phenotype ;
+                             $associationHasPredicate $has_phenotype
+                OPTIONAL {
+                  ?association  $dc_source  ?source 
+                }
+                FILTER ( ?association NOT IN ($AnnotatedPhenotype, $owlNamedIndividual) )
+              }
+              """
+
     for {
-      annotationsData <- App.executeSPARQLConstructQuery(query)
+      annotationsData <- App.executeSPARQLConstructQuery(query.toQuery)
       phenotypesWithSources = processProfileResultToAnnotationsAndSources(annotationsData)
       labelledPhenotypes <- Future.sequence(phenotypesWithSources.map {
         case (phenotype, sources) => Term.computedLabel(phenotype).map(SourcedMinimalTerm(_, sources))
@@ -261,7 +269,7 @@ object Gene {
       }
       .map { annotation =>
         IRI.create(annotation.getURI) -> model
-          .listObjectsOfProperty(annotation, dcSource)
+          .listObjectsOfProperty(annotation, dc_source)
           .asScala
           .collect {
             case resource: Resource => Option(resource.getURI)

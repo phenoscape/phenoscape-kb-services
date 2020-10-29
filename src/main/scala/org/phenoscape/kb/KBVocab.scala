@@ -24,6 +24,7 @@ object KBVocab {
   val hasRelatedSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym")
   val hasNarrowSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasNarrowSynonym")
   val hasBroadSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasBroadSynonym")
+  val hasAnnotation = ObjectProperty("http://example.org/hasAnnotation")
   val definition = ObjectProperty("http://purl.obolibrary.org/obo/IAO_0000115")
   val owlAnnotatedSource = IRI.create(OWL2.annotatedSource.getURI)
   val owlAnnotatedProperty = IRI.create(OWL2.annotatedProperty.getURI)
@@ -43,7 +44,7 @@ object KBVocab {
   val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
   val homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000007")
   val serially_homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000027")
-
+  val dc_source = ObjectProperty("http://purl.org/dc/elements/1.1/source")
   val oban = "http://purl.org/oban/"
   val association = IRI.create(s"${oban}association")
   val associationHasSubject = ObjectProperty(s"${oban}association_has_subject")
