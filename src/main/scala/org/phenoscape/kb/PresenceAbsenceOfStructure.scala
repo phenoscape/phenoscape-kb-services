@@ -214,8 +214,9 @@ object PresenceAbsenceOfStructure {
 
   def buildPresenceStatesQuery(taxonIRI: IRI, entityIRI: IRI, limit: Int, offset: Int): Query = {
     val query =
-      buildPresenceStatesQueryBase(taxonIRI,
-                                   entityIRI) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure"
+      buildPresenceStatesQueryBase(
+        taxonIRI,
+        entityIRI) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" from "http://kb.phenoscape.org/property_graphs/redundant"
     if (limit > 1) {
       query.setOffset(offset)
       query.setLimit(limit)
@@ -238,7 +239,7 @@ object PresenceAbsenceOfStructure {
       bgp(
         t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
-        t('phenotype, rdfsSubClassOf / implies_presence_of_some, entityIRI),
+        t('phenotype, IMPLIES_PRESENCE_OF, entityIRI),
         t('state, dcDescription, 'description),
         t('matrix, has_character, 'character),
         t('character, rdfsLabel, 'character_label),
