@@ -131,11 +131,12 @@ object AnatomicalEntity {
             SELECT DISTINCT ?x ?y
             FROM $KBClosureGraph
             FROM $KBMainGraph
+            FROM $KBRedundantRelationGraph
             WITH {
               SELECT ?term ?presence
               WHERE {
                 VALUES ?term { $valuesList }
-                ?presence <http://purl.org/phenoscape/vocab.owl#implies_presence_of_some> ?term .
+                ?presence $IMPLIES_PRESENCE_OF ?term .
               }
             } AS %SUB1
             WHERE {
