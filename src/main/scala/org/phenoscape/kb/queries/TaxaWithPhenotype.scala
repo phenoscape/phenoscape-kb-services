@@ -56,6 +56,7 @@ object TaxaWithPhenotype {
       SELECT (COUNT(*) AS ?count)
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       WHERE {
         SELECT DISTINCT ?taxon ?taxon_label
