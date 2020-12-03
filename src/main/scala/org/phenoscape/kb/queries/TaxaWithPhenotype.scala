@@ -68,6 +68,7 @@ object TaxaWithPhenotype {
       SELECT DISTINCT ?taxon ?taxon_label
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       $whereClause
       ORDER BY LCASE(?taxon_label) ?taxon
