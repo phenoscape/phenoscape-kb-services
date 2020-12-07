@@ -50,7 +50,8 @@ object KBVocab {
   val associationHasSubject = ObjectProperty(s"${oban}association_has_subject")
   val associationHasPredicate = ObjectProperty(s"${oban}association_has_predicate")
   val associationHasObject = ObjectProperty(s"${oban}association_has_object")
-  val associationIsNegated = IRI.create(s"${oban}is_negated")
+  // this 'negated' property is not part of OBAN, so we use a phenoscape namespace
+  val associationIsNegated =  IRI.create("http://purl.org/phenoscape/oban/is_negated")
 
   val has_phenotype = IRI.create("http://purl.obolibrary.org/obo/RO_0002200")
 
