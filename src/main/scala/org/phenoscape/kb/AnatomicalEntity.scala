@@ -67,7 +67,6 @@ object AnatomicalEntity {
         }
       }
       """
-    println(query.text)
     query.text
   }
 
