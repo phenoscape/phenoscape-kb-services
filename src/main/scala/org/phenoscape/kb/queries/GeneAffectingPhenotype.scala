@@ -41,6 +41,7 @@ object GeneAffectingPhenotype {
       SELECT (COUNT(*) AS ?count)
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       WHERE {
         SELECT DISTINCT ?gene ?gene_label ?taxon ?taxon_label
@@ -52,6 +53,7 @@ object GeneAffectingPhenotype {
       SELECT DISTINCT ?gene ?gene_label ?taxon ?taxon_label
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       $whereClause
       ORDER BY LCASE(?gene_label) ?gene
