@@ -1038,7 +1038,6 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("affecting_entity_phenotype") {
-                    //TODO update documentation that iri is optional
                     parameters(
                       'iri.as[IRI].?,
                       'quality.as[IRI].?,

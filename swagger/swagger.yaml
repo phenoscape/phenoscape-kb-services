@@ -1964,7 +1964,7 @@ paths:
         - name: iri
           in: query
           description: anatomical entity IRI
-          required: true
+          required: false
           type: string
           format: IRI
         - name: quality

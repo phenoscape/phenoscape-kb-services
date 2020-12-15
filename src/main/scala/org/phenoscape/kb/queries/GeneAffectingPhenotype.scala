@@ -19,10 +19,6 @@ import scala.language.postfixOps
 
 object GeneAffectingPhenotype {
 
-  private val PhenotypeOfSome = NamedRestrictionGenerator.getClassRelationIRI(phenotype_of.getIRI)
-  private val PartOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
-  private val HasPartSome = NamedRestrictionGenerator.getClassRelationIRI(has_part.getIRI)
-
   def buildQuery(entity: Option[IRI],
                  quality: Option[IRI],
                  includeParts: Boolean,
@@ -147,11 +143,11 @@ object GeneAffectingPhenotype {
     if (entity.nonEmpty || quality.nonEmpty) {
       val entityPattern = entity
         .map { e =>
-          if (parts) sparql"?phenotype $rdfType/$PhenotypeOfSome/$rdfsSubClassOf/$PartOfSome $e . "
-          else sparql"?phenotype $rdfType/$PhenotypeOfSome $e . "
+          if (parts) sparql"?phenotype $phenotype_of/$part_of $e . "
+          else sparql"?phenotype $phenotype_of $e . "
         }
         .getOrElse(sparql"")
-      val qualityPattern = quality.map(q => sparql"?phenotype $rdfType/$HasPartSome $q . ").getOrElse(sparql"")
+      val qualityPattern = quality.map(q => sparql"?phenotype $has_part $q . ").getOrElse(sparql"")
       Some(BlazegraphNamedSubquery(sparql"""
         SELECT DISTINCT ?phenotype WHERE {
           $entityPattern
