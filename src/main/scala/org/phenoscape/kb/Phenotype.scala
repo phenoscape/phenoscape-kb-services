@@ -84,10 +84,10 @@ object Phenotype {
   }
 
   def eqForPhenotype(phenotype: IRI): Future[NearestEQSet] = {
-    val entitiesFuture = entitiesForPhenotype(phenotype, has_part_inhering_in_some)
+    val entitiesFuture = entitiesForPhenotype(phenotype, has_part.getIRI)
     val generalEntitiesFuture =
       entitiesForPhenotype(phenotype,
-                           phenotype_of_some
+                           phenotype_of.getIRI
       ) //FIXME need to change to relatedEntities using has_part_towards_some; this must be added to the KB build
     //val relatedEntitiesFuture = ???
     val qualitiesFuture = qualitiesForPhenotype(phenotype)
@@ -270,17 +270,38 @@ object Phenotype {
     futureSuperclasses.map(_.flatten)
   }
 
-  private def qualitySuperClasses(phenotype: IRI): Query =
-    select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
-      t(phenotype, rdfsSubClassOf, 'description),
-      t('description, has_part_some, 'quality),
-      t('quality, rdfsIsDefinedBy, PATO)))
+  private def qualitySuperClasses(phenotype: IRI): Query = {
+    val query: QueryText = sparql"""
+            SELECT DISTINCT ?description
+            FROM $KBMainGraph
+            FROM $KBClosureGraph
+            FROM $KBRedundantRelationGraph
+            WHERE {
+              $phenotype $rdfsSubClassOf ?description
+              ?description $has_part ?quality
+              ?quality $rdfsIsDefinedBy $PATO
+            } 
+            """
 
-  private def qualityQualitySuperClasses(phenotype: IRI): Query =
-    select_distinct('quality) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
-      t(phenotype, rdfsSubClassOf, 'description),
-      t('description, has_part_some, 'quality),
-      t('quality, rdfsIsDefinedBy, PATO)))
+    query.toQuery
+  }
+
+  private def qualityQualitySuperClasses(phenotype: IRI): Query = {
+    val query: QueryText =
+      sparql"""
+               SELECT DISTINCT ?quality
+               FROM $KBMainGraph
+               FROM $KBClosureGraph
+               FROM $KBRedundantRelationGraph
+               WHERE {
+                 $phenotype $rdfsSubClassOf ?description
+                 ?description $has_part ?quality
+                 ?quality $rdfsIsDefinedBy $PATO
+               }
+              """
+
+    query.toQuery
+  }
 
 }
 
