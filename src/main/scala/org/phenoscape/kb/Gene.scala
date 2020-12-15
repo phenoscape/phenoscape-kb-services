@@ -308,6 +308,7 @@ object Gene {
       SELECT DISTINCT *
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       WHERE {
         ?gene $rdfsLabel ?gene_label .
         ?expression $associated_with_gene ?gene .
