@@ -145,7 +145,7 @@ object GeneAffectingPhenotype {
     if (entity.nonEmpty || quality.nonEmpty) {
       val entityPattern = entity
         .map { e =>
-          if (parts) sparql"?phenotype $phenotype_of/$part_of $e . "
+          if (parts) sparql"?phenotype $phenotype_of|($phenotype_of/$part_of) $e . "
           else sparql"?phenotype $phenotype_of $e . "
         }
         .getOrElse(sparql"")
