@@ -49,13 +49,13 @@ libraryDependencies ++= {
     "org.phenoscape"         %  "phenex"                  % "1.17.2" exclude("org.slf4j", "slf4j-log4j12") exclude("net.sourceforge.owlapi", "owlapi-apibinding"),
     "commons-io"             %  "commons-io"              % "2.8.0", // exclude("log4j", "log4j"),
     "org.apache.jena"        %  "apache-jena-libs"        % "3.16.0" exclude("org.slf4j", "slf4j-log4j12"),
-    "org.scalaz"             %% "scalaz-core"             % "7.2.30",
+    "org.scalaz"             %% "scalaz-core"             % "7.2.31",
     "org.bbop"               %  "oboformat"               % "0.5.5" exclude("net.sourceforge.owlapi", "owlapi-apibinding"), // exclude("log4j", "log4j"),
     "ch.qos.logback"         %  "logback-classic"         % "1.2.3",
     "org.codehaus.groovy"    %  "groovy-all"              % "3.0.5",
-    "org.phenoscape"         %% "sparql-utils"            % "1.3",
-    "org.phenoscape"         %% "sparql-utils-owlapi"     % "1.3",
-    "com.lihaoyi"            %% "utest"                   % "0.7.5" % Test
+    "org.phenoscape"         %% "sparql-utils"            % "1.2",
+    "org.phenoscape"         %% "sparql-utils-owlapi"     % "1.2",
+    "com.lihaoyi"            %% "utest"                   % "0.7.7" % Test
   )
 }
 
