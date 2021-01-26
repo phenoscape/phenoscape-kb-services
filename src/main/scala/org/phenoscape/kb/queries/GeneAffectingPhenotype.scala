@@ -134,7 +134,7 @@ object GeneAffectingPhenotype {
       ?gene $rdfType $AnnotatedGene .
       ?gene $in_taxon ?taxon .
       ?taxon $RDFSLabel ?taxon_label .
-      ?gene $has_phenotypic_profile ?phenotype .
+      ?gene $has_phenotypic_profile/$rdfType ?phenotype .
       $subQueryRef
       }
     """
