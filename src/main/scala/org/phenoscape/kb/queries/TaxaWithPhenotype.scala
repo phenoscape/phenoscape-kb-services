@@ -179,7 +179,7 @@ object TaxaWithPhenotype {
       BlazegraphNamedSubquery(
         sparql"""
         SELECT DISTINCT ?phenotype WHERE {
-          ?phenotype $relation/$part_of $entity .
+          ?phenotype $rdfsSubClassOf/$relation/$part_of $entity .
         }
         """
       )
