@@ -278,6 +278,7 @@ object Term {
             GRAPH $KBClosureGraph {
               $iri $rdfsSubClassOf ?term .
               FILTER($iri != ?term)
+              FILTER(?term != $owlThing)
             }
             """
     val partOfs =
@@ -286,6 +287,7 @@ object Term {
             GRAPH $KBClosureGraph {
               $iri $rdfsSubClassOf ?container .
               FILTER($iri != ?container)
+              FILTER(?container != $owlThing)
             }
             """
     val all = if (includePartOf) sparql" { $superclasses } UNION { $partOfs } " else superclasses
@@ -308,6 +310,7 @@ object Term {
             GRAPH $KBClosureGraph {
               ?term $rdfsSubClassOf $iri .
               FILTER($iri != ?term)
+              FILTER(?term != $owlThing)
             }
             """
     val parts =
