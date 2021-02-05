@@ -261,6 +261,7 @@ object Similarity {
               FROM $KBClosureGraph
               WHERE {
                 $iri $rdfsSubClassOf ?subsumer .
+                FILTER(?subsumer != $owlThing)
               }
             """
     App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
@@ -285,6 +286,7 @@ object Similarity {
     App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
   }
 
+  
   def frequency(terms: Set[IRI], corpus: IRI): Future[TermFrequencyTable] = {
     import scalaz.Scalaz._
     val values = if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ + _) else sparql""
