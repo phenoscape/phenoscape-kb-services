@@ -4,7 +4,10 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
+      - services-new-data-model
+      - relations-graphs-updates 
 
 jobs:
   build:
