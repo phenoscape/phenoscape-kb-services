@@ -22,8 +22,8 @@ object Graph {
   def propertyNeighborsForObject(term: IRI, property: IRI): Future[Seq[MinimalTerm]] =
     App.executeSPARQLQuery(buildPropertyNeighborsQueryObject(term, property), MinimalTerm.fromQuerySolution)
 
-  def propertyNeighborsForSubject(term: IRI, property: IRI): Future[Seq[MinimalTerm]] =
-    App.executeSPARQLQuery(buildPropertyNeighborsQuerySubject(term, property), MinimalTerm.fromQuerySolution)
+  def propertyNeighborsForSubject(term: IRI, property: IRI, direct: Boolean): Future[Seq[MinimalTerm]] =
+    App.executeSPARQLQuery(buildPropertyNeighborsQuerySubject(term, property, direct), MinimalTerm.fromQuerySolution)
 
   private def buildPropertyNeighborsQueryObject(focalTerm: IRI, property: IRI): Query = {
     val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)
@@ -35,15 +35,54 @@ object Graph {
     )
   }
 
-  private def buildPropertyNeighborsQuerySubject(focalTerm: IRI, property: IRI): Query = {
-    val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)
-    select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where bgp(
-      t('existential_node, classRelation, focalTerm),
-      t('existential_node, rdfsSubClassOf, 'existential_superclass),
-      t('existential_superclass, classRelation, 'term),
-      t('term, rdfsLabel, 'term_label)
-    )
+  private def buildPropertyNeighborsQuerySubject(focalTerm: IRI, property: IRI, direct: Boolean): Query = {
+    val allNeighbors =
+      sparql"""
+              SELECT DISTINCT ?subject ?subject_label
+              FROM $KBMainGraph
+              FROM $KBClosureGraph
+              FROM $KBRedundantRelationGraph
+              WHERE {
+                
+                VALUES ?query_term { $focalTerm }
+                VALUES ?relation { $property }
+              
+              ?query_term ?relation ?object .
+              ?object rdfs:label ?object_label .
+              ?query_term rdfs:label ?label .
+              """
+
+    val filterIndirectNeighbors =
+      sparql"""
+              FILTER NOT EXISTS {
+                  ?query_term ?relation ?other_object .
+                  ?other_object rdfs:subClassOf ?object .
+                  FILTER(?other_object != ?object)
+                }
+              
+              FILTER NOT EXISTS {
+                  ?relation rdf:type owl:TransitiveProperty .
+                  ?query_term ?relation ?other_object .
+                  ?other_object ?relation ?object .
+                  FILTER(?other_object != ?object)
+                }
+              }
+            """
+
+    val query = sparql"$allNeighbors" + { if (direct) sparql"$filterIndirectNeighbors" else sparql"" }
+
+    query.toQuery
   }
+
+//  {
+//    val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)
+//    select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where bgp(
+//      t('existential_node, classRelation, focalTerm),
+//      t('existential_node, rdfsSubClassOf, 'existential_superclass),
+//      t('existential_superclass, classRelation, 'term),
+//      t('term, rdfsLabel, 'term_label)
+//    )
+//  }
 
   def ancestorMatrix(terms: Set[IRI]): Future[AncestorMatrix] = {
     import scalaz._

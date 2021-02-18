@@ -226,9 +226,9 @@ object Main extends HttpApp with App {
                       }
                     } ~
                       path("subject") {
-                        parameters('term.as[IRI], 'property.as[IRI]) { (term, property) =>
+                        parameters('term.as[IRI], 'property.as[IRI], 'direct.as[Boolean]) { (term, property, direct) =>
                           complete {
-                            Graph.propertyNeighborsForSubject(term, property)
+                            Graph.propertyNeighborsForSubject(term, property, direct)
                           }
                         }
                       }
