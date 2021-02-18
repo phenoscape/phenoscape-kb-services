@@ -25,14 +25,45 @@ object Graph {
   def propertyNeighborsForSubject(term: IRI, property: IRI): Future[Seq[MinimalTerm]] =
     App.executeSPARQLQuery(buildPropertyNeighborsQuerySubject(term, property), MinimalTerm.fromQuerySolution)
 
-  private def buildPropertyNeighborsQueryObject(focalTerm: IRI, property: IRI): Query = {
-    val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)
-    select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where bgp(
-      t('existential_node, classRelation, focalTerm),
-      t('existential_subclass, rdfsSubClassOf, 'existential_node),
-      t('existential_subclass, classRelation, 'term),
-      t('term, rdfsLabel, 'term_label)
-    )
+  private def buildPropertyNeighborsQueryObject(focalTerm: IRI, property: IRI, direct: Boolean): Query = {
+
+    val allNeighbors =
+      sparql"""
+              SELECT DISTINCT ?subject ?subject_label
+              FROM $KBMainGraph
+              FROM $KBClosureGraph
+              FROM $KBRedundantRelationGraph
+              WHERE {
+                
+                VALUES ?query_term { $focalTerm }
+                VALUES ?relation { $property }
+               
+              ?subject  ?relation ?query_term  .
+              ?subject rdfs:label ?subject_label .
+              ?query_term rdfs:label ?label .
+              """
+
+    val filterIndirectNeighbors =
+      sparql"""
+              
+              FILTER NOT EXISTS {
+                  ?other_subject ?relation ?query_term .
+                  ?other_subject rdfs:subClassOf ?subject .
+                  FILTER(?other_subject != ?subject)
+                }
+              
+              FILTER NOT EXISTS {
+                  ?relation rdf:type owl:TransitiveProperty .
+                  ?other_subject ?relation ?query_term .
+                  ?other_subject ?relation ?subject .
+                  FILTER(?other_subject != ?subject)
+                }
+              }
+            """
+
+    val query = sparql"$allNeighbors" + { if (direct) sparql"$filterIndirectNeighbors" else sparql"" }
+
+    query.toQuery
   }
 
   private def buildPropertyNeighborsQuerySubject(focalTerm: IRI, property: IRI): Query = {
