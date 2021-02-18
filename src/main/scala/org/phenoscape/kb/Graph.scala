@@ -37,17 +37,6 @@ object Graph {
   }
 
   private def buildPropertyNeighborsQuerySubject(focalTerm: IRI, property: IRI, direct: Boolean): Query = {
-    val allNeighbors =
-      sparql"""
-              SELECT DISTINCT ?term ?term_label
-              FROM $KBMainGraph
-              FROM $KBClosureGraph
-              FROM $KBRedundantRelationGraph
-              WHERE {
-                              
-              $focalTerm $property ?term .
-              ?term $rdfsLabel ?term_label .
-              """
 
     val filterIndirectNeighbors =
       sparql"""
@@ -63,11 +52,23 @@ object Graph {
                   ?other_term $property ?term .
                   FILTER(?other_term != ?term)
                 }
-              }
             """
 
     val filters = if (direct) sparql"$filterIndirectNeighbors" else sparql""
-    val query = sparql"$allNeighbors" + sparql"$filters"
+
+    val query =
+      sparql"""
+              SELECT DISTINCT ?term ?term_label
+              FROM $KBMainGraph
+              FROM $KBClosureGraph
+              FROM $KBRedundantRelationGraph
+              WHERE {
+              $focalTerm $property ?term .
+              ?term $rdfsLabel ?term_label .
+              
+              $filters
+              }
+              """
 
     query.toQuery
   }
