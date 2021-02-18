@@ -2,7 +2,10 @@ name: Scala CI
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
+      - services-new-data-model
+      - relations-graphs-updates
   pull_request:
     branches:
       - master
