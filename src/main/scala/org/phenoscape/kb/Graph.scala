@@ -54,7 +54,7 @@ object Graph {
                 }
             """
 
-    val filters = if (direct) sparql"$filterIndirectNeighbors" else sparql""
+    val filters = if (direct) filterIndirectNeighbors else sparql""
 
     val query =
       sparql"""
