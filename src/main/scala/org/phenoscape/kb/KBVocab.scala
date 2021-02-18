@@ -17,7 +17,7 @@ object KBVocab {
   val BDRank = IRI.create(s"${BDSearchPrefix}rank")
   val rdfsLabel = ObjectProperty(RDFS_LABEL.getIRI)
   val rdfsSubClassOf = ObjectProperty(RDFS_SUBCLASS_OF.getIRI)
-  val transitiveProperty = ObjectProperty("http://www.w3.org/2002/07/owl#TransitiveProperty")
+  val transitiveProperty = IRI.create("http://www.w3.org/2002/07/owl#TransitiveProperty")
   val owlIntersectionOf = ObjectProperty(OWL2.intersectionOf.getURI)
   val rdfFirst = ObjectProperty(RDF.first.getURI)
   val rdfRest = ObjectProperty(RDF.rest.getURI)
