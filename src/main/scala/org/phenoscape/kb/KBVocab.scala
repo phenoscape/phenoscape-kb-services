@@ -17,6 +17,7 @@ object KBVocab {
   val BDRank = IRI.create(s"${BDSearchPrefix}rank")
   val rdfsLabel = ObjectProperty(RDFS_LABEL.getIRI)
   val rdfsSubClassOf = ObjectProperty(RDFS_SUBCLASS_OF.getIRI)
+  val transitiveProperty = ObjectProperty("http://www.w3.org/2002/07/owl#TransitiveProperty")
   val owlIntersectionOf = ObjectProperty(OWL2.intersectionOf.getURI)
   val rdfFirst = ObjectProperty(RDF.first.getURI)
   val rdfRest = ObjectProperty(RDF.rest.getURI)
@@ -51,7 +52,7 @@ object KBVocab {
   val associationHasPredicate = ObjectProperty(s"${oban}association_has_predicate")
   val associationHasObject = ObjectProperty(s"${oban}association_has_object")
   // this 'negated' property is not part of OBAN, so we use a phenoscape namespace
-  val associationIsNegated =  IRI.create("http://purl.org/phenoscape/oban/is_negated")
+  val associationIsNegated = IRI.create("http://purl.org/phenoscape/oban/is_negated")
 
   val has_phenotype = IRI.create("http://purl.obolibrary.org/obo/RO_0002200")
 
