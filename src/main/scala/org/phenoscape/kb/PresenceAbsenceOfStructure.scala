@@ -14,7 +14,7 @@ import org.apache.jena.sparql.syntax.{ElementFilter, ElementSubQuery}
 import org.apache.log4j.Logger
 import org.obo.datamodel.impl.OBOClassImpl
 import org.phenoscape.io.NeXMLUtil
-import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf}
+import org.phenoscape.kb.KBVocab.{owlNothing, rdfsLabel, rdfsSubClassOf}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.model.MultipleState.MODE
 import org.phenoscape.model.{Character, DataSet, MultipleState, State, Taxon => MatrixTaxon}
@@ -24,6 +24,12 @@ import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpre
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.semanticweb.owlapi.model.{IRI, OWLClassExpression, OWLEntity}
+import uk.ac.manchester.cs.owl.owlapi.OWLClassImpl
+import org.phenoscape.sparql.SPARQLInterpolation._
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
+import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.kb.KBVocab.KBMainGraph
+import scalaz.NonEmptyList
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -78,14 +84,20 @@ object PresenceAbsenceOfStructure {
   def taxaExhibitingAbsenceTotal(entity: IRI, taxonFilter: Option[IRI]): Future[Int] =
     App.executeSPARQLQuery(buildExhibitingAbsenceTotalQuery(entity, taxonFilter)).map(ResultCount.count)
 
-  def presenceAbsenceMatrix(mainEntityClass: OWLClassExpression,
-                            taxonClass: OWLClassExpression,
+  def presenceAbsenceMatrix(mainEntityClassOpt: Option[OWLClassExpression],
+                            entityList: Option[NonEmptyList[IRI]],
+                            taxonClassExpr: Option[OWLClassExpression],
+                            taxonList: Option[NonEmptyList[IRI]],
                             variableOnly: Boolean,
                             includeParts: Boolean): Future[DataSet] = {
-    val entityClass = if (includeParts) mainEntityClass or (part_of some mainEntityClass) else mainEntityClass
+    val entityClass =
+      mainEntityClassOpt.map(classExpr => if (includeParts) classExpr or (part_of some classExpr) else classExpr)
+
     val buildDateFut = KB.buildDate
     for {
-      query <- App.expandWithOwlet(buildMatrixQuery(entityClass, taxonClass))
+      query <- App.expandWithOwlet(
+        buildMatrixQuery(entityClass, entityList, taxonClassExpr, taxonList)
+      )
       model <- App.executeSPARQLConstructQuery(query)
       buildDate <- buildDateFut
     } yield {
@@ -151,7 +163,11 @@ object PresenceAbsenceOfStructure {
       }
       val date = new SimpleDateFormat("y-M-d").format(Calendar.getInstance.getTime)
       dataset.setPublicationNotes(
-        s"Generated from the Phenoscape Knowledgebase on $date by Ontotrace query:\n* taxa: ${taxonClass.asOMN.getLiteralLexicalForm}\n* entities: ${entityClass.asOMN.getLiteralLexicalForm}\n* variable only: ${variableOnly}"
+        s"Generated from the Phenoscape Knowledgebase on $date by Ontotrace query :\n* taxa: ${taxonClassExpr
+          .map(p => p.asOMN.getLiteralLexicalForm)
+          .getOrElse("Not provided")}\n* taxa list: ${taxonList.map(_.list).getOrElse("Not provided")} \n* entities: ${mainEntityClassOpt
+          .map(p => p.asOMN.getLiteralLexicalForm)
+          .getOrElse("Not provided")}\n* entity list: ${entityList.map(_.list).getOrElse("Not provided")} \n* variable only: ${variableOnly}"
       )
       dataset
     }
@@ -159,20 +175,50 @@ object PresenceAbsenceOfStructure {
 
   private def unOBO(uri: String): String = uri.replaceAllLiterally("http://purl.obolibrary.org/obo/", "")
 
-  def buildMatrixQuery(entityClass: OWLClassExpression, taxonClass: OWLClassExpression): Query =
-    construct(t('taxon, 'relation, 'entity),
-              t('taxon, rdfsLabel, 'taxon_label),
-              t('entity, rdfsLabel, 'entity_label)) from "http://kb.phenoscape.org/" where (bgp(
-      t('taxon, 'relation, 'entity),
-      t('taxon, rdfsLabel, 'taxon_label),
-      t('entity, rdfsLabel, 'entity_label),
-      t('entity, rdfsSubClassOf, entityClass.asOMN),
-      t('taxon, rdfsSubClassOf, taxonClass.asOMN)
-    ),
-    new ElementFilter(
-      new E_OneOf(new ExprVar('relation),
-                  new ExprList(
-                    List[Expr](new NodeValueNode(has_presence_of), new NodeValueNode(has_absence_of)).asJava))))
+  def buildMatrixQuery(entityClass: Option[OWLClassExpression],
+                       entityList: Option[NonEmptyList[IRI]],
+                       taxonClass: Option[OWLClassExpression],
+                       taxonList: Option[NonEmptyList[IRI]]): Query = {
+    val entityExpressionQueryOpt = entityClass.map(cls => sparql" ?entity $rdfsSubClassOf ${cls.asOMN} . ")
+    val entityValuesOpt = entityList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map {
+      iris =>
+        sparql"VALUES ?entity { $iris }"
+    }
+    val entityQuery = (entityExpressionQueryOpt, entityValuesOpt) match {
+      case (Some(expressionQuery), Some(entityValues)) => sparql"{ $expressionQuery } UNION { $entityValues } "
+      case _                                           => entityExpressionQueryOpt.orElse(entityValuesOpt).getOrElse(sparql"")
+    }
+    val taxonExpressionQueryOpt = taxonClass.map(cls => sparql" ?taxon $rdfsSubClassOf ${cls.asOMN} . ")
+    val taxonValuesOpt = taxonList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map {
+      iris =>
+        sparql"VALUES ?taxon { $iris }"
+    }
+    val taxonQuery = (taxonExpressionQueryOpt, taxonValuesOpt) match {
+      case (Some(expressionQuery), Some(taxonValues)) => sparql"{ $expressionQuery } UNION { $taxonValues } "
+      case _                                          => taxonExpressionQueryOpt.orElse(taxonValuesOpt).getOrElse(sparql"")
+    }
+    val graphPattern =
+      sparql"""
+              ?taxon ?relation ?entity .
+              ?taxon $rdfsLabel ?taxon_label .
+              ?entity $rdfsLabel ?entity_label .
+            """
+
+    val query: QueryText =
+      sparql"""
+               CONSTRUCT {
+                $graphPattern
+                }
+               FROM  $KBMainGraph
+               WHERE {
+                  $graphPattern
+                  $entityQuery
+                  $taxonQuery
+                  VALUES ?relation {$has_presence_of $has_absence_of}
+               }
+            """
+    query.toQuery
+  }
 
   def expandMatrixQuery(query: Query): Future[Query] =
     App.expandWithOwlet(query)

@@ -17,14 +17,15 @@ import com.typesafe.config.ConfigFactory
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.{headers, HttpCharsets, HttpHeader, HttpMethod, MediaTypes, StatusCodes, Uri}
+import akka.http.scaladsl.model.{headers, HttpCharsets, HttpHeader, HttpMethod, HttpResponse, MediaTypes, StatusCodes, Uri}
 import akka.http.scaladsl.model.HttpMethods.GET
 import akka.http.scaladsl.model.HttpMethods.POST
 import akka.http.scaladsl.model.headers.ContentDispositionTypes
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
 import akka.http.scaladsl.marshalling.{Marshal, Marshaller, ToByteStringMarshaller, ToEntityMarshaller}
-import akka.http.scaladsl.server.{ContentNegotiator, HttpApp, RequestContext, Route}
+import akka.http.scaladsl.server.{ContentNegotiator, ExceptionHandler, HttpApp, RequestContext, Route}
+import akka.http.scaladsl.server.Directives.handleExceptions
 import akka.http.scaladsl.settings.ServerSettings
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.http.scaladsl.server.directives.CachingDirectives._
@@ -253,29 +254,75 @@ object Main extends HttpApp with App {
               } ~
               path("ontotrace") {
                 get {
-                  parameters('entity.as[OWLClassExpression],
-                             'taxon.as[OWLClassExpression],
-                             'variable_only.as[Boolean].?(true),
-                             'parts.as[Boolean].?(false)) { (entity, taxon, variableOnly, includeParts) =>
-                    respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
-                                                                    Map("filename" -> "ontotrace.xml"))) {
-                      complete {
-                        PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon, variableOnly, includeParts)
+                  parameters(
+                    'entity.as[OWLClassExpression].?,
+                    'entity_list.as[Seq[IRI]].?,
+                    'taxon.as[OWLClassExpression].?,
+                    'taxon_list.as[Seq[IRI]].?,
+                    'variable_only.as[Boolean].?(true),
+                    'parts.as[Boolean].?(false)
+                  ) {
+                    (entityClassExpression,
+                     entityIRIListOpt,
+                     taxonClassExpression,
+                     taxonIRIListOpt,
+                     variableOnly,
+                     includeParts) =>
+                      val nonEmptyEntityListOpt = entityIRIListOpt.flatMap(asNonEmptyList)
+                      val nonEmptyTaxonListOpt = taxonIRIListOpt.flatMap(asNonEmptyList)
+                      validate(
+                        !(entityClassExpression.isEmpty && nonEmptyEntityListOpt.isEmpty) && !(taxonClassExpression.isEmpty && nonEmptyTaxonListOpt.isEmpty),
+                        "At least one of the class expression or IRI list is required."
+                      ) {
+                        respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
+                                                                        Map("filename" -> "ontotrace.xml"))) {
+                          complete {
+                            PresenceAbsenceOfStructure.presenceAbsenceMatrix(entityClassExpression,
+                                                                             nonEmptyEntityListOpt,
+                                                                             taxonClassExpression,
+                                                                             nonEmptyTaxonListOpt,
+                                                                             variableOnly,
+                                                                             includeParts)
+                          }
+                        }
                       }
-                    }
+
                   }
                 } ~
                   post {
-                    formFields('entity.as[OWLClassExpression],
-                               'taxon.as[OWLClassExpression],
-                               'variable_only.as[Boolean].?(true),
-                               'parts.as[Boolean].?(false)) { (entity, taxon, variableOnly, includeParts) =>
-                      respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
-                                                                      Map("filename" -> "ontotrace.xml"))) {
-                        complete {
-                          PresenceAbsenceOfStructure.presenceAbsenceMatrix(entity, taxon, variableOnly, includeParts)
+                    formFields(
+                      'entity.as[OWLClassExpression].?,
+                      'entity_list.as[Seq[IRI]].?,
+                      'taxon.as[OWLClassExpression].?,
+                      'taxon_list.as[Seq[IRI]].?,
+                      'variable_only.as[Boolean].?(true),
+                      'parts.as[Boolean].?(false)
+                    ) {
+                      (entityClassExpression,
+                       entityIRIListOpt,
+                       taxonClassExpression,
+                       taxonIRIListOpt,
+                       variableOnly,
+                       includeParts) =>
+                        val nonEmptyEntityListOpt = entityIRIListOpt.flatMap(asNonEmptyList)
+                        val nonEmptyTaxonListOpt = taxonIRIListOpt.flatMap(asNonEmptyList)
+                        validate(
+                          !(entityClassExpression.isEmpty && nonEmptyEntityListOpt.isEmpty) && !(taxonClassExpression.isEmpty && nonEmptyTaxonListOpt.isEmpty),
+                          "Atleast one of the class expression or IRI list is required."
+                        ) {
+                          respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
+                                                                          Map("filename" -> "ontotrace.xml"))) {
+                            complete {
+                              PresenceAbsenceOfStructure.presenceAbsenceMatrix(entityClassExpression,
+                                                                               nonEmptyEntityListOpt,
+                                                                               taxonClassExpression,
+                                                                               nonEmptyTaxonListOpt,
+                                                                               variableOnly,
+                                                                               includeParts)
+                            }
+                          }
                         }
-                      }
+
                     }
                   }
               } ~
@@ -1405,6 +1452,12 @@ object Main extends HttpApp with App {
           }
         }
       }
+    }
+
+  private def asNonEmptyList[A](seq: Seq[A]): Option[NonEmptyList[A]] =
+    seq.toList match {
+      case head :: tail => Some(NonEmptyList(head, tail: _*))
+      case Nil          => None
     }
 
   val log = Logging(system, this.getClass)
