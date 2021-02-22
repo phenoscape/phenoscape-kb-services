@@ -451,8 +451,9 @@ paths:
         - name: direct
           in: query
           description: Returns only direct neighbors when set `true`. Filters out superclasses and transitively related terms.
-          required: true
+          required: false
           type: boolean
+          default: false
       responses:
         200:
           description: object terms related to this subject
