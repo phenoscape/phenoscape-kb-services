@@ -4,6 +4,7 @@ import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.query.Query
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
+import org.phenoscape.owl.Vocab.{rdfType}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owlet.SPARQLComposer._
@@ -22,8 +23,8 @@ object Graph {
   def propertyNeighborsForObject(term: IRI, property: IRI): Future[Seq[MinimalTerm]] =
     App.executeSPARQLQuery(buildPropertyNeighborsQueryObject(term, property), MinimalTerm.fromQuerySolution)
 
-  def propertyNeighborsForSubject(term: IRI, property: IRI): Future[Seq[MinimalTerm]] =
-    App.executeSPARQLQuery(buildPropertyNeighborsQuerySubject(term, property), MinimalTerm.fromQuerySolution)
+  def propertyNeighborsForSubject(term: IRI, property: IRI, direct: Boolean): Future[Seq[MinimalTerm]] =
+    App.executeSPARQLQuery(buildPropertyNeighborsQuerySubject(term, property, direct), MinimalTerm.fromQuerySolution)
 
   private def buildPropertyNeighborsQueryObject(focalTerm: IRI, property: IRI): Query = {
     val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)
@@ -35,14 +36,41 @@ object Graph {
     )
   }
 
-  private def buildPropertyNeighborsQuerySubject(focalTerm: IRI, property: IRI): Query = {
-    val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)
-    select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where bgp(
-      t('existential_node, classRelation, focalTerm),
-      t('existential_node, rdfsSubClassOf, 'existential_superclass),
-      t('existential_superclass, classRelation, 'term),
-      t('term, rdfsLabel, 'term_label)
-    )
+  private def buildPropertyNeighborsQuerySubject(focalTerm: IRI, property: IRI, direct: Boolean): Query = {
+
+    val filterIndirectNeighbors =
+      sparql"""
+              FILTER NOT EXISTS {
+                  $focalTerm $property ?other_term .
+                  ?other_term $rdfsSubClassOf ?term .
+                  FILTER(?other_term != ?term)
+                }
+              
+              FILTER NOT EXISTS {
+                  $property $rdfType $transitiveProperty .
+                  $focalTerm $property ?other_term .
+                  ?other_term $property ?term .
+                  FILTER(?other_term != ?term)
+                }
+            """
+
+    val filters = if (direct) filterIndirectNeighbors else sparql""
+
+    val query =
+      sparql"""
+              SELECT DISTINCT ?term ?term_label
+              FROM $KBMainGraph
+              FROM $KBClosureGraph
+              FROM $KBRedundantRelationGraph
+              WHERE {
+              $focalTerm $property ?term .
+              ?term $rdfsLabel ?term_label .
+              
+              $filters
+              }
+              """
+
+    query.toQuery
   }
 
   def ancestorMatrix(terms: Set[IRI]): Future[AncestorMatrix] = {
