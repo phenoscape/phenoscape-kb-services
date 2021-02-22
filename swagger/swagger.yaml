@@ -454,12 +454,6 @@ paths:
           required: true
           type: string
           format: IRI
-        - name: direct
-          in: query
-          description: Returns only direct neighbors when set `true`. Filters out superclasses and transitively related terms.
-          required: false
-          default: false
-          type: boolean
       responses:
         200:
           description: object terms related to this subject
