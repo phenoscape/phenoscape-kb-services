@@ -226,10 +226,11 @@ object Main extends HttpApp with App {
                       }
                     } ~
                       path("subject") {
-                        parameters('term.as[IRI], 'property.as[IRI], 'direct.as[Boolean]) { (term, property, direct) =>
-                          complete {
-                            Graph.propertyNeighborsForSubject(term, property, direct)
-                          }
+                        parameters('term.as[IRI], 'property.as[IRI], 'direct.as[Boolean].?(false)) {
+                          (term, property, direct) =>
+                            complete {
+                              Graph.propertyNeighborsForSubject(term, property, direct)
+                            }
                         }
                       }
                   } ~
