@@ -33,7 +33,9 @@ import akka.stream.scaladsl.Flow
 import akka.util.ByteString
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
+import org.apache.jena.sparql.path.Path
 import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
+import org.phenoscape.kb.util.PropertyPathParser
 import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
@@ -55,6 +57,13 @@ object Main extends HttpApp with App {
   val rdfsLabel = factory.getRDFSLabel.getIRI
 
   implicit val IRIUnmarshaller: Unmarshaller[String, IRI] = Unmarshaller.strict(IRI.create)
+
+  implicit val PropertyPathUnmarshaller: Unmarshaller[String, Path] = Unmarshaller.strict { text =>
+    PropertyPathParser.parsePropertyPath(text) match {
+      case scala.util.Success(value)     => value
+      case scala.util.Failure(exception) => throw exception
+    }
+  }
 
   implicit val QualitySpecUnmarshaller: Unmarshaller[String, QualitySpec] = IRIUnmarshaller.map(QualitySpec.fromIRI)
 
