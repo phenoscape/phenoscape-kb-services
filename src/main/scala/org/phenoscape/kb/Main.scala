@@ -79,10 +79,9 @@ object Main extends HttpApp with App {
             case a: JsArray => a.elements.map(_.convertTo[String])
             case _          => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
           }
-        }.recoverWith {
-          case NonFatal(_) =>
-            // must throw this particular exception for the Unmarshaller to fail over to the next
-            Try(throw new Unmarshaller.UnsupportedContentTypeException(Set(MediaTypes.`application/json`)))
+        }.recoverWith { case NonFatal(_) =>
+          // must throw this particular exception for the Unmarshaller to fail over to the next
+          Try(throw new Unmarshaller.UnsupportedContentTypeException(Set(MediaTypes.`application/json`)))
         }
       })
 
@@ -426,9 +425,9 @@ object Main extends HttpApp with App {
                   } ~
                   path("matrix") {
                     get {
-                      parameters('terms.as[Seq[IRI]]) { iris =>
+                      parameters('terms.as[Seq[IRI]], 'relations.as[Seq[IRI]]) { (terms, relations) =>
                         complete {
-                          Graph.ancestorMatrix(iris.toSet)
+                          Graph.ancestorMatrix(terms.toSet, relations.toSet)
                         }
                       }
                     } ~

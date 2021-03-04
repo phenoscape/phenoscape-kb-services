@@ -73,20 +73,21 @@ object Graph {
     query.toQuery
   }
 
-  def ancestorMatrix(terms: Set[IRI]): Future[AncestorMatrix] = {
+  def ancestorMatrix(terms: Set[IRI], relations: Set[IRI]): Future[AncestorMatrix] = {
     import scalaz._
-    import Scalaz._
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
-      val valuesElements = terms.map(t => sparql" $t ").reduce(_ + _)
+      val termsElements = terms.map(t => sparql" $t ").reduce(_ + _)
+      val relationsElements = relations.map(r => sparql" $r ").reduce(_ + _)
       val query =
         sparql"""
        SELECT DISTINCT ?term ?ancestor
        FROM $KBClosureGraph
        WHERE {
-         VALUES ?term { $valuesElements }
-         ?term $rdfsSubClassOf ?ancestor .
-         FILTER(?ancestor != $owlThing)
+         VALUES ?term { $termsElements }
+         VALUES ?relation { $relationsElements }
+         ?term ?relation ?subsumer .
+         FILTER(?subsumer != $owlThing)
        }
           """
       val futurePairs = App.executeSPARQLQueryString(query.text,
@@ -101,11 +102,10 @@ object Graph {
         val termsSequence = terms.map(_.toString).toSeq.sorted
         val header = s",${termsSequence.mkString(",")}"
         val groupedByAncestor = pairs.groupBy(_._2)
-        val valuesLines = groupedByAncestor.map {
-          case (ancestor, ancPairs) =>
-            val termsForAncestor = ancPairs.map(_._1).toSet
-            val values = termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
-            s"$ancestor,${values.mkString(",")}"
+        val valuesLines = groupedByAncestor.map { case (ancestor, ancPairs) =>
+          val termsForAncestor = ancPairs.map(_._1).toSet
+          val values = termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
+          s"$ancestor,${values.mkString(",")}"
         }
         AncestorMatrix(s"$header\n${valuesLines.mkString("\n")}")
       }
