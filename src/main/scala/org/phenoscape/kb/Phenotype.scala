@@ -1,40 +1,26 @@
 package org.phenoscape.kb
 
-import scala.collection.JavaConverters._
+import akka.util.Timeout
+import org.apache.jena.query.{Query, QuerySolution}
+import org.phenoscape.kb.Facets.Facet
+import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
+import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.queries.QueryUtil.{PhenotypicQuality, QualitySpec}
+import org.phenoscape.kb.queries.TaxonPhenotypes
+import org.phenoscape.owl.Vocab._
+import org.phenoscape.sparql.SPARQLInterpolation._
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
+import org.semanticweb.owlapi.model.IRI
+import spray.json.DefaultJsonProtocol._
+import spray.json._
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import org.apache.jena.query.Query
-import org.apache.jena.query.QuerySolution
-import org.phenoscape.kb.Facets.Facet
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.kb.queries.TaxonPhenotypes
-import org.phenoscape.owl.NamedRestrictionGenerator
-import org.phenoscape.owl.Vocab
-import org.phenoscape.owl.Vocab._
-import org.phenoscape.kb.KBVocab.rdfsLabel
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
-import org.phenoscape.owlet.SPARQLComposer._
-import org.semanticweb.owlapi.model.IRI
-import com.google.common.collect.HashMultiset
-import akka.util.Timeout
-import org.phenoscape.kb.queries.QueryUtil.{PhenotypicQuality, QualitySpec}
-import spray.json._
-import spray.json.DefaultJsonProtocol._
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
-import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
-import org.phenoscape.sparql.SPARQLInterpolationOWL._
 
 object Phenotype {
 
   implicit val timeout = Timeout(10 minutes)
-
-  private val has_part_some = NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part.getIRI)
-  private val phenotype_of_some: IRI = NamedRestrictionGenerator.getClassRelationIRI(Vocab.phenotype_of.getIRI)
-
-  private val has_part_inhering_in_some =
-    NamedRestrictionGenerator.getClassRelationIRI(Vocab.has_part_inhering_in.getIRI)
 
   def info(phenotype: IRI, annotatedStatesOnly: Boolean): Future[Phenotype] = {
     val eqsFuture = eqForPhenotype(phenotype)
@@ -84,11 +70,9 @@ object Phenotype {
   }
 
   def eqForPhenotype(phenotype: IRI): Future[NearestEQSet] = {
-    val entitiesFuture = entitiesForPhenotype(phenotype, has_part_inhering_in_some)
-    val generalEntitiesFuture =
-      entitiesForPhenotype(phenotype,
-                           phenotype_of_some
-      ) //FIXME need to change to relatedEntities using has_part_towards_some; this must be added to the KB build
+    val entitiesFuture = entitiesForPhenotype(phenotype, has_part_inhering_in.getIRI)
+    val generalEntitiesFuture = entitiesForPhenotype(phenotype, phenotype_of.getIRI)
+    //FIXME need to change to relatedEntities using has_part_towards_some; this must be added to the KB build
     //val relatedEntitiesFuture = ???
     val qualitiesFuture = qualitiesForPhenotype(phenotype)
     for {
@@ -103,25 +87,15 @@ object Phenotype {
 
   def entitiesForPhenotype(phenotype: IRI, relation: IRI): Future[Set[IRI]] =
     for {
-      entityTypesResult <- App.executeSPARQLQuery(entitySuperClassesQuery(phenotype, relation),
-                                                  result => IRI.create(result.getResource("description").getURI))
-      entitySuperClasses <- superClassesForEntityTypes(entityTypesResult, relation)
-    } yield {
-      val superclasses = HashMultiset.create[IRI]
-      entitySuperClasses.foreach(superclasses.add)
-      superclasses.entrySet.asScala.filter(_.getCount == 1).map(_.getElement).toSet
-    }
+      entityTypesResult <- App.executeSPARQLQuery(phenotypeEntitiesQuery(phenotype, relation),
+                                                  result => IRI.create(result.getResource("entity").getURI))
+    } yield entityTypesResult.toSet
 
   def qualitiesForPhenotype(phenotype: IRI): Future[Set[IRI]] =
     for {
-      superQualities <- App.executeSPARQLQuery(qualitySuperClasses(phenotype),
-                                               result => IRI.create(result.getResource("description").getURI))
-      superSuperQualities <- superClassesForSuperQualities(superQualities)
-    } yield {
-      val superclasses = HashMultiset.create[IRI]
-      superSuperQualities.foreach(superclasses.add)
-      superclasses.entrySet.asScala.filter(_.getCount == 1).map(_.getElement).toSet
-    }
+      qualities <- App.executeSPARQLQuery(phenotypeQualitiesQuery(phenotype),
+                                          result => IRI.create(result.getResource("quality").getURI))
+    } yield qualities.toSet
 
   def queryTaxonPhenotypes(entity: Option[IRI],
                            quality: QualitySpec,
@@ -238,49 +212,41 @@ object Phenotype {
     MinimalTerm(IRI.create(result.getResource("phenotype").getURI),
                 Some(result.getLiteral("phenotype_label").getLexicalForm))
 
-  private def entitySuperClassesQuery(phenotype: IRI, relation: IRI): Query =
-    select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
-      t(phenotype, rdfsSubClassOf, 'description),
-      t('description, relation, 'entity),
-      t('entity, rdfsIsDefinedBy, Uberon)))
+  private def phenotypeEntitiesQuery(phenotype: IRI, relation: IRI): Query =
+    sparql"""
+        SELECT DISTINCT ?entity
+        FROM $KBMainGraph
+        FROM $KBClosureGraph
+        FROM $KBRedundantRelationGraph
+        WHERE {
+          $phenotype $relation ?entity .
+          ?entity $rdfsIsDefinedBy $Uberon .
+          FILTER NOT EXISTS {
+            $phenotype $relation ?other_entity .
+            ?other_entity $rdfsSubClassOf ?entity .
+            ?other_entity $rdfsIsDefinedBy $Uberon .
+            FILTER(?other_entity != ?entity)
+          }
+        }
+        """.toQuery
 
-  private def entityEntitySuperClassesQuery(phenotype: IRI, relation: IRI): Query =
-    select_distinct('entity) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
-      t(phenotype, rdfsSubClassOf, 'description),
-      t('description, relation, 'entity),
-      t('entity, rdfsIsDefinedBy, Uberon)))
-
-  private def superClassesForEntityTypes(entityTypes: Iterable[IRI], relation: IRI): Future[Iterable[IRI]] = {
-    val futureSuperclasses = Future.sequence(
-      entityTypes.map { entityType =>
-        App.executeSPARQLQuery(entityEntitySuperClassesQuery(entityType, relation),
-                               result => IRI.create(result.getResource("entity").getURI))
-      }
-    )
-    futureSuperclasses.map(_.flatten)
-  }
-
-  private def superClassesForSuperQualities(superQualities: Iterable[IRI]): Future[Iterable[IRI]] = {
-    val futureSuperclasses = Future.sequence(
-      superQualities.map { superClass =>
-        App.executeSPARQLQuery(qualityQualitySuperClasses(superClass),
-                               result => IRI.create(result.getResource("quality").getURI))
-      }
-    )
-    futureSuperclasses.map(_.flatten)
-  }
-
-  private def qualitySuperClasses(phenotype: IRI): Query =
-    select_distinct('description) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
-      t(phenotype, rdfsSubClassOf, 'description),
-      t('description, has_part_some, 'quality),
-      t('quality, rdfsIsDefinedBy, PATO)))
-
-  private def qualityQualitySuperClasses(phenotype: IRI): Query =
-    select_distinct('quality) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" where (bgp(
-      t(phenotype, rdfsSubClassOf, 'description),
-      t('description, has_part_some, 'quality),
-      t('quality, rdfsIsDefinedBy, PATO)))
+  private def phenotypeQualitiesQuery(phenotype: IRI): Query =
+    sparql"""
+        SELECT DISTINCT ?quality
+        FROM $KBMainGraph
+        FROM $KBClosureGraph
+        FROM $KBRedundantRelationGraph
+        WHERE {
+          $phenotype $has_part ?quality .
+          ?quality $rdfsIsDefinedBy $PATO .
+          FILTER NOT EXISTS {
+            $phenotype $has_part ?other_quality .
+            ?other_quality $rdfsSubClassOf ?quality .
+            ?other_quality $rdfsIsDefinedBy $PATO .
+            FILTER(?other_quality != ?quality)
+          }
+        }
+        """.toQuery
 
 }
 
