@@ -24,6 +24,7 @@ object KBVocab {
   val hasRelatedSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym")
   val hasNarrowSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasNarrowSynonym")
   val hasBroadSynonym = ObjectProperty("http://www.geneontology.org/formats/oboInOwl#hasBroadSynonym")
+  val hasAnnotation = ObjectProperty("http://example.org/hasAnnotation")
   val definition = ObjectProperty("http://purl.obolibrary.org/obo/IAO_0000115")
   val owlAnnotatedSource = IRI.create(OWL2.annotatedSource.getURI)
   val owlAnnotatedProperty = IRI.create(OWL2.annotatedProperty.getURI)
@@ -44,12 +45,16 @@ object KBVocab {
   val PATO = IRI.create("http://purl.obolibrary.org/obo/pato.owl")
   val homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000007")
   val serially_homologous_to = ObjectProperty("http://purl.obolibrary.org/obo/RO_HOM0000027")
-
+  val dc_source = ObjectProperty("http://purl.org/dc/elements/1.1/source")
   val oban = "http://purl.org/oban/"
+  val association = IRI.create(s"${oban}association")
   val associationHasSubject = ObjectProperty(s"${oban}association_has_subject")
   val associationHasPredicate = ObjectProperty(s"${oban}association_has_predicate")
   val associationHasObject = ObjectProperty(s"${oban}association_has_object")
-  val associationIsNegated = IRI.create("http://purl.org/phenoscape/oban/is_negated")
+  // this 'negated' property is not part of OBAN, so we use a phenoscape namespace
+  val associationIsNegated =  IRI.create("http://purl.org/phenoscape/oban/is_negated")
+
+  val has_phenotype = IRI.create("http://purl.obolibrary.org/obo/RO_0002200")
 
   val KBMainGraph = IRI.create("http://kb.phenoscape.org/")
   val KBClosureGraph = IRI.create("http://kb.phenoscape.org/closure")
@@ -60,5 +65,7 @@ object KBVocab {
 
   val InferredPresence = IRI.create("http://purl.org/phenoscape/vocab.owl#inferred_presence")
   val InferredAbsence = IRI.create("http://purl.org/phenoscape/vocab.owl#inferred_absence")
+
+  val AnnotatedGene = IRI.create("http://purl.org/phenoscape/vocab.owl#AnnotatedGene")
 
 }

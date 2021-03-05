@@ -68,9 +68,8 @@ object Taxon {
     for {
       taxon <- taxonFuture
       synonyms <- synonymsFuture
-    } yield taxon.map {
-      case (iri, label, rank_label, common_name, is_extinct) =>
-        TaxonInfo(iri, label, rank_label, common_name, synonyms, is_extinct)
+    } yield taxon.map { case (iri, label, rank_label, common_name, is_extinct) =>
+      TaxonInfo(iri, label, rank_label, common_name, synonyms, is_extinct)
     }
   }
 
@@ -673,17 +672,15 @@ case class TaxonInfo(iri: IRI,
                      extinct: Boolean)
     extends JSONResultItem {
 
+  // removing synonyms from output, as the list is a problem for R dataframes
+//  "synonyms" -> synonyms.map {
+//    case (iri, value) =>
+//      JsObject("property" -> iri.toString.toJson, "value" -> value.toJson).toJson
+//  }.toJson,
+
   def toJSON: JsObject =
-    Map(
-      "@id" -> iri.toString.toJson,
-      "label" -> label.toJson,
-      "extinct" -> extinct.toJson,
-      "synonyms" -> synonyms.map {
-        case (iri, value) =>
-          JsObject("property" -> iri.toString.toJson, "value" -> value.toJson).toJson
-      }.toJson,
-      "rank" -> rank.map(_.toJSON).toJson,
-      "common_name" -> commonName.map(_.toJson).toJson
-    ).toJson.asJsObject
+    (Map("@id" -> iri.toString.toJson, "label" -> label.toJson, "extinct" -> extinct.toJson) ++
+      rank.map("rank" -> _.toJSON) ++
+      commonName.map("common_name" -> _.toJson)).toJson.asJsObject
 
 }
