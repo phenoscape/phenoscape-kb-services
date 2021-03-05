@@ -278,6 +278,7 @@ object Term {
             GRAPH $KBClosureGraph {
               $iri $rdfsSubClassOf ?term .
               FILTER($iri != ?term)
+              FILTER(?term != $owlThing)
             }
             """
     val partOfs =
@@ -286,6 +287,7 @@ object Term {
             GRAPH $KBClosureGraph {
               $iri $rdfsSubClassOf ?container .
               FILTER($iri != ?container)
+              FILTER(?container != $owlThing)
             }
             """
     val all = if (includePartOf) sparql" { $superclasses } UNION { $partOfs } " else superclasses
@@ -308,6 +310,7 @@ object Term {
             GRAPH $KBClosureGraph {
               ?term $rdfsSubClassOf $iri .
               FILTER($iri != ?term)
+              FILTER(?term != $owlThing)
             }
             """
     val parts =
@@ -428,6 +431,7 @@ object Term {
                            limit: Int = 100): QueryText = {
     import scalaz.Scalaz._
     val searchText = if (text.endsWith("*")) text else s"$text*"
+    val limitQuery = if (limit < 1) sparql"" else sparql"LIMIT $limit"
     val deprecatedFilter =
       if (includeDeprecated) sparql"" else sparql" FILTER NOT EXISTS { ?term $owlDeprecated true . } "
     val definedByPattern = if (definedBys.nonEmpty) {
@@ -458,7 +462,7 @@ object Term {
               $deprecatedFilter
             }
             ORDER BY ASC(?boosted_rank)
-            LIMIT $limit
+            $limitQuery
           """
   }
 
