@@ -78,12 +78,13 @@ object GenePhenotypeAnnotation {
     val taxonPatterns = inTaxonOpt.map(t('taxon, rdfsSubClassOf *, _)).toList
     val query = select_distinct('gene, 'gene_label, 'phenotype, 'phenotype_label, 'source) where (bgp(
       App.BigdataAnalyticQuery ::
-        t('annotation, rdfType, AnnotatedPhenotype) ::
-        t('annotation, associated_with_gene, 'gene) ::
+        t('association, rdfType, association) ::
+        t('association, associationHasPredicate, has_phenotype) ::
+        t('association, associationHasSubject, 'gene) ::
+        t('association, associationHasObject, 'phenotype) ::
         t('gene, rdfsLabel, 'gene_label) ::
-        t('annotation, rdfType, 'phenotype) ::
         t('phenotype, rdfsLabel, 'phenotype_label) ::
-        t('annotation, associated_with_taxon, 'taxon) ::
+        t('gene, in_taxon, 'taxon) ::
         phenotypeTriple ++
         taxonPatterns: _*
     ),
@@ -93,6 +94,7 @@ object GenePhenotypeAnnotation {
         new ExprVar('phenotype),
         new ExprList(List[Expr](new NodeValueNode(AnnotatedPhenotype), new NodeValueNode(owlNamedIndividual)).asJava))))
     App.expandWithOwlet(query)
+
   }
 
   def buildGenePhenotypeAnnotationsQuery(entity: Option[OWLClassExpression],

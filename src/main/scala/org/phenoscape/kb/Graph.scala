@@ -10,6 +10,7 @@ import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolation.QueryText
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.scowl
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.semanticweb.owlapi.model.IRI
 
@@ -57,6 +58,7 @@ object Graph {
        WHERE {
          VALUES ?term { $valuesElements }
          ?term $rdfsSubClassOf ?ancestor .
+         FILTER(?ancestor != $owlThing)
        }
           """
       val futurePairs = App.executeSPARQLQueryString(query.text,

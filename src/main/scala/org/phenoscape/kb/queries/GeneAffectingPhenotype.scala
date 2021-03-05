@@ -47,13 +47,13 @@ object GeneAffectingPhenotype {
       FROM $KBClosureGraph
       $namedQueriesBlock
       WHERE {
-        SELECT DISTINCT ?gene ?gene_label
+        SELECT DISTINCT ?gene ?gene_label ?taxon ?taxon_label
         $whereClause
       }
       """
         else
           sparql"""
-      SELECT DISTINCT ?gene ?gene_label
+      SELECT DISTINCT ?gene ?gene_label ?taxon ?taxon_label
       FROM $KBMainGraph
       FROM $KBClosureGraph
       $namedQueriesBlock
@@ -133,7 +133,9 @@ object GeneAffectingPhenotype {
     sparql"""
       {
       ?gene $RDFSLabel ?gene_label .
-      ?gene $rdfType $Gene .
+      ?gene $rdfType $AnnotatedGene .
+      ?gene $in_taxon ?taxon .
+      ?taxon $RDFSLabel ?taxon_label .
       ?gene $has_phenotypic_profile ?phenotype .
       $subQueryRef
       }
