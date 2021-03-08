@@ -39,10 +39,10 @@ object Gene {
   def withIRI(iri: IRI): Future[Option[Gene]] =
     App.executeSPARQLQuery(buildGeneQuery(iri), Gene.fromIRIQuery(iri)).map(_.headOption)
 
-  def search(text: String, taxonOpt: Option[IRI]): Future[Seq[MatchedTerm[Gene]]] = {
+  def search(text: String, taxonOpt: Option[IRI], limit: Option[Int]): Future[Seq[MatchedTerm[Gene]]] = {
     val taxonFilter = taxonOpt.map(taxonIRI => (gene: Gene) => gene.taxon.iri == taxonIRI).getOrElse((_: Gene) => true)
     App
-      .executeSPARQLQuery(buildSearchQuery(text), Gene(_))
+      .executeSPARQLQuery(buildSearchQuery(text, limit), Gene(_))
       .map(genes => Term.orderBySearchedText(genes.filter(taxonFilter), text))
   }
 
@@ -61,20 +61,33 @@ object Gene {
       result <- App.executeSPARQLQuery(query)
     } yield ResultCount(result)
 
-  def buildSearchQuery(text: String): Query = {
+  def buildSearchQuery(text: String, limit: Option[Int]): Query = {
     val searchText = if (text.endsWith("*")) text else s"$text*"
-    val query = select_distinct('gene, 'gene_label, 'taxon, 'taxon_label) from "http://kb.phenoscape.org/" where bgp(
-      t('gene_label, BDSearch, NodeFactory.createLiteral(searchText)),
-      t('gene_label, BDMatchAllTerms, NodeFactory.createLiteral("true")),
-      t('gene_label, BDRank, 'rank),
-      t('gene, rdfsLabel, 'gene_label),
-      t('gene, rdfType, AnnotatedGene),
-      t('gene, in_taxon, 'taxon),
-      t('taxon, rdfsLabel, 'taxon_label)
-    )
-    query.addOrderBy('rank, Query.ORDER_ASCENDING)
-    query.setLimit(100)
-    query
+    val queryLimit = limit.map(l => sparql"LIMIT $l").getOrElse(sparql"")
+    val query =
+      sparql"""
+            SELECT DISTINCT ?gene ?gene_label ?taxon ?taxon_label
+            FROM $KBMainGraph
+            WHERE {
+              ?gene_label $BDSearch $searchText .
+              ?gene_label $BDMatchAllTerms true .
+              ?gene_label $BDRank ?rank .
+              ?gene $rdfsLabel ?gene_label .
+              ?gene $in_taxon ?taxon .
+              ?taxon $rdfsLabel ?taxon_label .
+              {
+                ?gene $rdfType $AnnotatedGene .
+              }
+              UNION
+              {
+                VALUES ?gene_type { ${Vocab.Gene} $Pseudogene $ProteinCodingGene $lincRNA_gene $lncRNA_gene $miRNA_gene }
+                ?gene $rdfsSubClassOf ?gene_type .
+              }
+            }
+            ORDER BY ASC(?rank)
+            $queryLimit
+            """
+    query.toQuery
   }
 
   def buildBasicQuery(entity: OWLClassExpression = owlThing,
@@ -136,9 +149,16 @@ object Gene {
       FROM $KBMainGraph
       WHERE {
         $iri $rdfsLabel ?gene_label .
-        $iri $rdfType $AnnotatedGene .
         $iri $in_taxon ?taxon .
         ?taxon $rdfsLabel ?taxon_label .
+        {
+          $iri $rdfType $AnnotatedGene .
+        }
+        UNION
+        {
+          VALUES ?gene_type { ${Vocab.Gene} $Pseudogene $ProteinCodingGene $lincRNA_gene $lncRNA_gene $miRNA_gene }
+          ?gene $rdfsSubClassOf ?gene_type .
+        }
       }
           """.toQuery
 
