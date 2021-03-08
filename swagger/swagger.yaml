@@ -1961,7 +1961,7 @@ paths:
           format: IRI
         - name: limit
           in: query
-          description: maximum results to return
+          description: maximum results to return; returns all results for limit=0
           required: false
           type: integer
           default: 100
