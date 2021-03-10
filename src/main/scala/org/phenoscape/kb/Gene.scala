@@ -310,22 +310,21 @@ object Gene {
     s"$gene\t$geneLabel\t$taxon\t$source"
   }
 
-  private def buildGeneExpressedInEntityQuery(entityIRI: IRI): Query = {
-    val partOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
+  private def buildGeneExpressedInEntityQuery(entityIRI: IRI): Query =
     //FIXME check that * gets overridden
     sparql"""
       SELECT DISTINCT *
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       WHERE {
         ?gene $rdfsLabel ?gene_label .
         ?expression $associated_with_gene ?gene .
-        ?expression $occurs_in/$rdfsSubClassOf/$partOfSome $entityIRI .
+        ?expression $occurs_in/$part_of $entityIRI .
         ?gene $in_taxon ?taxon .
         ?taxon $rdfsLabel ?taxon_label .
       }
           """.toQuery
-  }
 
   def apply(result: QuerySolution): Gene = {
     val geneURI = result.getResource("gene").getURI
