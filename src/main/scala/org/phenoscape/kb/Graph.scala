@@ -2,7 +2,11 @@ package org.phenoscape.kb
 
 import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
+
 import org.apache.jena.query.Query
+import org.apache.jena.sparql.path.Path
+import org.semanticweb.owlapi.model.IRI
+
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.owl.Vocab.{rdfType}
 import org.phenoscape.kb.Main.system.dispatcher
@@ -13,10 +17,10 @@ import org.phenoscape.sparql.SPARQLInterpolation.QueryText
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.scowl
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
-import org.semanticweb.owlapi.model.IRI
 
 import scala.concurrent.Future
 import scala.language.postfixOps
+import java.net.{URLDecoder, URLEncoder}
 
 object Graph {
 
@@ -73,44 +77,63 @@ object Graph {
     query.toQuery
   }
 
-  def ancestorMatrix(terms: Set[IRI], relations: Set[IRI]): Future[AncestorMatrix] = {
-    import scalaz._
+  def ancestorMatrix(terms: Set[IRI], relations: Set[IRI], termPathOpt: Option[Path]): Future[AncestorMatrix] =
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
-      val termsElements = terms.map(t => sparql" $t ").reduce(_ + _)
-      val relationsElements = relations.map(r => sparql" $r ").reduce(_ + _)
+      val termsElements = terms.map(t => sparql" $t ").reduceOption(_ + _).getOrElse(sparql"")
+      val relationsElements = relations.map(r => sparql" $r ").reduceOption(_ + _).getOrElse(sparql"")
+      val queryPattern = termPathOpt match {
+        case Some(path) => sparql""" ?term $path ?class . ?class ?relation ?subsumer ."""
+        case None       => sparql""" ?term ?relation ?subsumer . """
+      }
+
       val query =
         sparql"""
-       SELECT DISTINCT ?term ?ancestor
+       SELECT DISTINCT ?term ?relation ?subsumer 
        FROM $KBClosureGraph
+       FROM $KBRedundantRelationGraph
        WHERE {
          VALUES ?term { $termsElements }
          VALUES ?relation { $relationsElements }
-         ?term ?relation ?subsumer .
+         $queryPattern
          FILTER(?subsumer != $owlThing)
        }
           """
-      val futurePairs = App.executeSPARQLQueryString(query.text,
-                                                     qs => {
-                                                       val term = qs.getResource("term").getURI
-                                                       val ancestor = qs.getResource("ancestor").getURI
-                                                       (term, ancestor)
-                                                     })
+
+      print(" \n ***" + query.text)
+
+      val futurePairs = App.executeSPARQLQueryString(
+        query.text,
+        qs => {
+          val term = qs.getResource("term").getURI
+          val relation = qs.getResource("relation").getURI
+          val subsumer = qs.getResource("subsumer").getURI
+          (term, relation, subsumer)
+        }
+      )
       for {
         pairs <- futurePairs
       } yield {
         val termsSequence = terms.map(_.toString).toSeq.sorted
         val header = s",${termsSequence.mkString(",")}"
-        val groupedByAncestor = pairs.groupBy(_._2)
-        val valuesLines = groupedByAncestor.map { case (ancestor, ancPairs) =>
-          val termsForAncestor = ancPairs.map(_._1).toSet
-          val values = termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
-          s"$ancestor,${values.mkString(",")}"
+        val termSubsumerPairs = pairs.map(p => (p._1 -> (p._2, p._3)))
+
+        // creates Map(term -> virtualIRI(relation, subsumer))
+        val baseIRI = "http://purl.org/phenoscape/term/virtual/owl/ObjectSomeValuesFrom"
+        val termToRelSubsumerSeq = termSubsumerPairs.map { case (term, pairs) =>
+          val virtualTermIRI = baseIRI + URLEncoder.encode("<" + pairs._1 + "> <" + pairs._2 + ">", "UTF-8")
+          Map(term -> virtualTermIRI)
+        }.flatten
+
+        val groupedBySubsumer = termToRelSubsumerSeq.groupBy(_._2)
+        val valuesLines = groupedBySubsumer.map { case (subsumer, subsumerPairs) =>
+          val termsForSubsumer = subsumerPairs.map(_._1).toSet
+          val values = termsSequence.map(t => if (termsForSubsumer(t)) "1" else "0")
+          s"$subsumer,${values.mkString(",")}"
         }
         AncestorMatrix(s"$header\n${valuesLines.mkString("\n")}")
       }
     }
-  }
 
   final case class AncestorMatrix(csv: String)
 
