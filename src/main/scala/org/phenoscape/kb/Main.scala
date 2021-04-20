@@ -17,7 +17,7 @@ import com.typesafe.config.ConfigFactory
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.{headers, HttpCharsets, HttpHeader, HttpMethod, HttpResponse, MediaTypes, StatusCodes, Uri}
+import akka.http.scaladsl.model.{HttpCharsets, HttpHeader, HttpMethod, HttpResponse, MediaTypes, StatusCodes, Uri, headers}
 import akka.http.scaladsl.model.HttpMethods.GET
 import akka.http.scaladsl.model.HttpMethods.POST
 import akka.http.scaladsl.model.headers.ContentDispositionTypes
@@ -33,6 +33,7 @@ import akka.stream.scaladsl.Flow
 import akka.util.ByteString
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
+import org.phenoscape.kb.Similarity.{GenesCorpus, SimilarityCorpus, TaxaCorpus, TaxonAnnotationsCorpus}
 import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
 import scalaz._
 import spray.json._
@@ -55,6 +56,16 @@ object Main extends HttpApp with App {
   val rdfsLabel = factory.getRDFSLabel.getIRI
 
   implicit val IRIUnmarshaller: Unmarshaller[String, IRI] = Unmarshaller.strict(IRI.create)
+
+  implicit val SimilarityCorpusUnmarshaller: Unmarshaller[String, SimilarityCorpus] = Unmarshaller{ ec =>
+    iriText =>
+      val iri = IRI.create(iriText)
+      Future.fromTry {
+        List(TaxaCorpus, GenesCorpus, TaxonAnnotationsCorpus).find(_.iri == iri)
+          .map(scala.util.Success(_))
+          .getOrElse(scala.util.Failure(new IllegalArgumentException(s"Not a valid corpus IRI: $iri")))
+      }
+  }
 
   implicit val QualitySpecUnmarshaller: Unmarshaller[String, QualitySpec] = IRIUnmarshaller.map(QualitySpec.fromIRI)
 
@@ -368,7 +379,7 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("corpus_size") {
-                    parameters('corpus_graph.as[IRI]) { (corpusGraph) =>
+                    parameters('corpus_graph.as[SimilarityCorpus]) { (corpusGraph) =>
                       complete {
                         Similarity.corpusSize(corpusGraph).map(ResultCount(_))
                       }
@@ -441,18 +452,18 @@ object Main extends HttpApp with App {
                   path("frequency") {
                     get {
                       //FIXME not sure IRI for identifying corpus is best approach, particularly when scores are not stored ahead of time in a graph
-                      parameters('terms.as[Seq[IRI]], 'corpus_graph.as[IRI]) { (iris, corpusIRI) =>
+                      parameters('terms.as[Seq[IRI]], 'corpus_graph.as[SimilarityCorpus]) { (iris, corpus) =>
                         complete {
                           import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                          Similarity.frequency(iris.toSet, corpusIRI)
+                          Similarity.frequency(iris.toSet, corpus)
                         }
                       }
                     } ~
                       post {
-                        formFields('terms.as[Seq[IRI]], 'corpus_graph.as[IRI]) { (iris, corpusIRI) =>
+                        formFields('terms.as[Seq[IRI]], 'corpus_graph.as[SimilarityCorpus]) { (iris, corpus) =>
                           complete {
                             import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                            Similarity.frequency(iris.toSet, corpusIRI)
+                            Similarity.frequency(iris.toSet, corpus)
                           }
                         }
                       }

@@ -38,15 +38,33 @@ object Similarity {
   private val for_query_profile = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_query_profile")
   private val for_corpus_profile = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_corpus_profile")
   private val has_ic = ObjectProperty("http://purl.org/phenoscape/vocab.owl#has_ic")
-  val TaxaCorpus = IRI.create("http://kb.phenoscape.org/sim/taxa")
-  val GenesCorpus = IRI.create("http://kb.phenoscape.org/sim/genes")
   private val has_phenotypic_profile = ObjectProperty(Vocab.has_phenotypic_profile)
   private val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
+
+  sealed trait SimilarityCorpus {
+    def iri: IRI
+  }
+
+  object TaxaCorpus extends SimilarityCorpus {
+
+    def iri = IRI.create("http://kb.phenoscape.org/sim/taxa")
+  }
+
+  object GenesCorpus extends SimilarityCorpus {
+
+    def iri = IRI.create("http://kb.phenoscape.org/sim/genes")
+  }
+
+  object TaxonAnnotationsCorpus extends SimilarityCorpus {
+
+    def iri = IRI.create("http://kb.phenoscape.org/sim/taxon_annotations")
+
+  }
 
   val availableCorpora = Seq(TaxaCorpus, GenesCorpus)
 
   def evolutionaryProfilesSimilarToGene(gene: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[SimilarityMatch]] =
-    App.executeSPARQLQuery(similarityProfileQuery(gene, TaxaCorpus, limit, offset), constructMatchFor(gene))
+    App.executeSPARQLQuery(similarityProfileQuery(gene, TaxaCorpus.iri, limit, offset), constructMatchFor(gene))
 
   def querySimilarProfiles(queryItem: IRI,
                            corpus: IRI,
@@ -161,11 +179,32 @@ object Similarity {
   def addDisparity(subsumer: Subsumer, queryGraph: IRI, corpusGraph: IRI): Future[SubsumerWithDisparity] =
     icDisparity(Class(subsumer.term.iri), queryGraph, corpusGraph).map(SubsumerWithDisparity(subsumer, _))
 
-  //FIXME this query is way too slow
-  def corpusSize(corpusGraph: IRI): Future[Int] = {
-    val query = select() from corpusGraph.toString where (bgp(t('comparison, for_corpus_profile, 'profile)))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("profile"))))
-    App.executeSPARQLQuery(query).map(ResultCount.count)
+  def corpusSize(corpusGraph: SimilarityCorpus): Future[Int] = {
+    val query = {
+      if (corpusGraph == TaxonAnnotationsCorpus) {
+        sparql"""
+              SELECT (COUNT(DISTINCT *) AS ?count)
+              FROM $KBMainGraph
+              WHERE {
+                  ?taxon $rdfsIsDefinedBy $VTO .
+                  ?taxon $exhibits_state/$describes_phenotype ?phenotype .
+              }
+              """
+      } else sparql"""
+               SELECT (COUNT(DISTINCT ?profile) AS ?count)
+               WHERE {
+                 GRAPH $KBMainGraph {
+                   ?node $has_phenotypic_profile ?profile
+                 }
+                 FILTER EXISTS {
+                   GRAPH ${corpusGraph.iri} {
+                     ?comparison $for_corpus_profile ?profile
+                   }
+                 }
+               }
+            """
+    }
+    App.executeSPARQLQuery(query.toQuery).map(ResultCount.count)
   }
 
   private def triplesBlock(elements: Element*): ElementGroup = {
@@ -286,8 +325,7 @@ object Similarity {
     App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
   }
 
-  
-  def frequency(terms: Set[IRI], corpus: IRI): Future[TermFrequencyTable] = {
+  def frequency(terms: Set[IRI], corpus: SimilarityCorpus): Future[TermFrequencyTable] = {
     import scalaz.Scalaz._
     val values = if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ + _) else sparql""
     val query: QueryText = corpus match {
@@ -311,9 +349,30 @@ object Similarity {
               WHERE {
                 VALUES ?term { $values }
                 ?profile ^$has_phenotypic_profile ?obj .
-                FILTER NOT EXISTS { ?obj  $rdfsIsDefinedBy $VTO . }
+                FILTER NOT EXISTS { ?obj $rdfsIsDefinedBy $VTO . }
                 GRAPH $KBClosureGraph {
                   ?profile $rdfType ?term .
+                }
+              }
+              GROUP BY ?term
+            """
+      case TaxonAnnotationsCorpus =>
+        sparql"""
+              SELECT ?term (COUNT(DISTINCT *) AS ?count)
+              FROM $KBMainGraph
+              WHERE {
+                {
+                SELECT ?term ?annotation
+                WHERE {
+                  VALUES ?term { $values }
+                  ?taxon $rdfsIsDefinedBy $VTO .
+                  ?taxon $exhibits_state ?state .
+                  ?state $describes_phenotype ?phenotype .
+                  GRAPH $KBClosureGraph {
+                    ?phenotype $rdfsSubClassOf ?term .
+                  }
+                  BIND(CONCAT(STR(?taxon), STR(?phenotype)) AS ?annotation)
+                }
                 }
               }
               GROUP BY ?term

@@ -762,7 +762,7 @@ paths:
       parameters:
         - name: corpus_graph
           in: query
-          description: IRI identifying corpus. Current options are `http://kb.phenoscape.org/sim/taxa` or `http://kb.phenoscape.org/sim/genes`
+          description: IRI identifying corpus. Current options are `http://kb.phenoscape.org/sim/taxa`, `http://kb.phenoscape.org/sim/genes`, or `http://kb.phenoscape.org/sim/taxon_annotations`
           required: true
           type: string
           format: IRI
@@ -943,7 +943,7 @@ paths:
           type: string
         - name: corpus_graph
           in: query
-          description: IRI of corpus defined in KB, e.g. `http://kb.phenoscape.org/sim/taxa`
+          description: IRI of corpus defined in KB. Current options are `http://kb.phenoscape.org/sim/taxa`, `http://kb.phenoscape.org/sim/genes`, or `http://kb.phenoscape.org/sim/taxon_annotations`
           required: true
           type: string
       responses:
