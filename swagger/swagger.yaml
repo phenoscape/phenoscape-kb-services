@@ -406,7 +406,7 @@ paths:
       tags:
         - Terms
       summary: Property neighbors for object
-      description: Return subjects of existential relations to the given object. For a subject `S` with an existential 'part_of' relation to the object `O`, it means that `S` SubClassOf `part_of` some `O`. The only currently supported property is `http://purl.obolibrary.org/obo/BFO_0000050` (part_of).
+      description: Return subjects related to the given object through the given property.
       produces:
         - application/json
       parameters:
@@ -422,6 +422,12 @@ paths:
           required: true
           type: string
           format: IRI
+        - name: direct
+          in: query
+          description: Returns only direct neighbors when set `true`. Filters out superclasses and transitively related terms.
+          required: false
+          type: boolean
+          default: false
       responses:
         200:
           description: subject terms related to this object
@@ -1980,6 +1986,12 @@ paths:
           required: false
           type: string
           format: IRI
+        - name: limit
+          in: query
+          description: maximum results to return; returns all results for limit=0
+          required: false
+          type: integer
+          default: 100
       responses:
         200:
           description: gene matches

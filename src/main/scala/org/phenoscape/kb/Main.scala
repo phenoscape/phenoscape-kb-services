@@ -235,10 +235,11 @@ object Main extends HttpApp with App {
                   } ~
                   pathPrefix("property_neighbors") {
                     path("object") {
-                      parameters('term.as[IRI], 'property.as[IRI]) { (term, property) =>
-                        complete {
-                          Graph.propertyNeighborsForObject(term, property)
-                        }
+                      parameters('term.as[IRI], 'property.as[IRI], 'direct.as[Boolean].?(false)) {
+                        (term, property, direct) =>
+                          complete {
+                            Graph.propertyNeighborsForObject(term, property, direct)
+                          }
                       }
                     } ~
                       path("subject") {
@@ -1029,10 +1030,10 @@ object Main extends HttpApp with App {
               } ~
               pathPrefix("gene") {
                 path("search") {
-                  parameters('text, 'taxon.as[IRI].?) { (text, taxonOpt) => //FIXME add limit option?
+                  parameters('text, 'taxon.as[IRI].?, 'limit.as[Int].?(100)) { (text, taxonOpt, limit) =>
                     complete {
                       import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                      Gene.search(text, taxonOpt)
+                      Gene.search(text, taxonOpt, if (limit < 1) None else Some(limit))
                     }
                   }
                 } ~

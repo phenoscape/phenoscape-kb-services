@@ -69,5 +69,10 @@ object KBVocab {
   val InferredAbsence = IRI.create("http://purl.org/phenoscape/vocab.owl#inferred_absence")
 
   val AnnotatedGene = IRI.create("http://purl.org/phenoscape/vocab.owl#AnnotatedGene")
+  val Pseudogene = IRI.create("http://purl.obolibrary.org/obo/SO_0000336")
+  val ProteinCodingGene = IRI.create("http://purl.obolibrary.org/obo/SO_0001217")
+  val lincRNA_gene = IRI.create("http://purl.obolibrary.org/obo/SO_0001641")
+  val lncRNA_gene = IRI.create("http://purl.obolibrary.org/obo/SO_0002127")
+  val miRNA_gene = IRI.create("http://purl.obolibrary.org/obo/SO_0001265")
 
 }
