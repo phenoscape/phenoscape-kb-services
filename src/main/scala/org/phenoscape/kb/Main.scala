@@ -79,10 +79,9 @@ object Main extends HttpApp with App {
             case a: JsArray => a.elements.map(_.convertTo[String])
             case _          => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
           }
-        }.recoverWith {
-          case NonFatal(_) =>
-            // must throw this particular exception for the Unmarshaller to fail over to the next
-            Try(throw new Unmarshaller.UnsupportedContentTypeException(Set(MediaTypes.`application/json`)))
+        }.recoverWith { case NonFatal(_) =>
+          // must throw this particular exception for the Unmarshaller to fail over to the next
+          Try(throw new Unmarshaller.UnsupportedContentTypeException(Set(MediaTypes.`application/json`)))
         }
       })
 
@@ -1011,10 +1010,10 @@ object Main extends HttpApp with App {
               } ~
               pathPrefix("gene") {
                 path("search") {
-                  parameters('text, 'taxon.as[IRI].?) { (text, taxonOpt) => //FIXME add limit option?
+                  parameters('text, 'taxon.as[IRI].?, 'limit.as[Int].?(100)) { (text, taxonOpt, limit) =>
                     complete {
                       import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                      Gene.search(text, taxonOpt)
+                      Gene.search(text, taxonOpt, if (limit < 1) None else Some(limit))
                     }
                   }
                 } ~

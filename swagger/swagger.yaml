@@ -1971,6 +1971,12 @@ paths:
           required: false
           type: string
           format: IRI
+        - name: limit
+          in: query
+          description: maximum results to return; returns all results for limit=0
+          required: false
+          type: integer
+          default: 100
       responses:
         200:
           description: gene matches

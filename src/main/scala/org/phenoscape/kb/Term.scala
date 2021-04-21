@@ -431,6 +431,7 @@ object Term {
                            limit: Int = 100): QueryText = {
     import scalaz.Scalaz._
     val searchText = if (text.endsWith("*")) text else s"$text*"
+    val limitQuery = if (limit < 1) sparql"" else sparql"LIMIT $limit"
     val deprecatedFilter =
       if (includeDeprecated) sparql"" else sparql" FILTER NOT EXISTS { ?term $owlDeprecated true . } "
     val definedByPattern = if (definedBys.nonEmpty) {
@@ -461,7 +462,7 @@ object Term {
               $deprecatedFilter
             }
             ORDER BY ASC(?boosted_rank)
-            LIMIT $limit
+            $limitQuery
           """
   }
 
