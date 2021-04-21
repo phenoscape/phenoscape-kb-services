@@ -541,7 +541,7 @@ object Term {
 final case class RelationalTerm(relation: IRI, term: IRI) {
 
   def iri: IRI =
-    s"${RelationalTerm.Prefix}/${URLEncoder.encode(relation.toString, "utf-8")}/${URLEncoder.encode(term.toString, "utf-8")}"
+    IRI.create(s"${RelationalTerm.Prefix}/${URLEncoder.encode(relation.toString, "utf-8")}/${URLEncoder.encode(term.toString, "utf-8")}")
 
 }
 
