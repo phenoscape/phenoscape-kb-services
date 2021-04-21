@@ -24,20 +24,47 @@ import java.net.{URLDecoder, URLEncoder}
 
 object Graph {
 
-  def propertyNeighborsForObject(term: IRI, property: IRI): Future[Seq[MinimalTerm]] =
-    App.executeSPARQLQuery(buildPropertyNeighborsQueryObject(term, property), MinimalTerm.fromQuerySolution)
+  def propertyNeighborsForObject(term: IRI, property: IRI, direct: Boolean): Future[Seq[MinimalTerm]] =
+    App.executeSPARQLQuery(buildPropertyNeighborsQueryObject(term, property, direct), MinimalTerm.fromQuerySolution)
 
   def propertyNeighborsForSubject(term: IRI, property: IRI, direct: Boolean): Future[Seq[MinimalTerm]] =
     App.executeSPARQLQuery(buildPropertyNeighborsQuerySubject(term, property, direct), MinimalTerm.fromQuerySolution)
 
-  private def buildPropertyNeighborsQueryObject(focalTerm: IRI, property: IRI): Query = {
-    val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)
-    select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where bgp(
-      t('existential_node, classRelation, focalTerm),
-      t('existential_subclass, rdfsSubClassOf, 'existential_node),
-      t('existential_subclass, classRelation, 'term),
-      t('term, rdfsLabel, 'term_label)
-    )
+  private def buildPropertyNeighborsQueryObject(focalTerm: IRI, property: IRI, direct: Boolean): Query = {
+
+    val filterIndirectNeighbors =
+      sparql"""
+              FILTER NOT EXISTS {
+                  ?other_term $property $focalTerm .
+                  ?other_term $rdfsSubClassOf ?term .
+                  FILTER(?other_term != ?term)
+                }
+              
+              FILTER NOT EXISTS {
+                  $property $rdfType $transitiveProperty .
+                  ?other_term $property $focalTerm .
+                  ?other_term $property ?term .
+                  FILTER(?other_term != ?term)
+                }
+            """
+
+    val filters = if (direct) filterIndirectNeighbors else sparql""
+
+    val query =
+      sparql"""
+              SELECT DISTINCT ?term ?term_label
+              FROM $KBMainGraph
+              FROM $KBClosureGraph
+              FROM $KBRedundantRelationGraph
+              WHERE {
+                ?term  $property $focalTerm  .
+                ?term $rdfsLabel ?term_label .
+
+                $filters
+              }
+              """
+
+    query.toQuery
   }
 
   private def buildPropertyNeighborsQuerySubject(focalTerm: IRI, property: IRI, direct: Boolean): Query = {
