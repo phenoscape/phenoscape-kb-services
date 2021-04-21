@@ -35,9 +35,9 @@ libraryDependencies ++= {
     "com.typesafe.akka"      %% "akka-stream"             % "2.6.12",
     "com.typesafe.akka"      %% "akka-actor"              % "2.6.12",
     "com.typesafe.akka"      %% "akka-slf4j"              % "2.6.12",
-    "com.typesafe.akka"      %% "akka-http"               % "10.1.14",
-    "com.typesafe.akka"      %% "akka-http-caching"       % "10.1.14",
-    "com.typesafe.akka"      %% "akka-http-spray-json"    % "10.1.14",
+    "com.typesafe.akka"      %% "akka-http"               % "10.2.4",
+    "com.typesafe.akka"      %% "akka-http-caching"       % "10.2.4",
+    "com.typesafe.akka"      %% "akka-http-spray-json"    % "10.2.4",
     "ch.megard"              %% "akka-http-cors"          % "1.1.1",
     "com.lightbend.akka"     %% "akka-stream-alpakka-xml" % "2.0.2",
     "io.spray"               %% "spray-json"              % "1.3.6",
@@ -55,7 +55,7 @@ libraryDependencies ++= {
     "org.codehaus.groovy"    %  "groovy-all"              % "3.0.5",
     "org.phenoscape"         %% "sparql-utils"            % "1.3.1",
     "org.phenoscape"         %% "sparql-utils-owlapi"     % "1.3.1",
-    "com.lihaoyi"            %% "utest"                   % "0.7.7" % Test
+    "com.lihaoyi"            %% "utest"                   % "0.7.9" % Test
   )
 }
 
