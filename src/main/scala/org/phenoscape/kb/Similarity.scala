@@ -8,6 +8,7 @@ import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.expr.{E_NotOneOf, Expr, ExprList, ExprVar}
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
+import org.apache.jena.sparql.path.Path
 import org.apache.jena.sparql.syntax._
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.Main.system.dispatcher
@@ -161,11 +162,15 @@ object Similarity {
   def addDisparity(subsumer: Subsumer, queryGraph: IRI, corpusGraph: IRI): Future[SubsumerWithDisparity] =
     icDisparity(Class(subsumer.term.iri), queryGraph, corpusGraph).map(SubsumerWithDisparity(subsumer, _))
 
-  //FIXME this query is way too slow
-  def corpusSize(corpusGraph: IRI): Future[Int] = {
-    val query = select() from corpusGraph.toString where (bgp(t('comparison, for_corpus_profile, 'profile)))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("profile"))))
-    App.executeSPARQLQuery(query).map(ResultCount.count)
+  def corpusSize(path: Path): Future[Int] = {
+    val query =
+      sparql"""
+            SELECT (COUNT(DISTINCT ?item) AS ?count)
+            WHERE {
+              ?item $path ?term .
+            }
+            """
+    App.executeSPARQLQuery(query.toQuery).map(ResultCount.count)
   }
 
   private def triplesBlock(elements: Element*): ElementGroup = {
