@@ -242,7 +242,8 @@ object Similarity {
     }
   }
 
-  def pairwiseJaccardSimilarity(iris: Set[IRI]): Future[Seq[JaccardScore]] =
+  def pairwiseJaccardSimilarity(iris: Set[IRI]): Future[Seq[JaccardScore]] = {
+    val test = iris.map(iri => classSubsumers(iri).map(iri -> _)) // set of : iri -> set(iri_subsumers)
     Future.sequence(iris.map(iri => classSubsumers(iri).map(iri -> _))).map { irisSubsumers =>
       val irisToSubsumers = irisSubsumers.toMap
       (for {
@@ -253,6 +254,7 @@ object Similarity {
         unionCount = (irisToSubsumers(left) ++ irisToSubsumers(right)).size
       } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
     }
+  }
 
   private def classSubsumers(iri: IRI): Future[Set[IRI]] = {
     val query: QueryText =
@@ -286,7 +288,6 @@ object Similarity {
     App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
   }
 
-  
   def frequency(terms: Set[IRI], corpus: IRI): Future[TermFrequencyTable] = {
     import scalaz.Scalaz._
     val values = if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ + _) else sparql""
