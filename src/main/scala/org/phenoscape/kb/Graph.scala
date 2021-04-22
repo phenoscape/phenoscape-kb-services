@@ -125,8 +125,6 @@ object Graph {
        }
           """
 
-      print(" \n ***" + query.text)
-
       val futurePairs = App.executeSPARQLQueryString(
         query.text,
         qs => {
