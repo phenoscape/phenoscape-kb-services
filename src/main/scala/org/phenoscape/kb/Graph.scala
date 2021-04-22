@@ -102,12 +102,12 @@ object Graph {
     query.toQuery
   }
 
-  def ancestorMatrix(terms: Set[IRI], relations: Set[IRI], termPathOpt: Option[Path]): Future[AncestorMatrix] =
+  def ancestorMatrix(terms: Set[IRI], relations: Set[IRI], pathOpt: Option[Path]): Future[AncestorMatrix] =
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
       val termsElements = terms.map(t => sparql" $t ").reduceOption(_ + _).getOrElse(sparql"")
       val relationsElements = relations.map(r => sparql" $r ").reduceOption(_ + _).getOrElse(sparql"")
-      val queryPattern = termPathOpt match {
+      val queryPattern = pathOpt match {
         case Some(path) => sparql""" ?term $path ?class . ?class ?relation ?subsumer ."""
         case None       => sparql""" ?term ?relation ?subsumer . """
       }
@@ -146,7 +146,7 @@ object Graph {
         // creates Map(term -> virtualIRI(relation, subsumer))
         val termToRelSubsumerSeq = termSubsumerPairs.map { case (term, pairs) =>
           val virtualTermIRI = pairs._1 match {
-            case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => pairs._2
+            case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => IRI.create(pairs._2)
             case _                                                 => RelationalTerm(IRI.create(pairs._1), IRI.create(pairs._2)).iri
           }
 
