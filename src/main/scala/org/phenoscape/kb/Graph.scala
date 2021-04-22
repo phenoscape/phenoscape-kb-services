@@ -146,10 +146,11 @@ object Graph {
         // creates Map(term -> virtualIRI(relation, subsumer))
         val baseIRI = "http://purl.org/phenoscape/term/virtual/owl/ObjectSomeValuesFrom"
         val termToRelSubsumerSeq = termSubsumerPairs.map { case (term, pairs) =>
-          val virtualTermIRI = pairs._1 match {
-            case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => pairs._2
-            case _                                                 => baseIRI + URLEncoder.encode("<" + pairs._1 + "> <" + pairs._2 + ">", "UTF-8")
-          }
+          val virtualTermIRI = RelationalTerm(IRI.create(pairs._1), IRI.create(pairs._2)).iri
+//          val virtualTermIRI = pairs._1 match {
+//            case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => pairs._2
+//            case _                                                 => baseIRI + URLEncoder.encode("<" + pairs._1 + "> <" + pairs._2 + ">", "UTF-8")
+//          }
 
           Map(term -> virtualTermIRI)
         }.flatten
