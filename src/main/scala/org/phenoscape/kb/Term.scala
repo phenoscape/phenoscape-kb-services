@@ -145,9 +145,8 @@ object Term {
       synonyms <- synonymsFuture
       relationships <- relsFuture
       classification <- classificationFuture
-      allRelationships = classificationToRelationships(classification).toSeq ++ relationships
     } yield termOpt.map { case (label, definition, ontology) =>
-      Term(iri, label, definition, ontology, synonyms, allRelationships)
+      Term(iri, label, definition, ontology, synonyms, classification, relationships)
     }
   }
 
@@ -525,12 +524,6 @@ object Term {
     QueryFactory.create(queryText.text)
   }
 
-  private def classificationToRelationships(classification: Classification): Set[TermRelationship] =
-    classification.superclasses.map(t =>
-      TermRelationship(MinimalTerm(rdfsSubClassOf.getIRI, Some("subclass of")), t)) ++
-      classification.equivalents.map(t =>
-        TermRelationship(MinimalTerm(owlEquivalentClass.getIRI, Some("equivalent to")), t))
-
   implicit val IRIMarshaller: ToEntityMarshaller[IRI] =
     Marshaller.combined(iri => new JsObject(Map("@id" -> iri.toString.toJson)))
 
@@ -544,6 +537,7 @@ final case class Term(iri: IRI,
                       definition: String,
                       sourceOntology: Option[String],
                       synonyms: Seq[(IRI, String)],
+                      classification: Classification,
                       relationships: Seq[TermRelationship])
   extends LabeledTerm
     with JSONResultItem {
@@ -557,6 +551,7 @@ final case class Term(iri: IRI,
       "synonyms" -> synonyms.map { case (iri, value) =>
         JsObject("property" -> iri.toString.toJson, "value" -> value.toJson).toJson
       }.toJson,
+      "classification" -> classification.jsonWithoutTerm,
       "relationships" -> relationships.map(_.toJSON).toJson
     ).toJson.asJsObject
 
@@ -663,6 +658,12 @@ final case class Classification(term: MinimalTerm,
           "equivalentTo" -> equivalents.toSeq.sortBy(_.label.map(_.toLowerCase)).map(_.toJSON).toJson
         )
     )
+
+  def jsonWithoutTerm: JsObject = Map(
+    "subClassOf" -> superclasses.toSeq.sortBy(_.label.map(_.toLowerCase)).map(_.toJSON).toJson,
+    "superClassOf" -> subclasses.toSeq.sortBy(_.label.map(_.toLowerCase)).map(_.toJSON).toJson,
+    "equivalentTo" -> equivalents.toSeq.sortBy(_.label.map(_.toLowerCase)).map(_.toJSON).toJson
+  ).toJson.asJsObject
 
 }
 
