@@ -1,10 +1,10 @@
 enablePlugins(JavaServerAppPackaging)
 
-organization  := "org.phenoscape"
+organization := "org.phenoscape"
 
-name          := "phenoscape-kb-services"
+name := "phenoscape-kb-services"
 
-version       := "0.5"
+version := "0.5"
 
 packageDescription in Debian := "Phenoscape KB services"
 
@@ -18,7 +18,7 @@ packageDescription := "A web api for the Phenoscape Knowledgebase"
 
 daemonUser in Linux := "phenoscape" // user which will execute the application
 
-daemonGroup in Linux := "phenoscape"    // group which will execute the application
+daemonGroup in Linux := "phenoscape" // group which will execute the application
 
 scalaVersion  := "2.12.13"
 
