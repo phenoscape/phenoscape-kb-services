@@ -102,7 +102,7 @@ object Graph {
     query.toQuery
   }
 
-  def getTermSubsumerMap(terms: Set[IRI], relations: Set[IRI], termPathOpt: Option[Path]): Future[Map[IRI, IRI]] = {
+  def getTermSubsumerPairs(terms: Set[IRI], relations: Set[IRI], termPathOpt: Option[Path]): Future[Seq[(IRI, IRI)]] = {
     val termsElements = terms.map(t => sparql" $t ").reduceOption(_ + _).getOrElse(sparql"")
     val relationsElements = relations.map(r => sparql" $r ").reduceOption(_ + _).getOrElse(sparql"")
     val queryPattern = termPathOpt match {
@@ -133,34 +133,33 @@ object Graph {
       }
     )
 
-    val termSubsumerMap = for {
+    val termSubsumerSeq = for {
       pairs <- futurePairs
     } yield {
       val termSubsumerPairs = pairs.map(p => (p._1 -> (p._2, p._3)))
 
-      val termToRelSubsumerSeq = termSubsumerPairs.map { case (term, pairs) =>
-        val virtualTermIRI = RelationalTerm(IRI.create(pairs._1), IRI.create(pairs._2)).iri
+      termSubsumerPairs.map { case (term, pairs) =>
+        val virtualTermIRI = pairs._1 match {
+          case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => IRI.create(pairs._2)
+          case _                                                 => RelationalTerm(IRI.create(pairs._1), IRI.create(pairs._2)).iri
+        }
         Map(IRI.create(term) -> virtualTermIRI)
       }.flatten
-
-      termToRelSubsumerSeq.toMap
     }
-
-    termSubsumerMap
+    termSubsumerSeq
   }
 
   def ancestorMatrix(terms: Set[IRI], relations: Set[IRI], termPathOpt: Option[Path]): Future[AncestorMatrix] =
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
-      val termSubsumerMapFut = getTermSubsumerMap(terms, relations, termPathOpt)
+      val termSubsumerPairsFut = getTermSubsumerPairs(terms, relations, termPathOpt)
       for {
-        termSubsumerMap <- termSubsumerMapFut
+        termSubsumerPairs <- termSubsumerPairsFut
       } yield {
         val termsSequence = terms.map(_.toString).toSeq.sorted
         val header = s",${termsSequence.mkString(",")}"
 
-        val termToRelSubsumerSeq = termSubsumerMap.toSeq
-        val groupedBySubsumer = termToRelSubsumerSeq.groupBy(_._2)
+        val groupedBySubsumer = termSubsumerPairs.groupBy(_._2)
         val valuesLines = groupedBySubsumer.map { case (subsumer, subsumerPairs) =>
           val termsForSubsumer = subsumerPairs.map(_._1).toSet
           val values = termsSequence.map(t => if (termsForSubsumer(IRI.create(t))) "1" else "0")
