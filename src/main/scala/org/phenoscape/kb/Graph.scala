@@ -2,13 +2,11 @@ package org.phenoscape.kb
 
 import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
-
 import org.apache.jena.query.Query
 import org.apache.jena.sparql.path.Path
 import org.semanticweb.owlapi.model.IRI
-
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
-import org.phenoscape.owl.Vocab.{rdfType}
+import org.phenoscape.owl.Vocab.rdfType
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owlet.SPARQLComposer._
@@ -104,12 +102,12 @@ object Graph {
     query.toQuery
   }
 
-  def ancestorMatrix(terms: Set[IRI], relations: Set[IRI], termPathOpt: Option[Path]): Future[AncestorMatrix] =
+  def ancestorMatrix(terms: Set[IRI], relations: Set[IRI], pathOpt: Option[Path]): Future[AncestorMatrix] =
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
       val termsElements = terms.map(t => sparql" $t ").reduceOption(_ + _).getOrElse(sparql"")
       val relationsElements = relations.map(r => sparql" $r ").reduceOption(_ + _).getOrElse(sparql"")
-      val queryPattern = termPathOpt match {
+      val queryPattern = pathOpt match {
         case Some(path) => sparql""" ?term $path ?class . ?class ?relation ?subsumer ."""
         case None       => sparql""" ?term ?relation ?subsumer . """
       }
@@ -126,8 +124,6 @@ object Graph {
          FILTER(?subsumer != $owlThing)
        }
           """
-
-      print(" \n ***" + query.text)
 
       val futurePairs = App.executeSPARQLQueryString(
         query.text,
@@ -146,9 +142,12 @@ object Graph {
         val termSubsumerPairs = pairs.map(p => (p._1 -> (p._2, p._3)))
 
         // creates Map(term -> virtualIRI(relation, subsumer))
-        val baseIRI = "http://purl.org/phenoscape/term/virtual/owl/ObjectSomeValuesFrom"
         val termToRelSubsumerSeq = termSubsumerPairs.map { case (term, pairs) =>
-          val virtualTermIRI = baseIRI + URLEncoder.encode("<" + pairs._1 + "> <" + pairs._2 + ">", "UTF-8")
+          val virtualTermIRI = pairs._1 match {
+            case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => IRI.create(pairs._2)
+            case _                                                 => RelationalTerm(IRI.create(pairs._1), IRI.create(pairs._2)).iri
+          }
+
           Map(term -> virtualTermIRI)
         }.flatten
 
