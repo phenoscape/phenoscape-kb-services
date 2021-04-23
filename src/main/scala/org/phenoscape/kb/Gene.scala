@@ -269,8 +269,8 @@ object Gene {
     for {
       annotationsData <- App.executeSPARQLConstructQuery(query.toQuery)
       phenotypesWithSources = processProfileResultToAnnotationsAndSources(annotationsData)
-      labelledPhenotypes <- Future.sequence(phenotypesWithSources.map {
-        case (phenotype, sources) => Term.computedLabel(phenotype).map(SourcedMinimalTerm(_, sources))
+      labelledPhenotypes <- Future.sequence(phenotypesWithSources.map { case (phenotype, sources) =>
+        Term.computedLabel(phenotype).map(SourcedMinimalTerm(_, sources))
       })
     } yield labelledPhenotypes.toSeq.sortBy(_.term.label.map(_.toLowerCase))
   }
@@ -284,15 +284,15 @@ object Gene {
     model
       .listObjectsOfProperty(hasAnnotation)
       .asScala
-      .collect {
-        case annotation: Resource => annotation
+      .collect { case annotation: Resource =>
+        annotation
       }
       .map { annotation =>
         IRI.create(annotation.getURI) -> model
           .listObjectsOfProperty(annotation, dc_source)
           .asScala
-          .collect {
-            case resource: Resource => Option(resource.getURI)
+          .collect { case resource: Resource =>
+            Option(resource.getURI)
           }
           .flatten
           .map(IRI.create)
@@ -314,8 +314,8 @@ object Gene {
     for {
       annotationsData <- App.executeSPARQLConstructQuery(query)
       entitiesWithSources = processProfileResultToAnnotationsAndSources(annotationsData)
-      labelledEntities <- Future.sequence(entitiesWithSources.map {
-        case (entity, sources) => Term.computedLabel(entity).map(SourcedMinimalTerm(_, sources))
+      labelledEntities <- Future.sequence(entitiesWithSources.map { case (entity, sources) =>
+        Term.computedLabel(entity).map(SourcedMinimalTerm(_, sources))
       })
     } yield labelledEntities.toSeq.sortBy(_.term.label.map(_.toLowerCase))
   }
