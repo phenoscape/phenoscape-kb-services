@@ -918,7 +918,7 @@ paths:
           default: ["http://www.w3.org/2000/01/rdf-schema#subClassOf","http://purl.obolibrary.org/obo/BFO_0000050"]
           type: string
           format: JSON
-        - name: term_path
+        - name: path
           in: query
           description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/has_state>/<http://purl.org/describes_phenotype>`
           required: false

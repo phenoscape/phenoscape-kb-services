@@ -110,6 +110,7 @@ object Graph {
       case None       => sparql""" ?term ?relation ?subsumer . """
     }
 
+
     val query =
       sparql"""
        SELECT DISTINCT ?term ?relation ?subsumer 
@@ -142,6 +143,7 @@ object Graph {
         val virtualTermIRI = pairs._1 match {
           case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => IRI.create(pairs._2)
           case _                                                 => RelationalTerm(IRI.create(pairs._1), IRI.create(pairs._2)).iri
+
         }
         Map(IRI.create(term) -> virtualTermIRI)
       }.flatten
@@ -160,6 +162,7 @@ object Graph {
         val header = s",${termsSequence.mkString(",")}"
 
         val groupedBySubsumer = termSubsumerPairs.groupBy(_._2)
+
         val valuesLines = groupedBySubsumer.map { case (subsumer, subsumerPairs) =>
           val termsForSubsumer = subsumerPairs.map(_._1).toSet
           val values = termsSequence.map(t => if (termsForSubsumer(IRI.create(t))) "1" else "0")

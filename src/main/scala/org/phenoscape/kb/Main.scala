@@ -446,18 +446,18 @@ object Main extends HttpApp with App {
                     get {
                       parameters('terms.as[Seq[IRI]],
                                  'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                                 'termPath.as[Path].?) { (terms, relations, termPath) =>
+                                 'path.as[Path].?) { (terms, relations, path) =>
                         complete {
-                          Graph.ancestorMatrix(terms.toSet, relations.toSet, termPath)
+                          Graph.ancestorMatrix(terms.toSet, relations.toSet, path)
                         }
                       }
                     } ~
                       post {
                         formFields('terms.as[Seq[IRI]],
                                    'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                                   'termPath.as[Path].?) { (terms, relations, termPath) =>
+                                   'path.as[Path].?) { (terms, relations, path) =>
                           complete {
-                            Graph.ancestorMatrix(terms.toSet, relations.toSet, termPath)
+                            Graph.ancestorMatrix(terms.toSet, relations.toSet, path)
                           }
                         }
                       }
