@@ -6,9 +6,11 @@ import org.apache.jena.graph.{NodeFactory, Node_Variable}
 import org.apache.jena.query.{Query, QueryFactory, QuerySolution}
 import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.expr.{E_NotOneOf, Expr, ExprList, ExprVar}
+import org.apache.jena.sparql.path.Path
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
 import org.apache.jena.sparql.syntax._
+import org.phenoscape.kb.Graph.getTermSubsumerPairs
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
@@ -242,16 +244,34 @@ object Similarity {
     }
   }
 
-  def pairwiseJaccardSimilarity(iris: Set[IRI]): Future[Seq[JaccardScore]] = {
-    val test = iris.map(iri => classSubsumers(iri).map(iri -> _)) // set of : iri -> set(iri_subsumers)
-    Future.sequence(iris.map(iri => classSubsumers(iri).map(iri -> _))).map { irisSubsumers =>
-      val irisToSubsumers = irisSubsumers.toMap
+  def pairwiseJaccardSimilarity(iris: Set[IRI],
+                                relations: Set[IRI],
+                                pathOpt: Option[Path]): Future[Seq[JaccardScore]] = {
+
+    val termSubsumerPairsFut = getTermSubsumerPairs(iris, relations, pathOpt)
+
+    val termSubsumersMapFut = for {
+      termSubsumerPairs <- termSubsumerPairsFut
+    } yield {
+      val groupedByTerm = termSubsumerPairs.groupBy(_._1)
+
+      groupedByTerm
+        .map { case (term, pairs) =>
+          val subsumers = pairs.map(_._2).toSet
+          Map(term -> subsumers)
+        }
+        .flatten
+        .toMap
+    }
+
+    termSubsumersMapFut.map { termSubsumersMap =>
       (for {
         combo <- iris.toSeq.combinations(2)
         left = combo(0)
         right = combo(1)
-        intersectionCount = irisToSubsumers(left).intersect(irisToSubsumers(right)).size
-        unionCount = (irisToSubsumers(left) ++ irisToSubsumers(right)).size
+
+        intersectionCount = termSubsumersMap(left).intersect(termSubsumersMap(right)).size
+        unionCount = (termSubsumersMap(left) ++ termSubsumersMap(right)).size
       } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
     }
   }
