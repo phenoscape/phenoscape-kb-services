@@ -270,9 +270,15 @@ object Similarity {
         left = combo(0)
         right = combo(1)
 
-        intersectionCount = termSubsumersMap(left).intersect(termSubsumersMap(right)).size
-        unionCount = (termSubsumersMap(left) ++ termSubsumersMap(right)).size
-      } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
+        intersectionCount = termSubsumersMap
+          .getOrElse(left, Set.empty)
+          .intersect(termSubsumersMap.getOrElse(right, Set.empty))
+          .size
+        unionCount = (termSubsumersMap.getOrElse(left, Set.empty) ++ termSubsumersMap.getOrElse(right, Set.empty)).size
+
+        jaccardScore = if (unionCount == 0) 0 else intersectionCount.toDouble / unionCount.toDouble
+
+      } yield JaccardScore(Set(left, right), jaccardScore)).toSeq
     }
   }
 
