@@ -110,10 +110,10 @@ object Graph {
       case None       => sparql""" ?term ?relation ?subsumer . """
     }
 
-
     val query =
       sparql"""
        SELECT DISTINCT ?term ?relation ?subsumer 
+       FROM $KBMainGraph
        FROM $KBClosureGraph
        FROM $KBRedundantRelationGraph
        WHERE {
