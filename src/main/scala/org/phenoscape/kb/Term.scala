@@ -54,7 +54,7 @@ object Term {
              limit: Int = 100): Future[Seq[MatchedTerm[DefinedMinimalTerm]]] = {
     def resultFromQuerySolution(qs: QuerySolution): DefinedMinimalTerm =
       DefinedMinimalTerm(MinimalTerm.fromQuerySolution(qs),
-                         Option(qs.getResource("ont")).map(o => IRI.create(o.getURI)))
+        Option(qs.getResource("ont")).map(o => IRI.create(o.getURI)))
 
     App
       .executeSPARQLQueryString(
@@ -95,8 +95,8 @@ object Term {
   def computeLabelForAnonymousTerm(iri: IRI): Future[MinimalTerm] =
     iri.toString match {
       case expression
-          if expression.startsWith(ExpressionUtil.namedExpressionPrefix) || expression.startsWith(
-            ExpressionUtil.namedSubClassPrefix) =>
+        if expression.startsWith(ExpressionUtil.namedExpressionPrefix) || expression.startsWith(
+          ExpressionUtil.namedSubClassPrefix) =>
         labelForNamedExpression(iri)
       case negation if negation.startsWith("http://phenoscape.org/not/") =>
         computedLabel(IRI.create(negation.replaceFirst(Pattern.quote("http://phenoscape.org/not/"), ""))).map { term =>
@@ -133,18 +133,20 @@ object Term {
   def withIRI(iri: IRI): Future[Option[Term]] = {
     def termResult(result: QuerySolution) =
       (Option(result.getLiteral("label")).map(_.getLexicalForm),
-       Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""),
-       Option(result.getResource("ontology")).map(_.getURI))
+        Option(result.getLiteral("definition")).map(_.getLexicalForm).getOrElse(""),
+        Option(result.getResource("ontology")).map(_.getURI))
 
     val termFuture = App.executeSPARQLQuery(buildTermQuery(iri), termResult).map(_.headOption)
     val synonymsFuture = termSynonyms(iri)
     val relsFuture = termRelationships(iri)
+    val classificationFuture = classification(iri, None)
     for {
       termOpt <- termFuture
       synonyms <- synonymsFuture
       relationships <- relsFuture
-    } yield termOpt.map {
-      case (label, definition, ontology) => Term(iri, label, definition, ontology, synonyms, relationships)
+      classification <- classificationFuture
+    } yield termOpt.map { case (label, definition, ontology) =>
+      Term(iri, label, definition, ontology, synonyms, classification, relationships)
     }
   }
 
@@ -188,8 +190,8 @@ object Term {
     def shouldHide(term: MinimalTerm) = {
       val termID = term.iri.toString
       termID.startsWith("http://example.org") ||
-      termID == "http://www.w3.org/2002/07/owl#Nothing" ||
-      termID == "http://www.w3.org/2002/07/owl#Thing"
+        termID == "http://www.w3.org/2002/07/owl#Nothing" ||
+        termID == "http://www.w3.org/2002/07/owl#Thing"
     }
 
     val superclassesFuture = querySuperClasses(iri, source)
@@ -202,9 +204,9 @@ object Term {
       subclasses <- subclassesFuture
       equivalents <- equivalentsFuture
     } yield Classification(term,
-                           superclasses.filterNot(shouldHide).toSet,
-                           subclasses.filterNot(shouldHide).toSet,
-                           equivalents.filterNot(shouldHide).toSet)
+      superclasses.filterNot(shouldHide).toSet,
+      subclasses.filterNot(shouldHide).toSet,
+      equivalents.filterNot(shouldHide).toSet)
   }
 
   def querySuperClasses(iri: IRI, source: Option[IRI]): Future[Seq[MinimalTerm]] = {
@@ -268,7 +270,7 @@ object Term {
     val query = select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where (bgp(
       (t('term, rdfsLabel, 'term_label) ::
         definedByTriple): _*),
-    union)
+      union)
     App.executeSPARQLQuery(query, MinimalTerm.fromQuerySolution)
   }
 
@@ -342,16 +344,16 @@ object Term {
     val superClassesQuery = select_distinct('super) from "http://kb.phenoscape.org/" where (bgp(
       (t('super, rdfType, owlClass) ::
         definedByTriple ++
-        iris.map(superClassTriple).toList): _*))
+          iris.map(superClassTriple).toList): _*))
     val superSuperClassesQuery = select_distinct('supersuper) from "http://kb.phenoscape.org/" where (
       bgp(
         (t('super, rdfType, owlClass) ::
           t('supersuper, rdfType, owlClass) ::
           t('super, new P_OneOrMore1(new P_Link(rdfsSubClassOf)), 'supersuper) ::
           definedByTriple ++
-          iris.map(superClassTriple).toList): _*
+            iris.map(superClassTriple).toList): _*
       )
-    )
+      )
     val superClassesFuture = App.executeSPARQLQuery(superClassesQuery, _.getResource("super").getURI)
     val superSuperClassesFuture = App.executeSPARQLQuery(superSuperClassesQuery, _.getResource("supersuper").getURI)
     for {
@@ -371,8 +373,8 @@ object Term {
   def buildTermQuery(iri: IRI): Query =
     select_distinct('label, 'definition, 'ontology) from "http://kb.phenoscape.org/" where (optional(
       bgp(t(iri, rdfsLabel, 'label))),
-    optional(bgp(t(iri, definition, 'definition))),
-    optional(bgp(t(iri, rdfsIsDefinedBy, 'ontology))))
+      optional(bgp(t(iri, definition, 'definition))),
+      optional(bgp(t(iri, rdfsIsDefinedBy, 'ontology))))
 
   def termRelationships(iri: IRI): Future[Seq[TermRelationship]] =
     App.executeSPARQLQuery(
@@ -380,7 +382,7 @@ object Term {
       (result) =>
         TermRelationship(
           MinimalTerm(IRI.create(result.getResource("relation").getURI),
-                      Some(result.getLiteral("relation_name").getString)),
+            Some(result.getLiteral("relation_name").getString)),
           MinimalTerm(IRI.create(result.getResource("filler").getURI), Some(result.getLiteral("filler_name").getString))
         )
     )
@@ -413,8 +415,8 @@ object Term {
       t('restriction, owlSomeValuesFrom, 'filler),
       t('filler, rdfsLabel, 'filler_label)
     ),
-    new ElementFilter(new E_IsIRI(new ExprVar('relation))),
-    new ElementFilter(new E_IsIRI(new ExprVar('filler))))
+      new ElementFilter(new E_IsIRI(new ExprVar('relation))),
+      new ElementFilter(new E_IsIRI(new ExprVar('filler))))
     // We need to handle multiple labels in the DB for properties (and possibly classes)
     query.getProject.add(Var.alloc("filler_name"), query.allocAggregate(new AggMin(new ExprVar('filler_label))))
     query.getProject.add(Var.alloc("relation_name"), query.allocAggregate(new AggMin(new ExprVar('relation_label))))
@@ -485,8 +487,8 @@ object Term {
       t('term, rdfsIsDefinedBy, definedBy),
       t('term, rdfType, owlClass)
     ),
-    new ElementFilter(new E_IsIRI(new ExprVar('term))),
-    new ElementFilter(new E_NotExists(triplesBlock(bgp(t('term, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
+      new ElementFilter(new E_IsIRI(new ExprVar('term))),
+      new ElementFilter(new E_NotExists(triplesBlock(bgp(t('term, owlDeprecated, "true" ^^ XSDDatatype.XSDboolean))))))
     query.addOrderBy('rank, Query.ORDER_ASCENDING)
     if (limit > 0) query.setLimit(limit)
     query
@@ -535,8 +537,9 @@ final case class Term(iri: IRI,
                       definition: String,
                       sourceOntology: Option[String],
                       synonyms: Seq[(IRI, String)],
+                      classification: Classification,
                       relationships: Seq[TermRelationship])
-    extends LabeledTerm
+  extends LabeledTerm
     with JSONResultItem {
 
   def toJSON: JsObject =
@@ -545,9 +548,10 @@ final case class Term(iri: IRI,
       "label" -> label.map(_.toJson).getOrElse(JsNull),
       "definition" -> definition.toJson,
       "isDefinedBy" -> sourceOntology.map(_.toJson).getOrElse(JsNull),
-      "synonyms" -> synonyms.map {
-        case (iri, value) => JsObject("property" -> iri.toString.toJson, "value" -> value.toJson).toJson
+      "synonyms" -> synonyms.map { case (iri, value) =>
+        JsObject("property" -> iri.toString.toJson, "value" -> value.toJson).toJson
       }.toJson,
+      "classification" -> classification.jsonWithoutTerm,
       "relationships" -> relationships.map(_.toJSON).toJson
     ).toJson.asJsObject
 
@@ -566,7 +570,7 @@ object MinimalTerm {
 
   def fromQuerySolution(result: QuerySolution): MinimalTerm =
     MinimalTerm(IRI.create(result.getResource("term").getURI),
-                Option(result.getLiteral("term_label")).map(_.getLexicalForm))
+      Option(result.getLiteral("term_label")).map(_.getLexicalForm))
 
   val tsvMarshaller: ToEntityMarshaller[MinimalTerm] =
     Marshaller.stringMarshaller(MediaTypes.`text/tab-separated-values`).compose(_.toTSV)
@@ -643,7 +647,7 @@ final case class Classification(term: MinimalTerm,
                                 superclasses: Set[MinimalTerm],
                                 subclasses: Set[MinimalTerm],
                                 equivalents: Set[MinimalTerm])
-    extends JSONResultItem {
+  extends JSONResultItem {
 
   def toJSON: JsObject =
     JsObject(
@@ -654,6 +658,12 @@ final case class Classification(term: MinimalTerm,
           "equivalentTo" -> equivalents.toSeq.sortBy(_.label.map(_.toLowerCase)).map(_.toJSON).toJson
         )
     )
+
+  def jsonWithoutTerm: JsObject = Map(
+    "subClassOf" -> superclasses.toSeq.sortBy(_.label.map(_.toLowerCase)).map(_.toJSON).toJson,
+    "superClassOf" -> subclasses.toSeq.sortBy(_.label.map(_.toLowerCase)).map(_.toJSON).toJson,
+    "equivalentTo" -> equivalents.toSeq.sortBy(_.label.map(_.toLowerCase)).map(_.toJSON).toJson
+  ).toJson.asJsObject
 
 }
 
