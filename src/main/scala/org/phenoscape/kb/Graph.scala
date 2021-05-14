@@ -158,14 +158,14 @@ object Graph {
       for {
         termSubsumerPairs <- termSubsumerPairsFut
       } yield {
-        val termsSequence = terms.map(_.toString).toSeq.sorted
+        val termsSequence = terms.toSeq.sortBy(_.toString)
         val header = s",${termsSequence.mkString(",")}"
 
         val groupedBySubsumer = termSubsumerPairs.groupBy(_._2)
 
         val valuesLines = groupedBySubsumer.map { case (subsumer, subsumerPairs) =>
           val termsForSubsumer = subsumerPairs.map(_._1).toSet
-          val values = termsSequence.map(t => if (termsForSubsumer(IRI.create(t))) "1" else "0")
+          val values = termsSequence.map(t => if (termsForSubsumer(t)) "1" else "0")
           s"$subsumer,${values.mkString(",")}"
         }
 

@@ -256,12 +256,10 @@ object Similarity {
       val groupedByTerm = termSubsumerPairs.groupBy(_._1)
 
       groupedByTerm
-        .map { case (term, pairs) =>
+        .flatMap { case (term, pairs) =>
           val subsumers = pairs.map(_._2).toSet
           Map(term -> subsumers)
         }
-        .flatten
-        .toMap
     }
 
     termSubsumersMapFut.map { termSubsumersMap =>
