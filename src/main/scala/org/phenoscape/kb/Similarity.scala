@@ -10,7 +10,7 @@ import org.apache.jena.sparql.path.Path
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
 import org.apache.jena.sparql.syntax._
-import org.phenoscape.kb.Graph.getTermSubsumerPairs
+import org.phenoscape.kb.Graph.{ancestorMatrix, getTermSubsumerPairs}
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
@@ -47,14 +47,8 @@ object Similarity {
 
   val availableCorpora = Seq(TaxaCorpus, GenesCorpus)
 
-  def evolutionaryProfilesSimilarToGene(gene: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[SimilarityMatch]] =
-    App.executeSPARQLQuery(similarityProfileQuery(gene, TaxaCorpus, limit, offset), constructMatchFor(gene))
-
-  def querySimilarProfiles(queryItem: IRI,
-                           corpus: IRI,
-                           limit: Int = 20,
-                           offset: Int = 0): Future[Seq[SimilarityMatch]] =
-    App.executeSPARQLQuery(similarityProfileQuery(queryItem, corpus, limit, offset), constructMatchFor(queryItem))
+  def querySimilarProfiles(queryItem: IRI, relations: Seq[IRI], path: Path): Future[SimilarityProfile] =
+    similarityProfileQuery(queryItem, relations, path)
 
   def bestAnnotationsMatchesForComparison(queryItem: IRI,
                                           queryGraph: IRI,
@@ -176,26 +170,43 @@ object Similarity {
     block
   }
 
-  def similarityProfileQuery(queryItem: IRI, corpusGraph: IRI, resultLimit: Int, resultOffset: Int): Query = {
-    val query = select_distinct('corpus_item,
-                                'corpus_item_label,
-                                'median_score,
-                                'expect_score) from "http://kb.phenoscape.org/" from corpusGraph.toString where (
-      bgp(
-        t(queryItem, has_phenotypic_profile, 'query_profile),
-        t('comparison, for_query_profile, 'query_profile),
-        t('comparison, combined_score, 'median_score),
-        t('comparison, has_expect_score, 'expect_score),
-        t('comparison, for_corpus_profile, 'corpus_profile),
-        t('corpus_item, has_phenotypic_profile, 'corpus_profile),
-        t('corpus_item, Vocab.rdfsLabel, 'corpus_item_label)
-      )
-    ) order_by (asc('expect_score), asc('median_score), asc('corpus_item_label))
-    if (resultLimit > 1) {
-      query.setLimit(resultLimit)
-      query.setOffset(resultOffset)
+  def similarityProfileQuery(queryItem: IRI, relations: Seq[IRI], path: Path): Future[SimilarityProfile] = {
+    val taxaQuery =
+      sparql"""
+               SELECT DISTINCT ?taxa
+               FROM $KBMainGraph
+               FROM $KBClosureGraph
+               FROM $KBRedundantRelationGraph
+               WHERE {
+                ?taxa $has_phenotypic_profile ?profile .
+               }
+              """.toQuery
+
+    val taxa = App.executeSPARQLQuery(taxaQuery, result => IRI.create(result.getResource("taxa").getURI))
+
+    val taxaSubsumersFut = taxa.flatMap { t =>
+      getTermSubsumerPairs(t.toSet, relations.toSet, Some(path)).map { pairs =>
+        pairs.groupBy(_._1).mapValues(tuple => tuple.map(_._2))
+      }
     }
-    query
+
+    val geneSubsumersMap =
+      getTermSubsumerPairs(Set(queryItem), relations.toSet, Some(path)).map(pairs =>
+        pairs.groupBy(_._1).mapValues(tuple => tuple.map(_._2)))
+
+    val geneSubsumersFut = geneSubsumersMap.map(_.getOrElse(queryItem, Seq.empty).toSet)
+
+    val taxonScore = for {
+      taxaSubsumersMap <- taxaSubsumersFut
+      geneSubsumers <- geneSubsumersFut
+    } yield for {
+      (taxon, taxonSubsumers) <- taxaSubsumersMap
+      intersectionCount = taxonSubsumers.toSet.intersect(geneSubsumers).size
+      unionCount = (taxonSubsumers.toSet ++ (geneSubsumers)).size
+      jaccardScore = if (unionCount == 0) 0 else intersectionCount.toDouble / unionCount.toDouble
+    } yield (taxon, jaccardScore)
+
+    taxonScore.map(map => map.toSeq.sortBy(_._2))
   }
 
   def comparisonSubsumersQuery(queryItem: IRI, corpusItem: IRI, corpusGraph: IRI): Query =
@@ -368,6 +379,17 @@ object Similarity {
 
   }
 
+  type SimilarityProfile = Seq[(IRI, Double)]
+
+  object SimilarityProfile {
+
+    implicit val SimilarityProfileCSV: ToEntityMarshaller[SimilarityProfile] =
+      Marshaller.stringMarshaller(MediaTypes.`text/csv`).compose { profile =>
+        profile.map { case (term, score) => s"$term,$score" }.mkString("\n")
+      }
+
+  }
+
 }
 
 case class SimilarityMatch(corpusProfile: MinimalTerm, medianScore: Double, expectScore: Double)
@@ -398,23 +420,6 @@ object SimilarityMatch {
     Marshaller.oneOf(SimilarityMatchesTextMarshaller, JSONResultItemsMarshaller)
 
 }
-
-//case class SimilarityMatches(matches: Seq[SimilarityMatch])
-//
-//object SimilarityMatches {
-//
-//  val SimilarityMatchesMarshaller = Marshaller.delegate[SimilarityMatches, String](MediaTypes.`text/tab-separated-values`) { matches =>
-//    val header = "taxon IRI\ttaxon label\tmedian score\texpect score"
-//    s"$header\n${matches.matches.map(_.toString).mkString("\n")}"
-//  }
-//
-//  val SimilarityMatchesJSONMarshaller = Marshaller.delegate[SimilarityMatches, Seq[SimilarityMatch]](MediaTypes.`application/json`) { matches =>
-//    matches.matches
-//  }
-//
-//  implicit val ComboSimilarityMatchesMarshaller = ToResponseMarshaller.oneOf(MediaTypes.`text/plain`, MediaTypes.`text/tab-separated-values`, MediaTypes.`application/json`)(SimilarityMatchesMarshaller, SimilarityMatchesJSONMarshaller)
-//
-//}
 
 case class UnlabelledAnnotationPair(queryAnnotation: IRI, corpusAnnotation: IRI, bestSubsumer: SubsumerWithDisparity)
     extends JSONResultItem {

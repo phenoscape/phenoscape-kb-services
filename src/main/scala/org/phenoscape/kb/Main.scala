@@ -345,12 +345,14 @@ object Main extends HttpApp with App {
               } ~
               pathPrefix("similarity") {
                 path("query") {
-                  parameters('iri.as[IRI], 'corpus_graph.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0)) {
-                    (query, corpusGraph, limit, offset) =>
-                      complete {
-                        import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                        Similarity.querySimilarProfiles(query, corpusGraph, limit, offset)
-                      }
+                  parameters('iri.as[IRI],
+                             'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                             'path.as[Path]) { (query, relations, path) =>
+                    complete {
+                      import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
+                      import Similarity.SimilarityProfile.SimilarityProfileCSV
+                      Similarity.querySimilarProfiles(query, relations, path)
+                    }
                   }
                 } ~ // why 2 graphs??
                   path("best_matches") {
