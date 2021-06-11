@@ -174,11 +174,9 @@ object Similarity {
     val taxaQuery =
       sparql"""
                SELECT DISTINCT ?taxa
-               FROM $KBMainGraph
-               FROM $KBClosureGraph
-               FROM $KBRedundantRelationGraph
                WHERE {
                 ?taxa $has_phenotypic_profile ?profile .
+                ?taxa $rdfsIsDefinedBy $VTO .
                }
               """.toQuery
 
@@ -186,13 +184,13 @@ object Similarity {
 
     val taxaSubsumersFut = taxa.flatMap { t =>
       getTermSubsumerPairs(t.toSet, relations.toSet, Some(path)).map { pairs =>
-        pairs.groupBy(_._1).mapValues(tuple => tuple.map(_._2))
+        pairs.groupBy(_._1).map { case (term, tuple) => (term, tuple.map(_._2)) }
       }
     }
 
     val geneSubsumersMap =
       getTermSubsumerPairs(Set(queryItem), relations.toSet, Some(path)).map(pairs =>
-        pairs.groupBy(_._1).mapValues(tuple => tuple.map(_._2)))
+        pairs.groupBy(_._1).map { case (term, tuple) => (term, tuple.map(_._2)) })
 
     val geneSubsumersFut = geneSubsumersMap.map(_.getOrElse(queryItem, Seq.empty).toSet)
 

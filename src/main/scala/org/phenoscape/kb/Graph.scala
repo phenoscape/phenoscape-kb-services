@@ -121,6 +121,9 @@ object Graph {
          VALUES ?relation { $relationsElements }
          $queryPattern
          FILTER(?subsumer != $owlThing)
+         FILTER(isIRI(?term))
+         FILTER(isIRI(?relation))
+         FILTER(isIRI(?subsumer))
        }
        """
 
@@ -145,9 +148,11 @@ object Graph {
           case _                                                 => RelationalTerm(IRI.create(pairs._1), IRI.create(pairs._2)).iri
 
         }
+
         Map(IRI.create(term) -> virtualTermIRI)
       }.flatten
     }
+
     termSubsumerSeq
   }
 
