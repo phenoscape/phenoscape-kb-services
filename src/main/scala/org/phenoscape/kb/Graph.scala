@@ -142,10 +142,10 @@ object Graph {
     } yield {
       val termSubsumerPairs = pairs.map(p => (p._1 -> (p._2, p._3)))
 
-      termSubsumerPairs.map { case (term, pairs) =>
-        val virtualTermIRI = pairs._1 match {
-          case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => IRI.create(pairs._2)
-          case _                                                 => RelationalTerm(IRI.create(pairs._1), IRI.create(pairs._2)).iri
+      termSubsumerPairs.map { case (term, (relation, subsumer)) =>
+        val virtualTermIRI = relation match {
+          case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => IRI.create(subsumer)
+          case _                                                 => RelationalTerm(IRI.create(relation), IRI.create(subsumer)).iri
 
         }
 

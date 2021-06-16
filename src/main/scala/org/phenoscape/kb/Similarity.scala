@@ -204,7 +204,7 @@ object Similarity {
       jaccardScore = if (unionCount == 0) 0 else intersectionCount.toDouble / unionCount.toDouble
     } yield (taxon, jaccardScore)
 
-    taxonScore.map(map => map.toSeq.sortBy(_._2))
+    taxonScore.map(map => map.toSeq.sortWith(_._2 > _._2))
   }
 
   def comparisonSubsumersQuery(queryItem: IRI, corpusItem: IRI, corpusGraph: IRI): Query =
