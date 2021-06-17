@@ -133,15 +133,19 @@ object Similarity {
       labelledTerms <- Future.sequence(irisFuture.map(Term.computedLabel))
     } yield labelledTerms
 
-  def profileSize(profileSubject: IRI): Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where (bgp(
-      t(profileSubject, has_phenotypic_profile / rdfType, 'annotation)),
-    new ElementFilter(
-      new E_NotOneOf(
-        new ExprVar('annotation),
-        new ExprList(List[Expr](new NodeValueNode(AnnotatedPhenotype), new NodeValueNode(owlNamedIndividual)).asJava))))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("annotation"))))
-    App.executeSPARQLQuery(query).map(ResultCount.count)
+  def profileSize(profileSubject: IRI, path: Path): Future[Int] = {
+
+    val query =
+      sparql"""
+               SELECT (COUNT(DISTINCT ?phen) AS ?count) 
+               FROM $KBMainGraph
+               FROM $KBRedundantRelationGraph
+               FROM $KBClosureGraph
+               WHERE {
+                $profileSubject $path ?phen .
+                }
+              """
+    App.executeSPARQLQuery(query.toQuery).map(ResultCount.count)
   }
 
   def icDisparity(term: OWLClass, queryGraph: IRI, corpusGraph: IRI): Future[Double] = {

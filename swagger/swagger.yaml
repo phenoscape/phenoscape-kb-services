@@ -757,6 +757,12 @@ paths:
           required: true
           type: string
           format: IRI
+        - name: path
+          in: query
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
+          required: true
+          type: string
+          format: JSON
       responses:
         200:
           description: profile size

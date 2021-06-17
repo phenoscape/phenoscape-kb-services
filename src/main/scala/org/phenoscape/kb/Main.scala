@@ -379,9 +379,9 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("profile_size") {
-                    parameters('iri.as[IRI]) { (iri) =>
+                    parameters('iri.as[IRI], 'path.as[Path]) { (iri, path) =>
                       complete {
-                        Similarity.profileSize(iri).map(ResultCount(_))
+                        Similarity.profileSize(iri, path).map(ResultCount(_))
                       }
                     }
                   } ~
