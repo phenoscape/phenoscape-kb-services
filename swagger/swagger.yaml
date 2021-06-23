@@ -757,6 +757,12 @@ paths:
           required: true
           type: string
           format: IRI
+        - name: path
+          in: query
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
+          required: true
+          type: string
+          format: JSON
       responses:
         200:
           description: profile size
@@ -821,8 +827,8 @@ paths:
     get:
       tags:
         - Semantic similarity
-      summary: Get pairwise Jaccard similarity for a set of terms [IN DEVELOPMENT—SUBJECT TO CHANGE]
-      description: Calculate similarity for every pair in a set of terms.
+      summary: Get pairwise Jaccard similarity for a set of terms.
+      description: Calculate similarity for every pair in a set of terms, for the given relations, and path.
       produces:
         - application/json
       parameters:
@@ -830,6 +836,19 @@ paths:
           in: query
           description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
           required: true
+          type: string
+          format: JSON
+        - name: relations
+          in: query
+          description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
+          required: false
+          default: ["http://www.w3.org/2000/01/rdf-schema#subClassOf","http://purl.obolibrary.org/obo/BFO_0000050"]
+          type: string
+          format: JSON
+        - name: path
+          in: query
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/has_state>/<http://purl.org/describes_phenotype>`
+          required: false
           type: string
           format: JSON
       responses:

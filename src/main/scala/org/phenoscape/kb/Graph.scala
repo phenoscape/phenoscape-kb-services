@@ -102,19 +102,18 @@ object Graph {
     query.toQuery
   }
 
-  def ancestorMatrix(terms: Set[IRI], relations: Set[IRI], pathOpt: Option[Path]): Future[AncestorMatrix] =
-    if (terms.isEmpty) Future.successful(AncestorMatrix(""))
-    else {
-      val termsElements = terms.map(t => sparql" $t ").reduceOption(_ + _).getOrElse(sparql"")
-      val relationsElements = relations.map(r => sparql" $r ").reduceOption(_ + _).getOrElse(sparql"")
-      val queryPattern = pathOpt match {
-        case Some(path) => sparql""" ?term $path ?class . ?class ?relation ?subsumer ."""
-        case None       => sparql""" ?term ?relation ?subsumer . """
-      }
+  def getTermSubsumerPairs(terms: Set[IRI], relations: Set[IRI], pathOpt: Option[Path]): Future[Seq[(IRI, IRI)]] = {
+    val termsElements = terms.map(t => sparql" $t ").reduceOption(_ + _).getOrElse(sparql"")
+    val relationsElements = relations.map(r => sparql" $r ").reduceOption(_ + _).getOrElse(sparql"")
+    val queryPattern = pathOpt match {
+      case Some(path) => sparql""" ?term $path ?class . ?class ?relation ?subsumer ."""
+      case None       => sparql""" ?term ?relation ?subsumer . """
+    }
 
-      val query =
-        sparql"""
+    val query =
+      sparql"""
        SELECT DISTINCT ?term ?relation ?subsumer 
+       FROM $KBMainGraph
        FROM $KBClosureGraph
        FROM $KBRedundantRelationGraph
        WHERE {
@@ -123,40 +122,53 @@ object Graph {
          $queryPattern
          FILTER(?subsumer != $owlThing)
        }
-          """
+       """
 
-      val futurePairs = App.executeSPARQLQueryString(
-        query.text,
-        qs => {
-          val term = qs.getResource("term").getURI
-          val relation = qs.getResource("relation").getURI
-          val subsumer = qs.getResource("subsumer").getURI
-          (term, relation, subsumer)
+    val futurePairs = App.executeSPARQLQueryString(
+      query.text,
+      qs => {
+        val term = qs.getResource("term").getURI
+        val relation = qs.getResource("relation").getURI
+        val subsumer = qs.getResource("subsumer").getURI
+        (term, relation, subsumer)
+      }
+    )
+
+    val termSubsumerSeq = for {
+      pairs <- futurePairs
+    } yield {
+      val termSubsumerPairs = pairs.map(p => (p._1 -> (p._2, p._3)))
+
+      termSubsumerPairs.map { case (term, pairs) =>
+        val virtualTermIRI = pairs._1 match {
+          case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => IRI.create(pairs._2)
+          case _                                                 => RelationalTerm(IRI.create(pairs._1), IRI.create(pairs._2)).iri
+
         }
-      )
+        Map(IRI.create(term) -> virtualTermIRI)
+      }.flatten
+    }
+    termSubsumerSeq
+  }
+
+  def ancestorMatrix(terms: Set[IRI], relations: Set[IRI], pathOpt: Option[Path]): Future[AncestorMatrix] =
+    if (terms.isEmpty) Future.successful(AncestorMatrix(""))
+    else {
+      val termSubsumerPairsFut = getTermSubsumerPairs(terms, relations, pathOpt)
       for {
-        pairs <- futurePairs
+        termSubsumerPairs <- termSubsumerPairsFut
       } yield {
-        val termsSequence = terms.map(_.toString).toSeq.sorted
+        val termsSequence = terms.toSeq.sortBy(_.toString)
         val header = s",${termsSequence.mkString(",")}"
-        val termSubsumerPairs = pairs.map(p => (p._1 -> (p._2, p._3)))
 
-        // creates Map(term -> virtualIRI(relation, subsumer))
-        val termToRelSubsumerSeq = termSubsumerPairs.map { case (term, pairs) =>
-          val virtualTermIRI = pairs._1 match {
-            case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => IRI.create(pairs._2)
-            case _                                                 => RelationalTerm(IRI.create(pairs._1), IRI.create(pairs._2)).iri
-          }
+        val groupedBySubsumer = termSubsumerPairs.groupBy(_._2)
 
-          Map(term -> virtualTermIRI)
-        }.flatten
-
-        val groupedBySubsumer = termToRelSubsumerSeq.groupBy(_._2)
         val valuesLines = groupedBySubsumer.map { case (subsumer, subsumerPairs) =>
           val termsForSubsumer = subsumerPairs.map(_._1).toSet
           val values = termsSequence.map(t => if (termsForSubsumer(t)) "1" else "0")
           s"$subsumer,${values.mkString(",")}"
         }
+
         AncestorMatrix(s"$header\n${valuesLines.mkString("\n")}")
       }
     }

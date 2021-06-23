@@ -379,9 +379,9 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("profile_size") {
-                    parameters('iri.as[IRI]) { (iri) =>
+                    parameters('iri.as[IRI], 'path.as[Path]) { (iri, path) =>
                       complete {
-                        Similarity.profileSize(iri).map(ResultCount(_))
+                        Similarity.profileSize(iri, path).map(ResultCount(_))
                       }
                     }
                   } ~
@@ -424,18 +424,20 @@ object Main extends HttpApp with App {
                   } ~
                   path("jaccard") { //FIXME can GET and POST share code better?
                     get {
-                      parameters('iris.as[Seq[IRI]]) { iris =>
+                      parameters('iris.as[Seq[IRI]],
+                                 'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                                 'path.as[Path].?) { (iris, relations, path) =>
                         complete {
-                          import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                          Similarity.pairwiseJaccardSimilarity(iris.toSet)
+                          Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path)
                         }
                       }
                     } ~
                       post {
-                        formFields('iris.as[Seq[IRI]]) { iris =>
+                        formFields('iris.as[Seq[IRI]],
+                                   'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                                   'path.as[Path].?) { (iris, relations, path) =>
                           complete {
-                            import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                            Similarity.pairwiseJaccardSimilarity(iris.toSet)
+                            Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path)
                           }
                         }
                       }
