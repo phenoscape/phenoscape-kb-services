@@ -772,12 +772,12 @@ paths:
       produces:
         - application/json
       parameters:
-        - name: corpus_graph
+        - name: path
           in: query
-          description: IRI identifying corpus. Current options are `http://kb.phenoscape.org/sim/taxa` or `http://kb.phenoscape.org/sim/genes`
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
           required: true
           type: string
-          format: IRI
+          format: JSON
       responses:
         200:
           description: corpus size
