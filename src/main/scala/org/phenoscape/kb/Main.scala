@@ -6,7 +6,7 @@ import org.apache.jena.sparql.path.Path
 import org.phenoscape.kb.util.PropertyPathParser
 
 import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
-import org.phenoscape.owl.Vocab.part_of
+import org.phenoscape.owl.Vocab.{has_part, has_part_inhering_in, inheres_in, part_of, phenotype_of, towards, IMPLIES_PRESENCE_OF}
 import org.phenoscape.kb.OWLFormats.ManchesterSyntaxClassExpressionUnmarshaller
 import org.phenoscape.kb.OWLFormats.OWLClassExpressionMarshaller
 import org.phenoscape.kb.PhenexDataSet.DataSetMarshaller
@@ -345,12 +345,26 @@ object Main extends HttpApp with App {
               } ~
               pathPrefix("similarity") {
                 path("query") {
-                  parameters('iri.as[IRI], 'corpus_graph.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0)) {
-                    (query, corpusGraph, limit, offset) =>
-                      complete {
-                        import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                        Similarity.querySimilarProfiles(query, corpusGraph, limit, offset)
-                      }
+                  parameters(
+                    'iri.as[IRI],
+                    'relations
+                      .as[Seq[IRI]]
+                      .?(
+                        Seq(rdfsSubClassOf.getIRI,
+                            has_part.getIRI,
+                            inheres_in.getIRI,
+                            towards.getIRI,
+                            IMPLIES_PRESENCE_OF.getIRI,
+                            has_part_inhering_in.getIRI,
+                            phenotype_of.getIRI)
+                      ),
+                    'path.as[Path]
+                  ) { (query, relations, path) =>
+                    complete {
+                      import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
+                      import Similarity.SimilarityProfile.SimilarityProfileCSV
+                      Similarity.querySimilarProfiles(query, relations, path)
+                    }
                   }
                 } ~ // why 2 graphs??
                   path("best_matches") {
