@@ -639,7 +639,7 @@ class LabelMapProvider(labels: Map[IRI, String]) extends ShortFormProvider {
 
   def getShortForm(entity: OWLEntity): String = labels.getOrElse(entity.getIRI, entity.getIRI.toString)
 
-  def dispose(): Unit = Unit
+  def dispose(): Unit = ()
 
 }
 

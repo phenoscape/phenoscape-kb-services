@@ -20,7 +20,7 @@ daemonUser in Linux := "phenoscape" // user which will execute the application
 
 daemonGroup in Linux := "phenoscape"    // group which will execute the application
 
-scalaVersion  := "2.12.13"
+scalaVersion  := "2.13.6"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8")
 
@@ -44,7 +44,7 @@ libraryDependencies ++= {
     "net.sourceforge.owlapi" %  "owlapi-distribution"     % "4.5.18",
     "org.phenoscape"         %% "owlet"                   % "1.8.1" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
     "org.phenoscape"         %% "scowl"                   % "1.3.4",
-    "org.phenoscape"         %% "kb-owl-tools"            % "1.5.1" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
+    "org.phenoscape"         %% "kb-owl-tools"            % "1.13.0" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
     "org.phenoscape"         %% "phenoscape-kb-ingest"    % "1.6.2",
     "org.phenoscape"         %  "phenex"                  % "1.17.2" exclude("org.slf4j", "slf4j-log4j12") exclude("net.sourceforge.owlapi", "owlapi-apibinding"),
     "commons-io"             %  "commons-io"              % "2.8.0", // exclude("log4j", "log4j"),
