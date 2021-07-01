@@ -1,7 +1,6 @@
 package org.phenoscape.kb
 
 import java.util.UUID
-
 import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
 
@@ -21,7 +20,6 @@ import org.phenoscape.kb.Facets.Facet
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.queries.QueryUtil.{PhenotypicQuality, QualitySpec}
 import org.phenoscape.kb.queries.StudiesRelevantToPhenotype
-import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
 import org.semanticweb.owlapi.apibinding.OWLManager
@@ -32,7 +30,8 @@ import spray.json.DefaultJsonProtocol._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.phenoscape.sparql.FromQuerySolutionOWL._
-import org.phenoscape.kb.KBVocab.KBMainGraph
+import org.phenoscape.kb.KBVocab.{KBMainGraph, rdfsLabel}
+import org.phenoscape.owl.Vocab.{ANATOMICAL_ENTITY, CHORDATA, CharacterStateDataMatrix, belongs_to_TU, belongs_to_character, dcDescription, describes_phenotype, has_TU, has_character, has_external_reference, has_state, list_index, may_have_state_value, rdfType, state_symbol}
 
 import scala.language.higherKinds
 
@@ -317,7 +316,8 @@ object Study {
     } yield character.asResource.getURI -> stateGroup.toSet)
       .toSet[(String, Set[String])]
       .groupBy(_._1)
-      .mapValues(_.map(_._2))
+      .view
+      .mapValues(_.map(_._2)).to(Map)
     val allIndividualStatesAsSets = neededStateGroups.values.flatten.flatten.map(Set(_))
     val stateGroupIDs = (for {
       (character, stateGroups) <- neededStateGroups
