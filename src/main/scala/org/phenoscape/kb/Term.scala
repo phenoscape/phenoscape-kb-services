@@ -1,7 +1,6 @@
 package org.phenoscape.kb
 
 import java.util.regex.Pattern
-
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
@@ -35,6 +34,7 @@ import scalaz._
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
+import java.net.{URLDecoder, URLEncoder}
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -530,6 +530,34 @@ object Term {
   implicit val IRIsMarshaller: ToEntityMarshaller[Seq[IRI]] = Marshaller.combined(results =>
     new JsObject(Map("results" -> results.map(iri => Map("@id" -> iri.toString.toJson)).toJson)))
 
+  /** If it is a relation term, return as RelationTerm object,
+    * else, construct one using rdfs:subClassOf
+    */
+  def asRelationalTerm(iri: IRI): RelationalTerm = iri match {
+    case RelationalTerm(relation, term) => RelationalTerm(relation, term)
+    case _                              => RelationalTerm(rdfsSubClassOf.getIRI, iri)
+  }
+
+}
+
+final case class RelationalTerm(relation: IRI, term: IRI) {
+
+  def iri: IRI =
+    IRI.create(s"${RelationalTerm.Prefix}/${URLEncoder.encode(relation.toString, "utf-8")}/${URLEncoder.encode(term.toString, "utf-8")}")
+
+}
+
+object RelationalTerm {
+
+  val Prefix = "http://purl.org/phenoscape/term/relation"
+
+  private val regex = s"$Prefix/(.+)/(.+)".r
+
+  def unapply(iri: IRI): Option[(IRI, IRI)] = iri match {
+    case regex(relation, term) =>
+      Some((IRI.create(URLDecoder.decode(relation, "utf-8")), IRI.create(URLDecoder.decode(term, "utf-8"))))
+  }
+
 }
 
 final case class Term(iri: IRI,
@@ -639,7 +667,7 @@ class LabelMapProvider(labels: Map[IRI, String]) extends ShortFormProvider {
 
   def getShortForm(entity: OWLEntity): String = labels.getOrElse(entity.getIRI, entity.getIRI.toString)
 
-  def dispose(): Unit = Unit
+  def dispose(): Unit = ()
 
 }
 

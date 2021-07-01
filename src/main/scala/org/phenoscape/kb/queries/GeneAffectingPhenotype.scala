@@ -19,10 +19,6 @@ import scala.language.postfixOps
 
 object GeneAffectingPhenotype {
 
-  private val PhenotypeOfSome = NamedRestrictionGenerator.getClassRelationIRI(phenotype_of.getIRI)
-  private val PartOfSome = NamedRestrictionGenerator.getClassRelationIRI(part_of.getIRI)
-  private val HasPartSome = NamedRestrictionGenerator.getClassRelationIRI(has_part.getIRI)
-
   def buildQuery(entity: Option[IRI],
                  quality: Option[IRI],
                  includeParts: Boolean,
@@ -45,6 +41,7 @@ object GeneAffectingPhenotype {
       SELECT (COUNT(*) AS ?count)
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       WHERE {
         SELECT DISTINCT ?gene ?gene_label ?taxon ?taxon_label
@@ -56,6 +53,7 @@ object GeneAffectingPhenotype {
       SELECT DISTINCT ?gene ?gene_label ?taxon ?taxon_label
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       $whereClause
       ORDER BY LCASE(?gene_label) ?gene
@@ -136,7 +134,7 @@ object GeneAffectingPhenotype {
       ?gene $rdfType $AnnotatedGene .
       ?gene $in_taxon ?taxon .
       ?taxon $RDFSLabel ?taxon_label .
-      ?gene $has_phenotypic_profile ?phenotype .
+      ?gene $has_phenotypic_profile/$rdfType ?phenotype .
       $subQueryRef
       }
     """
@@ -147,11 +145,11 @@ object GeneAffectingPhenotype {
     if (entity.nonEmpty || quality.nonEmpty) {
       val entityPattern = entity
         .map { e =>
-          if (parts) sparql"?phenotype $rdfType/$PhenotypeOfSome/$rdfsSubClassOf/$PartOfSome $e . "
-          else sparql"?phenotype $rdfType/$PhenotypeOfSome $e . "
+          if (parts) sparql"?phenotype $phenotype_of|($phenotype_of/$part_of) $e . "
+          else sparql"?phenotype $phenotype_of $e . "
         }
         .getOrElse(sparql"")
-      val qualityPattern = quality.map(q => sparql"?phenotype $rdfType/$HasPartSome $q . ").getOrElse(sparql"")
+      val qualityPattern = quality.map(q => sparql"?phenotype $has_part $q . ").getOrElse(sparql"")
       Some(BlazegraphNamedSubquery(sparql"""
         SELECT DISTINCT ?phenotype WHERE {
           $entityPattern
