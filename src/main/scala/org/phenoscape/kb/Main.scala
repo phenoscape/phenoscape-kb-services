@@ -1,19 +1,27 @@
 package org.phenoscape.kb
 
 import org.apache.jena.sys.JenaSystem
-import org.phenoscape.kb.KBVocab._
+import org.apache.jena.sparql.path.Path
+
+import org.phenoscape.kb.util.PropertyPathParser
+
+import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
+import org.phenoscape.owl.Vocab.part_of
 import org.phenoscape.kb.OWLFormats.ManchesterSyntaxClassExpressionUnmarshaller
 import org.phenoscape.kb.OWLFormats.OWLClassExpressionMarshaller
 import org.phenoscape.kb.PhenexDataSet.DataSetMarshaller
 import org.phenoscape.kb.Term.IRIsMarshaller
 import org.phenoscape.kb.MinimalTerm.comboSeqMarshaller
+
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClass
 import org.semanticweb.owlapi.model.OWLClassExpression
 import org.semanticweb.owlapi.model.OWLNamedIndividual
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary
+
 import com.typesafe.config.ConfigFactory
+
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -34,6 +42,7 @@ import akka.util.ByteString
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
+
 import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
@@ -55,6 +64,13 @@ object Main extends HttpApp with App {
   val rdfsLabel = factory.getRDFSLabel.getIRI
 
   implicit val IRIUnmarshaller: Unmarshaller[String, IRI] = Unmarshaller.strict(IRI.create)
+
+  implicit val PropertyPathUnmarshaller: Unmarshaller[String, Path] = Unmarshaller.strict { text =>
+    PropertyPathParser.parsePropertyPath(text) match {
+      case scala.util.Success(value)     => value
+      case scala.util.Failure(exception) => throw exception
+    }
+  }
 
   implicit val QualitySpecUnmarshaller: Unmarshaller[String, QualitySpec] = IRIUnmarshaller.map(QualitySpec.fromIRI)
 
@@ -219,17 +235,19 @@ object Main extends HttpApp with App {
                   } ~
                   pathPrefix("property_neighbors") {
                     path("object") {
-                      parameters('term.as[IRI], 'property.as[IRI]) { (term, property) =>
-                        complete {
-                          Graph.propertyNeighborsForObject(term, property)
-                        }
+                      parameters('term.as[IRI], 'property.as[IRI], 'direct.as[Boolean].?(false)) {
+                        (term, property, direct) =>
+                          complete {
+                            Graph.propertyNeighborsForObject(term, property, direct)
+                          }
                       }
                     } ~
                       path("subject") {
-                        parameters('term.as[IRI], 'property.as[IRI]) { (term, property) =>
-                          complete {
-                            Graph.propertyNeighborsForSubject(term, property)
-                          }
+                        parameters('term.as[IRI], 'property.as[IRI], 'direct.as[Boolean].?(false)) {
+                          (term, property, direct) =>
+                            complete {
+                              Graph.propertyNeighborsForSubject(term, property, direct)
+                            }
                         }
                       }
                   } ~
@@ -361,9 +379,9 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("profile_size") {
-                    parameters('iri.as[IRI]) { (iri) =>
+                    parameters('iri.as[IRI], 'path.as[Path]) { (iri, path) =>
                       complete {
-                        Similarity.profileSize(iri).map(ResultCount(_))
+                        Similarity.profileSize(iri, path).map(ResultCount(_))
                       }
                     }
                   } ~
@@ -406,34 +424,40 @@ object Main extends HttpApp with App {
                   } ~
                   path("jaccard") { //FIXME can GET and POST share code better?
                     get {
-                      parameters('iris.as[Seq[IRI]]) { iris =>
+                      parameters('iris.as[Seq[IRI]],
+                                 'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                                 'path.as[Path].?) { (iris, relations, path) =>
                         complete {
-                          import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                          Similarity.pairwiseJaccardSimilarity(iris.toSet)
+                          Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path)
                         }
                       }
                     } ~
                       post {
-                        formFields('iris.as[Seq[IRI]]) { iris =>
+                        formFields('iris.as[Seq[IRI]],
+                                   'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                                   'path.as[Path].?) { (iris, relations, path) =>
                           complete {
-                            import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                            Similarity.pairwiseJaccardSimilarity(iris.toSet)
+                            Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path)
                           }
                         }
                       }
                   } ~
                   path("matrix") {
                     get {
-                      parameters('terms.as[Seq[IRI]]) { iris =>
+                      parameters('terms.as[Seq[IRI]],
+                                 'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                                 'path.as[Path].?) { (terms, relations, path) =>
                         complete {
-                          Graph.ancestorMatrix(iris.toSet)
+                          Graph.ancestorMatrix(terms.toSet, relations.toSet, path)
                         }
                       }
                     } ~
                       post {
-                        formFields('terms.as[Seq[IRI]]) { iris =>
+                        formFields('terms.as[Seq[IRI]],
+                                   'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                                   'path.as[Path].?) { (terms, relations, path) =>
                           complete {
-                            Graph.ancestorMatrix(iris.toSet)
+                            Graph.ancestorMatrix(terms.toSet, relations.toSet, path)
                           }
                         }
                       }
@@ -1084,7 +1108,6 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("affecting_entity_phenotype") {
-                    //TODO update documentation that iri is optional
                     parameters(
                       'iri.as[IRI].?,
                       'quality.as[IRI].?,

@@ -127,34 +127,17 @@ object AnatomicalEntity {
     import Scalaz._
     val valuesList = terms.map(t => sparql" $t ").fold(sparql"")(_ + _)
     sparql"""
-            PREFIX hint: <http://www.bigdata.com/queryHints#>
             SELECT DISTINCT ?x ?y
             FROM $KBClosureGraph
             FROM $KBMainGraph
-            WITH {
-              SELECT ?term ?presence
-              WHERE {
-                VALUES ?term { $valuesList }
-                ?presence <http://purl.org/phenoscape/vocab.owl#implies_presence_of_some> ?term .
-              }
-            } AS %SUB1
+            FROM $KBRedundantRelationGraph
+            
             WHERE {
-              hint:Query hint:filterExists "VectoredSubPlan" .
-              {
-                SELECT (?term AS ?x) (?presence AS ?x_presence)
-                WHERE {
-                  INCLUDE %SUB1
-                }
-              }
-              {
-                SELECT (?term AS ?y) (?presence AS ?y_presence)
-                WHERE {
-                  INCLUDE %SUB1
-                }
-              }
-              FILTER EXISTS {
-                ?x_presence <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?y_presence
-              }
+             VALUES ?x { $valuesList }
+              VALUES ?y { $valuesList }
+              
+              ?x $rdfsSubClassOf | $IMPLIES_PRESENCE_OF ?y .
+              
               FILTER(?x != ?y)
             }
         """
