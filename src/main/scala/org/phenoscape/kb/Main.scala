@@ -465,18 +465,18 @@ object Main extends HttpApp with App {
                   path("frequency") {
                     get {
                       //FIXME not sure IRI for identifying corpus is best approach, particularly when scores are not stored ahead of time in a graph
-                      parameters('terms.as[Seq[IRI]], 'corpus_graph.as[IRI]) { (iris, corpusIRI) =>
+                      parameters('terms.as[Seq[IRI]], 'path.as[Path]) { (iris, path) =>
                         complete {
                           import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                          Similarity.frequency(iris.toSet, corpusIRI)
+                          Similarity.frequency(iris.toSet, path)
                         }
                       }
                     } ~
                       post {
-                        formFields('terms.as[Seq[IRI]], 'corpus_graph.as[IRI]) { (iris, corpusIRI) =>
+                        formFields('terms.as[Seq[IRI]], 'path.as[Path]) { (iris, path) =>
                           complete {
                             import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                            Similarity.frequency(iris.toSet, corpusIRI)
+                            Similarity.frequency(iris.toSet, path)
                           }
                         }
                       }
