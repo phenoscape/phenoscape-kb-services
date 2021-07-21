@@ -10,7 +10,7 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
 host: kb.phenoscape.org
-basePath: /api
+basePath: /api/v2-beta2
 tags:
   - name: Knowledgebase status
   - name: Terms
