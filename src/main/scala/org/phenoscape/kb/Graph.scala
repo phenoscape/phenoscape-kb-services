@@ -3,7 +3,10 @@ package org.phenoscape.kb
 import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.query.Query
+import org.apache.jena.sparql.path.Path
+import org.semanticweb.owlapi.model.IRI
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
+import org.phenoscape.owl.Vocab.rdfType
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owlet.SPARQLComposer._
@@ -12,77 +15,163 @@ import org.phenoscape.sparql.SPARQLInterpolation.QueryText
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.scowl
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
-import org.semanticweb.owlapi.model.IRI
 
 import scala.concurrent.Future
 import scala.language.postfixOps
+import java.net.{URLDecoder, URLEncoder}
 
 object Graph {
 
-  def propertyNeighborsForObject(term: IRI, property: IRI): Future[Seq[MinimalTerm]] =
-    App.executeSPARQLQuery(buildPropertyNeighborsQueryObject(term, property), MinimalTerm.fromQuerySolution)
+  def propertyNeighborsForObject(term: IRI, property: IRI, direct: Boolean): Future[Seq[MinimalTerm]] =
+    App.executeSPARQLQuery(buildPropertyNeighborsQueryObject(term, property, direct), MinimalTerm.fromQuerySolution)
 
-  def propertyNeighborsForSubject(term: IRI, property: IRI): Future[Seq[MinimalTerm]] =
-    App.executeSPARQLQuery(buildPropertyNeighborsQuerySubject(term, property), MinimalTerm.fromQuerySolution)
+  def propertyNeighborsForSubject(term: IRI, property: IRI, direct: Boolean): Future[Seq[MinimalTerm]] =
+    App.executeSPARQLQuery(buildPropertyNeighborsQuerySubject(term, property, direct), MinimalTerm.fromQuerySolution)
 
-  private def buildPropertyNeighborsQueryObject(focalTerm: IRI, property: IRI): Query = {
-    val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)
-    select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where bgp(
-      t('existential_node, classRelation, focalTerm),
-      t('existential_subclass, rdfsSubClassOf, 'existential_node),
-      t('existential_subclass, classRelation, 'term),
-      t('term, rdfsLabel, 'term_label)
-    )
+  private def buildPropertyNeighborsQueryObject(focalTerm: IRI, property: IRI, direct: Boolean): Query = {
+
+    val filterIndirectNeighbors =
+      sparql"""
+              FILTER NOT EXISTS {
+                  ?other_term $property $focalTerm .
+                  ?other_term $rdfsSubClassOf ?term .
+                  FILTER(?other_term != ?term)
+                }
+              
+              FILTER NOT EXISTS {
+                  $property $rdfType $transitiveProperty .
+                  ?other_term $property $focalTerm .
+                  ?other_term $property ?term .
+                  FILTER(?other_term != ?term)
+                }
+            """
+
+    val filters = if (direct) filterIndirectNeighbors else sparql""
+
+    val query =
+      sparql"""
+              SELECT DISTINCT ?term ?term_label
+              FROM $KBMainGraph
+              FROM $KBClosureGraph
+              FROM $KBRedundantRelationGraph
+              WHERE {
+                ?term  $property $focalTerm  .
+                ?term $rdfsLabel ?term_label .
+
+                $filters
+              }
+              """
+
+    query.toQuery
   }
 
-  private def buildPropertyNeighborsQuerySubject(focalTerm: IRI, property: IRI): Query = {
-    val classRelation = NamedRestrictionGenerator.getClassRelationIRI(property)
-    select_distinct('term, 'term_label) from "http://kb.phenoscape.org/" where bgp(
-      t('existential_node, classRelation, focalTerm),
-      t('existential_node, rdfsSubClassOf, 'existential_superclass),
-      t('existential_superclass, classRelation, 'term),
-      t('term, rdfsLabel, 'term_label)
-    )
+  private def buildPropertyNeighborsQuerySubject(focalTerm: IRI, property: IRI, direct: Boolean): Query = {
+
+    val filterIndirectNeighbors =
+      sparql"""
+              FILTER NOT EXISTS {
+                  $focalTerm $property ?other_term .
+                  ?other_term $rdfsSubClassOf ?term .
+                  FILTER(?other_term != ?term)
+                }
+              
+              FILTER NOT EXISTS {
+                  $property $rdfType $transitiveProperty .
+                  $focalTerm $property ?other_term .
+                  ?other_term $property ?term .
+                  FILTER(?other_term != ?term)
+                }
+            """
+
+    val filters = if (direct) filterIndirectNeighbors else sparql""
+
+    val query =
+      sparql"""
+              SELECT DISTINCT ?term ?term_label
+              FROM $KBMainGraph
+              FROM $KBClosureGraph
+              FROM $KBRedundantRelationGraph
+              WHERE {
+              $focalTerm $property ?term .
+              ?term $rdfsLabel ?term_label .
+              
+              $filters
+              }
+              """
+
+    query.toQuery
   }
 
-  def ancestorMatrix(terms: Set[IRI]): Future[AncestorMatrix] = {
-    import scalaz._
-    import Scalaz._
+  def getTermSubsumerPairs(terms: Set[IRI], relations: Set[IRI], pathOpt: Option[Path]): Future[Seq[(IRI, IRI)]] = {
+    val termsElements = terms.map(t => sparql" $t ").reduceOption(_ + _).getOrElse(sparql"")
+    val relationsElements = relations.map(r => sparql" $r ").reduceOption(_ + _).getOrElse(sparql"")
+    val queryPattern = pathOpt match {
+      case Some(path) => sparql""" ?term $path ?class . ?class ?relation ?subsumer ."""
+      case None       => sparql""" ?term ?relation ?subsumer . """
+    }
+
+    val query =
+      sparql"""
+       SELECT DISTINCT ?term ?relation ?subsumer 
+       FROM $KBMainGraph
+       FROM $KBClosureGraph
+       FROM $KBRedundantRelationGraph
+       WHERE {
+         VALUES ?term { $termsElements }
+         VALUES ?relation { $relationsElements }
+         $queryPattern
+         FILTER(?subsumer != $owlThing)
+       }
+       """
+
+    val futurePairs = App.executeSPARQLQueryString(
+      query.text,
+      qs => {
+        val term = qs.getResource("term").getURI
+        val relation = qs.getResource("relation").getURI
+        val subsumer = qs.getResource("subsumer").getURI
+        (term, relation, subsumer)
+      }
+    )
+
+    val termSubsumerSeq = for {
+      pairs <- futurePairs
+    } yield {
+      val termSubsumerPairs = pairs.map(p => (p._1 -> (p._2, p._3)))
+
+      termSubsumerPairs.map { case (term, pairs) =>
+        val virtualTermIRI = pairs._1 match {
+          case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => IRI.create(pairs._2)
+          case _                                                 => RelationalTerm(IRI.create(pairs._1), IRI.create(pairs._2)).iri
+
+        }
+        Map(IRI.create(term) -> virtualTermIRI)
+      }.flatten
+    }
+    termSubsumerSeq
+  }
+
+  def ancestorMatrix(terms: Set[IRI], relations: Set[IRI], pathOpt: Option[Path]): Future[AncestorMatrix] =
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
-      val valuesElements = terms.map(t => sparql" $t ").reduce(_ + _)
-      val query =
-        sparql"""
-       SELECT DISTINCT ?term ?ancestor
-       FROM $KBClosureGraph
-       WHERE {
-         VALUES ?term { $valuesElements }
-         ?term $rdfsSubClassOf ?ancestor .
-         FILTER(?ancestor != $owlThing)
-       }
-          """
-      val futurePairs = App.executeSPARQLQueryString(query.text,
-                                                     qs => {
-                                                       val term = qs.getResource("term").getURI
-                                                       val ancestor = qs.getResource("ancestor").getURI
-                                                       (term, ancestor)
-                                                     })
+      val termSubsumerPairsFut = getTermSubsumerPairs(terms, relations, pathOpt)
       for {
-        pairs <- futurePairs
+        termSubsumerPairs <- termSubsumerPairsFut
       } yield {
-        val termsSequence = terms.map(_.toString).toSeq.sorted
+        val termsSequence = terms.toSeq.sortBy(_.toString)
         val header = s",${termsSequence.mkString(",")}"
-        val groupedByAncestor = pairs.groupBy(_._2)
-        val valuesLines = groupedByAncestor.map {
-          case (ancestor, ancPairs) =>
-            val termsForAncestor = ancPairs.map(_._1).toSet
-            val values = termsSequence.map(t => if (termsForAncestor(t)) "1" else "0")
-            s"$ancestor,${values.mkString(",")}"
+
+        val groupedBySubsumer = termSubsumerPairs.groupBy(_._2)
+
+        val valuesLines = groupedBySubsumer.map { case (subsumer, subsumerPairs) =>
+          val termsForSubsumer = subsumerPairs.map(_._1).toSet
+          val values = termsSequence.map(t => if (termsForSubsumer(t)) "1" else "0")
+          s"$subsumer,${values.mkString(",")}"
         }
+
         AncestorMatrix(s"$header\n${valuesLines.mkString("\n")}")
       }
     }
-  }
 
   final case class AncestorMatrix(csv: String)
 

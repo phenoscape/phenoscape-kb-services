@@ -56,6 +56,7 @@ object TaxaWithPhenotype {
       SELECT (COUNT(*) AS ?count)
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       WHERE {
         SELECT DISTINCT ?taxon ?taxon_label
@@ -67,6 +68,7 @@ object TaxaWithPhenotype {
       SELECT DISTINCT ?taxon ?taxon_label
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       $whereClause
       ORDER BY LCASE(?taxon_label) ?taxon
@@ -147,7 +149,7 @@ object TaxaWithPhenotype {
                            parts: Boolean): Set[BlazegraphNamedSubquery] =
     quality match {
       case PhenotypicQuality(qualityOpt) => phenotypicQualitySubQueryFor(entity, qualityOpt, phenotypeOpt, parts)
-      case InferredPresence              => entity.map(e => entityPhenotypeSubQueryFor(e, parts, implies_presence_of_some)).toSet
+      case InferredPresence              => entity.map(e => entityPhenotypeSubQueryFor(e, parts, IMPLIES_PRESENCE_OF.getIRI)).toSet
       case InferredAbsence               => entity.map(e => entityPhenotypeSubQueryFor(e, parts, ABSENCE_OF)).toSet
     }
 
@@ -155,15 +157,12 @@ object TaxaWithPhenotype {
                                    quality: Option[IRI],
                                    phenotype: Option[IRI],
                                    parts: Boolean): Set[BlazegraphNamedSubquery] = {
-    val entityPattern = entity.map(entityPhenotypeSubQueryFor(_, parts, PhenotypeOfSome))
+    val entityPattern = entity.map(entityPhenotypeSubQueryFor(_, parts, phenotype_of.getIRI))
     val qualityPattern = quality.map(q =>
       BlazegraphNamedSubquery(
         sparql"""
         SELECT DISTINCT ?phenotype WHERE {
-          ?p $rdfsSubClassOf/$HasPartSome $q . 
-          GRAPH $KBMainGraph {
-            ?phenotype $rdfsSubClassOf ?p .
-          }
+          ?phenotype $has_part $q . 
         }
       """
       ))
@@ -180,10 +179,7 @@ object TaxaWithPhenotype {
       BlazegraphNamedSubquery(
         sparql"""
         SELECT DISTINCT ?phenotype WHERE {
-          ?p $rdfsSubClassOf/$relation/$rdfsSubClassOf/$PartOfSome $entity .
-          GRAPH $KBMainGraph {
-            ?phenotype $rdfsSubClassOf ?p .
-          }
+          ?phenotype $rdfsSubClassOf/$relation/$part_of $entity .
         }
         """
       )
@@ -191,10 +187,7 @@ object TaxaWithPhenotype {
       BlazegraphNamedSubquery(
         sparql"""
         SELECT DISTINCT ?phenotype WHERE {
-          ?p $rdfsSubClassOf/$relation $entity .
-          GRAPH $KBMainGraph {
-            ?phenotype $rdfsSubClassOf ?p .
-          }
+          ?phenotype $rdfsSubClassOf/$relation $entity .
         }
         """
       )
