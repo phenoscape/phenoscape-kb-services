@@ -9,6 +9,7 @@ import org.apache.jena.sparql.expr.{E_NotOneOf, Expr, ExprList, ExprVar}
 import org.apache.jena.sparql.path.Path
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
+import org.apache.jena.sparql.path.Path
 import org.apache.jena.sparql.syntax._
 import org.phenoscape.kb.Graph.getTermSubsumerPairs
 import org.phenoscape.kb.KBVocab._
@@ -316,38 +317,21 @@ object Similarity {
     App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
   }
 
-  def frequency(terms: Set[IRI], corpus: IRI): Future[TermFrequencyTable] = {
-    import scalaz.Scalaz._
-    val values = if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ + _) else sparql""
-    val query: QueryText = corpus match {
-      case TaxaCorpus =>
-        sparql"""
-              SELECT ?term (COUNT(DISTINCT ?profile) AS ?count)
-              FROM $KBMainGraph
-              WHERE {
-                VALUES ?term { $values }
-                ?profile ^$has_phenotypic_profile/$rdfsIsDefinedBy $VTO .
-                GRAPH $KBClosureGraph {
-                  ?profile $rdfType ?term .
-                }
-              }
-              GROUP BY ?term
+  def frequency(terms: Set[IRI], path: Path): Future[TermFrequencyTable] = {
+    val values = terms.map(Term.asRelationalTerm)
+      .map { case RelationalTerm(relation, term) =>
+        sparql" ($relation $term) "
+      }.reduceOption(_ + _).getOrElse(sparql"")
+    val query =
+      sparql"""
+            SELECT (COUNT(DISTINCT ?item) AS ?count)
+            WHERE {
+              VALUES (?relation ?term) { $values }
+              ?item $path ?cls .
+              ?cls ?relation ?term .
+            }
+
             """
-      case GenesCorpus =>
-        sparql"""
-              SELECT ?term (COUNT(DISTINCT ?profile) AS ?count)
-              FROM $KBMainGraph
-              WHERE {
-                VALUES ?term { $values }
-                ?profile ^$has_phenotypic_profile ?obj .
-                FILTER NOT EXISTS { ?obj  $rdfsIsDefinedBy $VTO . }
-                GRAPH $KBClosureGraph {
-                  ?profile $rdfType ?term .
-                }
-              }
-              GROUP BY ?term
-            """
-    }
     App
       .executeSPARQLQueryString(query.text,
                                 qs =>
