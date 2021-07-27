@@ -3,7 +3,6 @@ package org.phenoscape.kb
 import java.net.URI
 import java.text.SimpleDateFormat
 import java.util.Calendar
-
 import org.apache.jena.query.{Query, QuerySolution}
 import org.apache.jena.rdf.model.{Property, ResourceFactory}
 import org.apache.jena.sparql.core.Var
@@ -19,7 +18,6 @@ import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.model.MultipleState.MODE
 import org.phenoscape.model.{Character, DataSet, MultipleState, State, Taxon => MatrixTaxon}
 import org.phenoscape.owl.NamedRestrictionGenerator
-import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
@@ -29,6 +27,7 @@ import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.kb.KBVocab.KBMainGraph
+import org.phenoscape.owl.Vocab.{ABSENCE_OF, IMPLIES_PRESENCE_OF, dcDescription, describes_phenotype, exhibits_state, has_absence_of, has_character, has_presence_of, may_have_state_value, part_of}
 import scalaz.NonEmptyList
 
 import scala.collection.JavaConverters._
@@ -260,8 +259,9 @@ object PresenceAbsenceOfStructure {
 
   def buildPresenceStatesQuery(taxonIRI: IRI, entityIRI: IRI, limit: Int, offset: Int): Query = {
     val query =
-      buildPresenceStatesQueryBase(taxonIRI,
-                                   entityIRI) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure"
+      buildPresenceStatesQueryBase(
+        taxonIRI,
+        entityIRI) from "http://kb.phenoscape.org/" from "http://kb.phenoscape.org/closure" from "http://kb.phenoscape.org/property_graphs/redundant"
     if (limit > 1) {
       query.setOffset(offset)
       query.setLimit(limit)
@@ -284,7 +284,7 @@ object PresenceAbsenceOfStructure {
       bgp(
         t(taxonIRI, exhibits_state, 'state),
         t('state, describes_phenotype, 'phenotype),
-        t('phenotype, rdfsSubClassOf / implies_presence_of_some, entityIRI),
+        t('phenotype, IMPLIES_PRESENCE_OF, entityIRI),
         t('state, dcDescription, 'description),
         t('matrix, has_character, 'character),
         t('character, rdfsLabel, 'character_label),
