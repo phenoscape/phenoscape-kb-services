@@ -381,6 +381,13 @@ object Main extends HttpApp with App {
                       }
                     }
                   } ~
+                  path("profile") {
+                    parameters('iri.as[IRI]) { iri =>
+                      complete {
+                        Similarity.similarityProfile(iri)
+                      }
+                    }
+                  } ~
                   path("profile_size") {
                     parameters('iri.as[IRI]) { (iri) =>
                       complete {

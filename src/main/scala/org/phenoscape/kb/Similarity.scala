@@ -184,6 +184,17 @@ object Similarity {
 
   // similarity/profile - object of above path for given subject
 
+  def similarityProfile(term: IRI): Future[Seq[IRI]] = {
+    val query =
+      sparql"""
+               SELECT DISTINCT ?profile
+               WHERE {
+                ?term $path ?profile 
+               }
+              """.toQuery
+    App.executeSPARQLQuery(query, result => IRI.create(result.getResource("profile").getURI))
+  }
+
   private lazy val genes: Future[Seq[IRI]] = {
     val genesQuery =
       sparql"""

@@ -742,6 +742,27 @@ paths:
                   label: decreased inferior colliculus size
           schema:
             $ref: '#/definitions/LabelledTermListResult'
+  /similarity/profile:
+    get:
+      tags:
+        - Semantic similarity
+      summary: Similarity profile
+      description: Extract phenotypic profile for given term.
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: IRI for profile instance
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: similarity profile
+          examples:
+            application/json:
+              results:
   /similarity/profile_size:
     get:
       tags:
