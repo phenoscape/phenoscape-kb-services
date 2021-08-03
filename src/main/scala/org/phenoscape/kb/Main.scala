@@ -347,23 +347,12 @@ object Main extends HttpApp with App {
                 path("query") {
                   parameters(
                     'iri.as[IRI],
-                    'relations
-                      .as[Seq[IRI]]
-                      .?(
-                        Seq(rdfsSubClassOf.getIRI,
-                            has_part.getIRI,
-                            inheres_in.getIRI,
-                            towards.getIRI,
-                            IMPLIES_PRESENCE_OF.getIRI,
-                            has_part_inhering_in.getIRI,
-                            phenotype_of.getIRI)
-                      ),
                     'path.as[Path]
-                  ) { (query, relations, path) =>
+                  ) { (query, path) =>
                     complete {
                       import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                       import Similarity.SimilarityProfile.SimilarityProfileCSV
-                      Similarity.querySimilarProfiles(query, relations, path)
+                      Similarity.querySimilarProfiles(query)
                     }
                   }
                 } ~ // why 2 graphs??

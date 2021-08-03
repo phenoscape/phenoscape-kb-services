@@ -11,7 +11,7 @@ import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
 import org.apache.jena.sparql.syntax._
 import org.phenoscape.kb.Graph.{ancestorMatrix, getTermSubsumerPairs}
-import org.phenoscape.kb.KBVocab._
+import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.owl.{NamedRestrictionGenerator, Vocab}
@@ -47,8 +47,10 @@ object Similarity {
 
   val availableCorpora = Seq(TaxaCorpus, GenesCorpus)
 
-  def querySimilarProfiles(queryItem: IRI, relations: Seq[IRI], path: Path): Future[SimilarityProfile] =
-    similarityProfileQuery(queryItem, relations, path)
+  def querySimilarProfiles(queryItem: IRI): Future[SimilarityProfile] =
+    similarityProfileQueryGene(queryItem)
+
+//    similarityProfileQueryTaxa(queryItem)
 
   def bestAnnotationsMatchesForComparison(queryItem: IRI,
                                           queryGraph: IRI,
@@ -170,7 +172,32 @@ object Similarity {
     block
   }
 
-  def similarityProfileQuery(queryItem: IRI, relations: Seq[IRI], path: Path): Future[SimilarityProfile] = {
+  private val relations = Seq(rdfsSubClassOf.getIRI,
+                              has_part.getIRI,
+                              inheres_in.getIRI,
+                              towards.getIRI,
+                              IMPLIES_PRESENCE_OF.getIRI,
+                              has_part_inhering_in.getIRI,
+                              phenotype_of.getIRI)
+
+  private val path: Path = has_phenotypic_profile / rdfType
+
+  // similarity/profile - object of above path for given subject
+
+  private lazy val genes: Future[Seq[IRI]] = {
+    val genesQuery =
+      sparql"""
+               SELECT DISTINCT ?gene
+               WHERE {
+                ?gene $has_phenotypic_profile ?profile .
+                ?gene $rdfType $AnnotatedGene .
+               }
+              """.toQuery
+
+    App.executeSPARQLQuery(genesQuery, result => IRI.create(result.getResource("gene").getURI))
+  }
+
+  private lazy val taxa: Future[Seq[IRI]] = {
     val taxaQuery =
       sparql"""
                SELECT DISTINCT ?taxa
@@ -180,19 +207,41 @@ object Similarity {
                }
               """.toQuery
 
-    val taxa = App.executeSPARQLQuery(taxaQuery, result => IRI.create(result.getResource("taxa").getURI))
+    App.executeSPARQLQuery(taxaQuery, result => IRI.create(result.getResource("taxa").getURI))
+  }
 
-    val taxaSubsumersFut = taxa.flatMap { t =>
-      getTermSubsumerPairs(t.toSet, relations.toSet, Some(path)).map { pairs =>
-        pairs.groupBy(_._1).map { case (term, tuple) => (term, tuple.map(_._2)) }
-      }
+  lazy val genesSubsumersFut = genes.flatMap { t =>
+    getTermSubsumerPairs(t.toSet, relations.toSet, Some(path)).map { pairs =>
+      pairs.groupBy(_._1).map { case (term, tuple) => (term, tuple.map(_._2)) }
     }
+  }
 
-    val geneSubsumersMap =
-      getTermSubsumerPairs(Set(queryItem), relations.toSet, Some(path)).map(pairs =>
-        pairs.groupBy(_._1).map { case (term, tuple) => (term, tuple.map(_._2)) })
+  lazy val taxaSubsumersFut = taxa.flatMap { t =>
+    getTermSubsumerPairs(t.toSet, relations.toSet, Some(path)).map { pairs =>
+      pairs.groupBy(_._1).map { case (term, tuple) => (term, tuple.map(_._2)) }
+    }
+  }
 
-    val geneSubsumersFut = geneSubsumersMap.map(_.getOrElse(queryItem, Seq.empty).toSet)
+  // genes with similarity profile similar to query parameter taxon
+  def similarityProfileQueryGene(queryItem: IRI): Future[SimilarityProfile] = {
+
+    val taxonSubsumersFut = taxaSubsumersFut.map(_.getOrElse(queryItem, Seq.empty).toSet)
+
+    val geneScore = for {
+      genesSubsumersMap <- genesSubsumersFut
+      taxonSubsumers <- taxonSubsumersFut
+    } yield for {
+      (gene, geneSubsumers) <- genesSubsumersMap
+      intersectionCount = geneSubsumers.toSet.intersect(taxonSubsumers).size
+      unionCount = (geneSubsumers.toSet ++ (taxonSubsumers)).size
+      jaccardScore = if (unionCount == 0) 0 else intersectionCount.toDouble / unionCount.toDouble
+    } yield (gene, jaccardScore)
+
+    geneScore.map(map => map.toSeq.sortWith(_._2 > _._2))
+  }
+
+  def similarityProfileQueryTaxa(queryItem: IRI): Future[SimilarityProfile] = {
+    val geneSubsumersFut = genesSubsumersFut.map(_.getOrElse(queryItem, Seq.empty).toSet)
 
     val taxonScore = for {
       taxaSubsumersMap <- taxaSubsumersFut
