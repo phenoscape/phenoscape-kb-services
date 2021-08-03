@@ -47,11 +47,6 @@ object Similarity {
 
   val availableCorpora = Seq(TaxaCorpus, GenesCorpus)
 
-  def querySimilarProfiles(queryItem: IRI): Future[SimilarityProfile] =
-    similarityProfileQueryGene(queryItem)
-
-//    similarityProfileQueryTaxa(queryItem)
-
   def bestAnnotationsMatchesForComparison(queryItem: IRI,
                                           queryGraph: IRI,
                                           corpusItem: IRI,
@@ -223,7 +218,7 @@ object Similarity {
   }
 
   // genes with similarity profile similar to query parameter taxon
-  def similarityProfileQueryGene(queryItem: IRI): Future[SimilarityProfile] = {
+  def querySimilarGeneProfiles(queryItem: IRI): Future[SimilarityProfile] = {
 
     val taxonSubsumersFut = taxaSubsumersFut.map(_.getOrElse(queryItem, Seq.empty).toSet)
 
@@ -240,7 +235,7 @@ object Similarity {
     geneScore.map(map => map.toSeq.sortWith(_._2 > _._2))
   }
 
-  def similarityProfileQueryTaxa(queryItem: IRI): Future[SimilarityProfile] = {
+  def querySimilarTaxaProfiles(queryItem: IRI): Future[SimilarityProfile] = {
     val geneSubsumersFut = genesSubsumersFut.map(_.getOrElse(queryItem, Seq.empty).toSet)
 
     val taxonScore = for {

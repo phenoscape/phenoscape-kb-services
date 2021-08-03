@@ -344,18 +344,28 @@ object Main extends HttpApp with App {
                   }
               } ~
               pathPrefix("similarity") {
-                path("query") {
+                path("taxa_query") {
                   parameters(
-                    'iri.as[IRI],
-                    'path.as[Path]
-                  ) { (query, path) =>
+                    'iri.as[IRI]
+                  ) { iri =>
                     complete {
                       import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                       import Similarity.SimilarityProfile.SimilarityProfileCSV
-                      Similarity.querySimilarProfiles(query)
+                      Similarity.querySimilarTaxaProfiles(iri)
                     }
                   }
-                } ~ // why 2 graphs??
+                } ~
+                  path("gene_query") {
+                    parameters(
+                      'iri.as[IRI]
+                    ) { iri =>
+                      complete {
+                        import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
+                        import Similarity.SimilarityProfile.SimilarityProfileCSV
+                        Similarity.querySimilarGeneProfiles(iri)
+                      }
+                    }
+                  } ~
                   path("best_matches") {
                     parameters('query_iri.as[IRI], 'corpus_iri.as[IRI], 'query_graph.as[IRI], 'corpus_graph.as[IRI]) {
                       (queryItem, corpusItem, queryGraph, corpusGraph) =>
