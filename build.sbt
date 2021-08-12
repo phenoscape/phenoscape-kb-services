@@ -39,7 +39,7 @@ libraryDependencies ++= {
     "com.typesafe.akka"      %% "akka-http-caching"       % "10.2.5",
     "com.typesafe.akka"      %% "akka-http-spray-json"    % "10.2.5",
     "ch.megard"              %% "akka-http-cors"          % "1.1.1",
-    "com.lightbend.akka"     %% "akka-stream-alpakka-xml" % "3.0.2",
+    "com.lightbend.akka"     %% "akka-stream-alpakka-xml" % "3.0.3",
     "io.spray"               %% "spray-json"              % "1.3.6",
     "net.sourceforge.owlapi" %  "owlapi-distribution"     % "4.5.18",
     "org.phenoscape"         %% "owlet"                   % "1.8.1" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
