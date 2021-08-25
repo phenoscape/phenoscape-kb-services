@@ -79,10 +79,9 @@ object Main extends HttpApp with App {
             case a: JsArray => a.elements.map(_.convertTo[String])
             case _          => throw new IllegalArgumentException(s"Not a valid JSON array: $text")
           }
-        }.recoverWith {
-          case NonFatal(_) =>
-            // must throw this particular exception for the Unmarshaller to fail over to the next
-            Try(throw new Unmarshaller.UnsupportedContentTypeException(Set(MediaTypes.`application/json`)))
+        }.recoverWith { case NonFatal(_) =>
+          // must throw this particular exception for the Unmarshaller to fail over to the next
+          Try(throw new Unmarshaller.UnsupportedContentTypeException(Set(MediaTypes.`application/json`)))
         }
       })
 
@@ -122,23 +121,27 @@ object Main extends HttpApp with App {
           rejectEmptyResponse {
             pathSingleSlash {
               redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
-            } ~ pathPrefix("kb") {
-              path("metadata") {
-                complete {
-                  KB.getKBMetadata
-                }
+            } ~
+              path("api_docs") {
+                getFromFile("swagger/swagger.yaml")
               } ~
-                path("annotation_summary") {
+              pathPrefix("kb") {
+                path("metadata") {
                   complete {
-                    KB.annotationSummary
+                    KB.getKBMetadata
                   }
                 } ~
-                path("annotation_report") {
-                  complete {
-                    KB.annotationReport
+                  path("annotation_summary") {
+                    complete {
+                      KB.annotationSummary
+                    }
+                  } ~
+                  path("annotation_report") {
+                    complete {
+                      KB.annotationReport
+                    }
                   }
-                }
-            } ~
+              } ~
               pathPrefix("term") {
                 path("search") {
                   parameters('text,
