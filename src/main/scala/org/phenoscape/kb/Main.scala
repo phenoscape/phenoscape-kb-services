@@ -362,6 +362,7 @@ object Main extends HttpApp with App {
                       complete {
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                         import Similarity.SimilarityProfile.SimilarityProfileCSV
+                        import Similarity.testProfile.testProfileCSV
                         Similarity.querySimilarGeneProfiles(iri)
                       }
                     }

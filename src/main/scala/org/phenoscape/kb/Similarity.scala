@@ -218,22 +218,24 @@ object Similarity {
   }
 
   // genes with similarity profile similar to query parameter taxon
-  def querySimilarGeneProfiles(queryItem: IRI): Future[SimilarityProfile] = {
+  def querySimilarGeneProfiles(queryItem: IRI): Future[testProfile] = //Future[SimilarityProfile] = {
+    genesSubsumersFut
 
-    val taxonSubsumersFut = taxaSubsumersFut.map(_.getOrElse(queryItem, Seq.empty).toSet)
+//    taxaSubsumersFut
 
-    val geneScore = for {
-      genesSubsumersMap <- genesSubsumersFut
-      taxonSubsumers <- taxonSubsumersFut
-    } yield for {
-      (gene, geneSubsumers) <- genesSubsumersMap
-      intersectionCount = geneSubsumers.toSet.intersect(taxonSubsumers).size
-      unionCount = (geneSubsumers.toSet ++ (taxonSubsumers)).size
-      jaccardScore = if (unionCount == 0) 0 else intersectionCount.toDouble / unionCount.toDouble
-    } yield (gene, jaccardScore)
-
-    geneScore.map(map => map.toSeq.sortWith(_._2 > _._2))
-  }
+//    val taxonSubsumersFut = taxaSubsumersFut.map(_.getOrElse(queryItem, Seq.empty).toSet)
+//
+//    val geneScore = for {
+//      genesSubsumersMap <- genesSubsumersFut
+//      taxonSubsumers <- taxonSubsumersFut
+//    } yield for {
+//      (gene, geneSubsumers) <- genesSubsumersMap
+//      intersectionCount = geneSubsumers.toSet.intersect(taxonSubsumers).size
+//      unionCount = (geneSubsumers.toSet ++ (taxonSubsumers)).size
+//      jaccardScore = if (unionCount == 0) 0 else intersectionCount.toDouble / unionCount.toDouble
+//    } yield (gene, jaccardScore)
+//
+//    geneScore.map(map => map.toSeq.sortWith(_._2 > _._2))
 
   def querySimilarTaxaProfiles(queryItem: IRI): Future[SimilarityProfile] = {
     val geneSubsumersFut = genesSubsumersFut.map(_.getOrElse(queryItem, Seq.empty).toSet)
@@ -417,6 +419,19 @@ object Similarity {
     implicit val TermFrequencyTableCSV: ToEntityMarshaller[TermFrequencyTable] =
       Marshaller.stringMarshaller(MediaTypes.`text/csv`).compose { table =>
         table.keys.toSeq.sortBy(_.toString).map(k => s"$k,${table(k)}").mkString("\n")
+      }
+
+  }
+
+  type testProfile = Map[IRI, Seq[IRI]]
+
+  object testProfile {
+
+    implicit val testProfileCSV: ToEntityMarshaller[testProfile] =
+      Marshaller.stringMarshaller(MediaTypes.`text/csv`).compose { pair =>
+        pair
+          .map { case (iri, subsumers) => subsumers.map(_.toString).map { case str => s"$iri, $str" } }
+          .mkString("\n")
       }
 
   }
