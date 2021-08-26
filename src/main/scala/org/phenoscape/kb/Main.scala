@@ -123,12 +123,7 @@ object Main extends HttpApp with App {
               redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
             } ~
               pathPrefix("docs") {
-                path("swagger_yaml") {
-                  getFromResource("swagger.yaml")
-                }
-              } ~
-              path("apidocs") {
-                getFromFile("swagger/swagger.yaml")
+                getFromResourceDirectory("swaggerDocs")
               } ~
               pathPrefix("kb") {
                 path("metadata") {
