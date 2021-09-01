@@ -6,10 +6,12 @@ import org.apache.jena.graph.{NodeFactory, Node_Variable}
 import org.apache.jena.query.{Query, QueryFactory, QuerySolution}
 import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.expr.{E_NotOneOf, Expr, ExprList, ExprVar}
+import org.apache.jena.sparql.path.Path
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
 import org.apache.jena.sparql.path.Path
 import org.apache.jena.sparql.syntax._
+import org.phenoscape.kb.Graph.getTermSubsumerPairs
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
@@ -132,15 +134,19 @@ object Similarity {
       labelledTerms <- Future.sequence(irisFuture.map(Term.computedLabel))
     } yield labelledTerms
 
-  def profileSize(profileSubject: IRI): Future[Int] = {
-    val query = select() from "http://kb.phenoscape.org/" where (bgp(
-      t(profileSubject, has_phenotypic_profile / rdfType, 'annotation)),
-    new ElementFilter(
-      new E_NotOneOf(
-        new ExprVar('annotation),
-        new ExprList(List[Expr](new NodeValueNode(AnnotatedPhenotype), new NodeValueNode(owlNamedIndividual)).asJava))))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("annotation"))))
-    App.executeSPARQLQuery(query).map(ResultCount.count)
+  def profileSize(profileSubject: IRI, path: Path): Future[Int] = {
+
+    val query =
+      sparql"""
+               SELECT (COUNT(DISTINCT ?phen) AS ?count) 
+               FROM $KBMainGraph
+               FROM $KBRedundantRelationGraph
+               FROM $KBClosureGraph
+               WHERE {
+                $profileSubject $path ?phen .
+                }
+              """
+    App.executeSPARQLQuery(query.toQuery).map(ResultCount.count)
   }
 
   def icDisparity(term: OWLClass, queryGraph: IRI, corpusGraph: IRI): Future[Double] = {
@@ -247,17 +253,41 @@ object Similarity {
     }
   }
 
-  def pairwiseJaccardSimilarity(iris: Set[IRI]): Future[Seq[JaccardScore]] =
-    Future.sequence(iris.map(iri => classSubsumers(iri).map(iri -> _))).map { irisSubsumers =>
-      val irisToSubsumers = irisSubsumers.toMap
+  def pairwiseJaccardSimilarity(iris: Set[IRI],
+                                relations: Set[IRI],
+                                pathOpt: Option[Path]): Future[Seq[JaccardScore]] = {
+
+    val termSubsumerPairsFut = getTermSubsumerPairs(iris, relations, pathOpt)
+
+    val termSubsumersMapFut = for {
+      termSubsumerPairs <- termSubsumerPairsFut
+    } yield {
+      val groupedByTerm = termSubsumerPairs.groupBy(_._1)
+
+      groupedByTerm
+        .map { case (term, pairs) =>
+          val subsumers = pairs.map(_._2).toSet
+          (term, subsumers)
+        }
+    }
+
+    termSubsumersMapFut.map { termSubsumersMap =>
       (for {
         combo <- iris.toSeq.combinations(2)
         left = combo(0)
         right = combo(1)
-        intersectionCount = irisToSubsumers(left).intersect(irisToSubsumers(right)).size
-        unionCount = (irisToSubsumers(left) ++ irisToSubsumers(right)).size
-      } yield JaccardScore(Set(left, right), intersectionCount.toDouble / unionCount.toDouble)).toSeq
+
+        intersectionCount = termSubsumersMap
+          .getOrElse(left, Set.empty)
+          .intersect(termSubsumersMap.getOrElse(right, Set.empty))
+          .size
+        unionCount = (termSubsumersMap.getOrElse(left, Set.empty) ++ termSubsumersMap.getOrElse(right, Set.empty)).size
+
+        jaccardScore = if (unionCount == 0) 0 else intersectionCount.toDouble / unionCount.toDouble
+
+      } yield JaccardScore(Set(left, right), jaccardScore)).toSeq
     }
+  }
 
   private def classSubsumers(iri: IRI): Future[Set[IRI]] = {
     val query: QueryText =
@@ -291,39 +321,21 @@ object Similarity {
     App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
   }
 
-  
-  def frequency(terms: Set[IRI], corpus: IRI): Future[TermFrequencyTable] = {
-    import scalaz.Scalaz._
-    val values = if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ + _) else sparql""
-    val query: QueryText = corpus match {
-      case TaxaCorpus =>
-        sparql"""
-              SELECT ?term (COUNT(DISTINCT ?profile) AS ?count)
-              FROM $KBMainGraph
-              WHERE {
-                VALUES ?term { $values }
-                ?profile ^$has_phenotypic_profile/$rdfsIsDefinedBy $VTO .
-                GRAPH $KBClosureGraph {
-                  ?profile $rdfType ?term .
-                }
-              }
-              GROUP BY ?term
+  def frequency(terms: Set[IRI], path: Path): Future[TermFrequencyTable] = {
+    val values = terms.map(Term.asRelationalTerm)
+      .map { case RelationalTerm(relation, term) =>
+        sparql" ($relation $term) "
+      }.reduceOption(_ + _).getOrElse(sparql"")
+    val query =
+      sparql"""
+            SELECT (COUNT(DISTINCT ?item) AS ?count)
+            WHERE {
+              VALUES (?relation ?term) { $values }
+              ?item $path ?cls .
+              ?cls ?relation ?term .
+            }
+
             """
-      case GenesCorpus =>
-        sparql"""
-              SELECT ?term (COUNT(DISTINCT ?profile) AS ?count)
-              FROM $KBMainGraph
-              WHERE {
-                VALUES ?term { $values }
-                ?profile ^$has_phenotypic_profile ?obj .
-                FILTER NOT EXISTS { ?obj  $rdfsIsDefinedBy $VTO . }
-                GRAPH $KBClosureGraph {
-                  ?profile $rdfType ?term .
-                }
-              }
-              GROUP BY ?term
-            """
-    }
     App
       .executeSPARQLQueryString(query.text,
                                 qs =>

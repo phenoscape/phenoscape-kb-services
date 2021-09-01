@@ -136,24 +136,34 @@ object Main extends HttpApp with App {
         respondWithHeaders(RawHeader("Vary", "negotiate, Accept")) {
           rejectEmptyResponse {
             pathSingleSlash {
-              redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
-            } ~ pathPrefix("kb") {
-              path("metadata") {
-                complete {
-                  KB.getKBMetadata
-                }
+              redirect(Uri("../docs/"), StatusCodes.SeeOther)
+            } ~
+              pathPrefix("docs") {
+                pathEnd {
+                  redirect(Uri("docs/"), StatusCodes.MovedPermanently)
+                } ~
+                  pathSingleSlash {
+                    getFromResource("swaggerDocs/index.html")
+                  } ~
+                  getFromResourceDirectory("swaggerDocs")
               } ~
-                path("annotation_summary") {
+              pathPrefix("kb") {
+                path("metadata") {
                   complete {
-                    KB.annotationSummary
+                    KB.getKBMetadata
                   }
                 } ~
-                path("annotation_report") {
-                  complete {
-                    KB.annotationReport
+                  path("annotation_summary") {
+                    complete {
+                      KB.annotationSummary
+                    }
+                  } ~
+                  path("annotation_report") {
+                    complete {
+                      KB.annotationReport
+                    }
                   }
-                }
-            } ~
+              } ~
               pathPrefix("term") {
                 path("search") {
                   parameters('text,
@@ -379,9 +389,9 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("profile_size") {
-                    parameters('iri.as[IRI]) { (iri) =>
+                    parameters('iri.as[IRI], 'path.as[Path]) { (iri, path) =>
                       complete {
-                        Similarity.profileSize(iri).map(ResultCount(_))
+                        Similarity.profileSize(iri, path).map(ResultCount(_))
                       }
                     }
                   } ~
@@ -424,18 +434,20 @@ object Main extends HttpApp with App {
                   } ~
                   path("jaccard") { //FIXME can GET and POST share code better?
                     get {
-                      parameters('iris.as[Seq[IRI]]) { iris =>
+                      parameters('iris.as[Seq[IRI]],
+                                 'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                                 'path.as[Path].?) { (iris, relations, path) =>
                         complete {
-                          import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                          Similarity.pairwiseJaccardSimilarity(iris.toSet)
+                          Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path)
                         }
                       }
                     } ~
                       post {
-                        formFields('iris.as[Seq[IRI]]) { iris =>
+                        formFields('iris.as[Seq[IRI]],
+                                   'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                                   'path.as[Path].?) { (iris, relations, path) =>
                           complete {
-                            import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                            Similarity.pairwiseJaccardSimilarity(iris.toSet)
+                            Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path)
                           }
                         }
                       }
@@ -463,18 +475,18 @@ object Main extends HttpApp with App {
                   path("frequency") {
                     get {
                       //FIXME not sure IRI for identifying corpus is best approach, particularly when scores are not stored ahead of time in a graph
-                      parameters('terms.as[Seq[IRI]], 'corpus_graph.as[IRI]) { (iris, corpusIRI) =>
+                      parameters('terms.as[Seq[IRI]], 'path.as[Path]) { (iris, path) =>
                         complete {
                           import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                          Similarity.frequency(iris.toSet, corpusIRI)
+                          Similarity.frequency(iris.toSet, path)
                         }
                       }
                     } ~
                       post {
-                        formFields('terms.as[Seq[IRI]], 'corpus_graph.as[IRI]) { (iris, corpusIRI) =>
+                        formFields('terms.as[Seq[IRI]], 'path.as[Path]) { (iris, path) =>
                           complete {
                             import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                            Similarity.frequency(iris.toSet, corpusIRI)
+                            Similarity.frequency(iris.toSet, path)
                           }
                         }
                       }
