@@ -396,9 +396,9 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("corpus_size") {
-                    parameters('corpus_graph.as[IRI]) { (corpusGraph) =>
+                    parameters('path.as[Path]) { path =>
                       complete {
-                        Similarity.corpusSize(corpusGraph).map(ResultCount(_))
+                        Similarity.corpusSize(path).map(ResultCount(_))
                       }
                     }
                   } ~
