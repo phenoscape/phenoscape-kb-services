@@ -136,10 +136,16 @@ object Main extends HttpApp with App {
         respondWithHeaders(RawHeader("Vary", "negotiate, Accept")) {
           rejectEmptyResponse {
             pathSingleSlash {
-              redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
+              redirect(Uri("../docs/"), StatusCodes.SeeOther)
             } ~
               pathPrefix("docs") {
-                getFromResourceDirectory("swaggerDocs")
+                pathEnd {
+                  redirect(Uri("docs/"), StatusCodes.MovedPermanently)
+                } ~
+                  pathSingleSlash {
+                    getFromResource("swaggerDocs/index.html")
+                  } ~
+                  getFromResourceDirectory("swaggerDocs")
               } ~
               pathPrefix("kb") {
                 path("metadata") {

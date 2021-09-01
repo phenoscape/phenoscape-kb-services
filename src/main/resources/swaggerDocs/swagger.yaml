@@ -9,8 +9,6 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-host: kb.phenoscape.org
-basePath: /api/v2-beta2
 tags:
   - name: Knowledgebase status
   - name: Terms
@@ -20,8 +18,6 @@ tags:
   - name: Taxa
   - name: Genes
   - name: Studies
-schemes:
-  - https
 paths:
   /kb/metadata:
     get:
