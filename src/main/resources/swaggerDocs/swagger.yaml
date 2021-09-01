@@ -738,12 +738,12 @@ paths:
                   label: decreased inferior colliculus size
           schema:
             $ref: '#/definitions/LabelledTermListResult'
-  /similarity/profile_size:
+  /similarity/profile:
     get:
       tags:
         - Semantic similarity
-      summary: Profile size
-      description: Retrieve number of phenotype annotations for a given profile, e.g. gene or taxon.
+      summary: Get profile
+      description: Retrieve annotations for a given profile, e.g. gene or taxon.
       produces:
         - application/json
       parameters:
@@ -758,7 +758,32 @@ paths:
           description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
           required: true
           type: string
-          format: JSON
+      responses:
+        200:
+          description: profile size
+          examples:
+            application/json:
+              total: 5
+  /similarity/profile_size:
+    get:
+      tags:
+        - Semantic similarity
+      summary: Profile size
+      description: Retrieve number of annotations for a given profile, e.g. gene or taxon.
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: IRI for profile instance
+          required: true
+          type: string
+          format: IRI
+        - name: path
+          in: query
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
+          required: true
+          type: string
       responses:
         200:
           description: profile size
