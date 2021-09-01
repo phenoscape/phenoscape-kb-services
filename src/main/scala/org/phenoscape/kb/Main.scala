@@ -388,6 +388,13 @@ object Main extends HttpApp with App {
                       }
                     }
                   } ~
+                  path("profile") {
+                    parameters("iri".as[IRI], "path".as[Path]) { (iri, path) =>
+                      complete {
+                        Similarity.getProfile(iri, path)
+                      }
+                    }
+                  } ~
                   path("profile_size") {
                     parameters('iri.as[IRI], 'path.as[Path]) { (iri, path) =>
                       complete {
