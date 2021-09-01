@@ -136,24 +136,34 @@ object Main extends HttpApp with App {
         respondWithHeaders(RawHeader("Vary", "negotiate, Accept")) {
           rejectEmptyResponse {
             pathSingleSlash {
-              redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
-            } ~ pathPrefix("kb") {
-              path("metadata") {
-                complete {
-                  KB.getKBMetadata
-                }
+              redirect(Uri("../docs/"), StatusCodes.SeeOther)
+            } ~
+              pathPrefix("docs") {
+                pathEnd {
+                  redirect(Uri("docs/"), StatusCodes.MovedPermanently)
+                } ~
+                  pathSingleSlash {
+                    getFromResource("swaggerDocs/index.html")
+                  } ~
+                  getFromResourceDirectory("swaggerDocs")
               } ~
-                path("annotation_summary") {
+              pathPrefix("kb") {
+                path("metadata") {
                   complete {
-                    KB.annotationSummary
+                    KB.getKBMetadata
                   }
                 } ~
-                path("annotation_report") {
-                  complete {
-                    KB.annotationReport
+                  path("annotation_summary") {
+                    complete {
+                      KB.annotationSummary
+                    }
+                  } ~
+                  path("annotation_report") {
+                    complete {
+                      KB.annotationReport
+                    }
                   }
-                }
-            } ~
+              } ~
               pathPrefix("term") {
                 path("search") {
                   parameters('text,
