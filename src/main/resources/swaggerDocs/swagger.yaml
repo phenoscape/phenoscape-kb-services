@@ -1,0 +1,2707 @@
+---
+swagger: "2.0"
+info:
+  description: The Phenoscape Knowledgebase web API is an HTTP interface for searching ontology terms, retrieving term info, and querying data from the KB. Most of the services return data in JSON format. Other formats you may encounter inlcude plain text (usually tab-delimited), and NeXML. The available formats for a given service are listed in the Response section of the service detail. As multiple formats may be available for one service, be sure to scroll through to see all supported formats. When plain-text is available, it is usually the default response, to provide a simple format for service results being directly reviewed. Set the appropriate media type value in your request's Accept header to ensure you receive the desired response format.
+  version: 1.0.0
+  title: Phenoscape Knowledgebase web API
+  contact:
+    email: balhoff@renci.org
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+tags:
+  - name: Knowledgebase status
+  - name: Terms
+  - name: OntoTrace
+  - name: Semantic similarity
+  - name: Anatomical entities
+  - name: Taxa
+  - name: Genes
+  - name: Studies
+paths:
+  /kb/metadata:
+    get:
+      tags:
+        - Knowledgebase status
+      summary: KB metadata
+      description: Return KB build time, and ontologies and their versions
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        200:
+          description: KB metadata
+          examples:
+            application/json:
+              build_time: '2020-04-08T20:37:21.892Z'
+              ontologies:
+                - "@id": http://purl.obolibrary.org/obo/pato.owl
+                  version: http://purl.obolibrary.org/obo/pato/releases/2020-03-24/pato.owl
+                - "@id": http://purl.obolibrary.org/obo/ro.owl
+                  version: http://purl.obolibrary.org/obo/ro/releases/2020-02-26/ro.owl
+  /kb/annotation_summary:
+    get:
+      tags:
+        - Knowledgebase status
+      summary: KB annotation summary
+      description: Return summary counts of annotated data matrices, taxa, characters, and states
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        200:
+          description: KB summary counts
+          schema:
+            type: object
+            properties:
+              annotated_matrices:
+                type: integer
+                example: 154
+              annotated_taxa:
+                type: integer
+                example: 5071
+              annotated_characters:
+                type: integer
+                example: 9602
+              annotated_states:
+                type: integer
+                example: 21182
+              build_time:
+                example: "2020-03-06T17:40:11.150Z"
+  /kb/annotation_report:
+    get:
+      tags:
+        - Knowledgebase status
+      summary: KB annotation report
+      description: Return table of character state EQ annotations for curator review
+      produces:
+        - text/tab-separated-values
+      parameters: []
+      responses:
+        200:
+          description: EQ annotation report
+          schema:
+            type: string
+            example: |
+              ?matrix_file  ?character_number ?character_text ?state_symbol ?state_text ?entity_id  ?entity_name  ?quality_id ?quality_name ?related_entity_id  ?related_entity_name  ?attributes
+              "Bowne, P. S. (1994)"  "7"  "Interorbital commissure"  "1"  "medially opening pore"  "http://data.bioontology.org/provisional_classes/3a694e40-e12b-0132-ac85-005056010074"  ""  "http://purl.obolibrary.org/obo/PATO_0000025"  "composition"  "http://purl.obolibrary.org/obo/UBERON_0008915"  "pore"  "composition, structure"
+              "McLennan, D. A., & Mattern, M. Y. (2001)"  "12"  "Interorbital commisure"  "1"  "medially opening pore"  "http://data.bioontology.org/provisional_classes/3a694e40-e12b-0132-ac85-005056010074"  ""  "http://purl.obolibrary.org/obo/PATO_0000025"  "composition"  "http://purl.obolibrary.org/obo/UBERON_0008915"  "pore"  "composition, structure"
+  /term:
+    get:
+      tags:
+        - Terms
+      summary: Term detail
+      description: Return detail info for a given term. Currently this is the label and an optional definition.
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: the term IRI, e.g. `http://purl.obolibrary.org/obo/UBERON_0011618`
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: term detail
+          examples:
+            application/json:
+              synonyms:
+                - property: http://www.geneontology.org/formats/oboInOwl#hasExactSynonym
+                  value: basihyoid
+                - property: http://www.geneontology.org/formats/oboInOwl#hasExactSynonym
+                  value: glossohyal
+              isDefinedBy: http://purl.obolibrary.org/obo/uberon.owl
+              label: basihyal bone
+              relationships:
+                - property:
+                    "@id": http://purl.obolibrary.org/obo/RO_0002202
+                    label: develops from
+                  value:
+                    "@id": http://purl.obolibrary.org/obo/UBERON_0011615
+                    label: basihyal cartilage
+              definition: Replacement bone that is median and is the anterior-most bone of the ventral
+                hyoid arch.
+              "@id": http://purl.obolibrary.org/obo/UBERON_0011618
+  /term/search:
+    get:
+      tags:
+        - Terms
+      summary: Term search
+      description: Search for terms in the KB by text match on a property value.
+      produces:
+        - application/json
+      parameters:
+        - name: text
+          in: query
+          description: the input text to search
+          required: true
+          type: string
+        - name: type
+          in: query
+          description: the type of term to search for, e.g. `http://www.w3.org/2002/07/owl#Class`
+          required: false
+          type: string
+          default: http://www.w3.org/2002/07/owl#Class
+          format: IRI
+        - name: properties
+          in: query
+          description: relation between term and text; JSON array of IRI strings
+          required: false
+          type: string
+          default: '["http://www.w3.org/2000/01/rdf-schema#label", "http://www.geneontology.org/formats/oboInOwl#hasExactSynonym", "http://www.geneontology.org/formats/oboInOwl#NarrowSynonym", "http://www.geneontology.org/formats/oboInOwl#hasBroadSynonym"]'
+          format: JSON
+        - name: definedBy
+          in: query
+          description: the ontology identifier IRI(s) in which the search terms are defined, e.g. `http://purl.obolibrary.org/obo/uberon.owl`; JSON array of IRI strings
+          required: false
+          type: string
+          format: JSON
+        - name: includeDeprecated
+          in: query
+          description: include deprecated (obsolete) terms in results
+          required: false
+          type: boolean
+          default: false
+        - name: limit
+          in: query
+          description: maximum terms to return
+          required: false
+          type: integer
+          default: 100
+      responses:
+        200:
+          description: Term search results; values returned for `matchType` may be `exact`, `partial`, or `broad`.
+          schema:
+            type: object
+            properties:
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/inline_response_200_1_results'
+  /term/search_classes:
+    get:
+      tags:
+        - Terms
+      summary: Ontology class search [DEPRECATED]
+      description: Search for classes from a particular ontology.
+      produces:
+        - application/json
+      parameters:
+        - name: text
+          in: query
+          description: the input text to search
+          required: true
+          type: string
+        - name: definedBy
+          in: query
+          description: the ontology identifier IRI in which the search terms are defined, e.g. `http://purl.obolibrary.org/obo/uberon.owl`
+          required: false
+          type: string
+          format: IRI
+        - name: limit
+          in: query
+          description: maximum terms to return
+          required: false
+          type: integer
+      responses:
+        200:
+          description: Term search results; values returned for `matchType` may be `exact`, `partial`, or `broad`.
+          schema:
+            type: object
+            properties:
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/inline_response_200_2_results'
+  /term/label:
+    get:
+      tags:
+        - Terms
+      summary: Term label
+      description: Retrieve a label for a given term IRI.
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: the term IRI
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: Term label
+          schema:
+            $ref: '#/definitions/TermWithLabel'
+  /term/labels:
+    get:
+      tags:
+        - Terms
+      summary: Term labels
+      description: Retrieve a label for each term IRI in a list
+      produces:
+        - application/json
+      parameters:
+        - name: iris
+          in: query
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/UBERON_0000981", "http://purl.obolibrary.org/obo/UBERON_0002103", "http://purl.obolibrary.org/obo/UBERON_0000976", "http://purl.obolibrary.org/obo/UBERON_0002102"]
+          required: true
+          type: string
+      responses:
+        200:
+          description: Terms and labels
+          schema:
+            type: object
+            properties:
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/TermWithLabel'
+    post:
+      tags:
+        - Terms
+      summary: Term labels
+      description: Retrieve a label for each term IRI in a list
+      consumes:
+        - application/x-www-form-urlencoded
+      produces:
+        - application/json
+      parameters:
+        - name: iris
+          in: formData
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/UBERON_0000981", "http://purl.obolibrary.org/obo/UBERON_0002103", "http://purl.obolibrary.org/obo/UBERON_0000976", "http://purl.obolibrary.org/obo/UBERON_0002102"]
+          required: true
+          type: string
+      responses:
+        200:
+          description: Terms and labels
+          schema:
+            type: object
+            properties:
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/TermWithLabel'
+  /term/classification:
+    get:
+      tags:
+        - Terms
+      summary: Classification
+      description: Return direct superclasses, direct subclasses, and equivalent classes of a given term
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: the term IRI
+          required: true
+          type: string
+      responses:
+        200:
+          description: term classification
+          schema:
+            type: object
+            properties:
+              '@id':
+                type: string
+                format: IRI
+                example: http://purl.obolibrary.org/obo/UBERON_0011618
+              label:
+                type: string
+                example: basihyal bone
+              subClassOf:
+                type: array
+                items:
+                  $ref: '#/definitions/TermWithLabel'
+              equivalentTo:
+                type: array
+                items:
+                  $ref: '#/definitions/TermWithLabel'
+              superClassOf:
+                type: array
+                items:
+                  $ref: '#/definitions/TermWithLabel'
+  /term/all_ancestors:
+    get:
+      tags:
+        - Terms
+      summary: Ancestors
+      description: Return all ancestor superclasses of a given term
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: the term IRI
+          required: true
+          type: string
+        - name: parts
+          in: query
+          description: whether to include terms `X` for which this term is a subclass of `part_of some X`
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: term ancestors
+          schema:
+            $ref: '#/definitions/LabelledTermListResult'
+  /term/all_descendants:
+    get:
+      tags:
+        - Terms
+      summary: Descendants
+      description: Return all descendant subclasses of a given term
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: the term IRI
+          required: true
+          type: string
+        - name: parts
+          in: query
+          description: whether to include terms which are subclasses of `part_of some <this term>`
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: term descendants
+          schema:
+            $ref: '#/definitions/LabelledTermListResult'
+  /term/least_common_subsumers:
+    get:
+      tags:
+        - Terms
+      summary: Least common subsumers
+      description: Return the set of least common subsumers for a set of terms
+      produces:
+        - application/json
+      parameters:
+        - name: iris
+          in: query
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/UBERON_0000981", "http://purl.obolibrary.org/obo/UBERON_0002103", "http://purl.obolibrary.org/obo/UBERON_0000976", "http://purl.obolibrary.org/obo/UBERON_0002102"]
+          required: true
+          type: string
+        - name: definedBy
+          in: query
+          description: limit the returned subsumers to those defined by this ontology
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: least common subsumers
+          schema:
+            $ref: '#/definitions/UnlabelledTermListResult'
+  /term/property_neighbors/object:
+    get:
+      tags:
+        - Terms
+      summary: Property neighbors for object
+      description: Return subjects related to the given object through the given property.
+      produces:
+        - application/json
+      parameters:
+        - name: term
+          in: query
+          description: IRI of focal term
+          required: true
+          type: string
+          format: IRI
+        - name: property
+          in: query
+          description: IRI of property
+          required: true
+          type: string
+          format: IRI
+        - name: direct
+          in: query
+          description: Returns only direct neighbors when set `true`. Filters out superclasses and transitively related terms.
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: subject terms related to this object
+          schema:
+            $ref: '#/definitions/LabelledTermListResult'
+  /term/property_neighbors/subject:
+    get:
+      tags:
+        - Terms
+      summary: Property neighbors for subject
+      description: Return objects related to the given subject through the given property.
+      produces:
+        - application/json
+      parameters:
+        - name: term
+          in: query
+          description: IRI of focal term
+          required: true
+          type: string
+          format: IRI
+        - name: property
+          in: query
+          description: IRI of property
+          required: true
+          type: string
+          format: IRI
+        - name: direct
+          in: query
+          description: Returns only direct neighbors when set `true`. Filters out superclasses and transitively related terms.
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: object terms related to this subject
+          schema:
+            $ref: '#/definitions/LabelledTermListResult'
+  /term/resolve_label_expression:
+    get:
+      tags:
+        - Terms
+      summary: Parse label-based class expression
+      description: Convert a label-based class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/) into an expression composed of IRIs
+      produces:
+        - text/plain
+      parameters:
+        - name: expression
+          in: query
+          description: class expression in Manchester syntax, e.g. `'part of' some head`
+          required: true
+          type: string
+      responses:
+        200:
+          description: IRI-based class expression
+          examples:
+            text/plain: <http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/UBERON_0000033>
+  /ontotrace:
+    get:
+      tags:
+        - OntoTrace
+      summary: OntoTrace
+      description:  Generate matrix of inferred presence/absence associations for entity (anatomical structures) vs taxon. The entity and taxon can either be from the exact list of term IRIs provided in the list, or can be those subsumed by the provided class expression; it being necessary to provide at least one of the two. Returns a NeXML-format evolutionary character matrix.
+      produces:
+        - application/xml
+      parameters:
+        - name: taxon
+          in: formData
+          description: Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+          required: false
+          type: string
+        - name: taxon_list
+          in: query
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/VTO_0033643", "http://purl.obolibrary.org/obo/VTO_0036426"]
+          required: false
+          type: string
+          format: JSON
+        - name: entity
+          in: formData
+          description: Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+          required: false
+          type: string
+        - name: entity_list
+          in: query
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/UBERON_0008897", "http://purl.obolibrary.org/obo/UBERON_0002535"]
+          required: false
+          type: string
+          format: JSON
+        - name: variable_only
+          in: formData
+          description: whether to restrict the matrix to characters with both 'present' and 'absent' values in the matrix
+          required: false
+          type: boolean
+          default: true
+      responses:
+        200:
+          description: NeXML-format evolutionary character matrix
+    post:
+      tags:
+        - OntoTrace
+      summary: OntoTrace
+      description: Generate matrix of inferred presence/absence associations for entity (anatomical structures) vs taxon. The entity and taxon can either be from the exact list of term IRIs provided in the list, or can be those subsumed by the provided class expression; it being necessary to provide at least one of the two. Returns a NeXML-format evolutionary character matrix.
+      consumes:
+        - application/x-www-form-urlencoded
+      produces:
+        - application/xml
+      parameters:
+        - name: taxon
+          in: formData
+          description: Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+          required: false
+          type: string
+        - name: taxon_list
+          in: query
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/VTO_0033643", "http://purl.obolibrary.org/obo/VTO_0036426"]
+          required: false
+          type: string
+          format: JSON
+        - name: entity
+          in: formData
+          description: Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+          required: false
+          type: string
+        - name: entity_list
+          in: query
+          description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/UBERON_0008897", "http://purl.obolibrary.org/obo/UBERON_0002535"]
+          required: false
+          type: string
+          format: JSON
+        - name: variable_only
+          in: formData
+          description: whether to restrict the matrix to characters with both 'present' and 'absent' values in the matrix
+          required: false
+          type: boolean
+          default: true
+      responses:
+        200:
+          description: NeXML-format evolutionary character matrix
+  /similarity/query:
+    get:
+      tags:
+        - Semantic similarity
+      summary: Semantic similarity query
+      description: Retrieve taxon variation profile similarity scores for this gene, ordered with best matches first.
+      produces:
+        - text/tab-separated-values
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: query term IRI (gene or taxon)
+          required: true
+          type: string
+          format: IRI
+        - name: corpus_graph
+          in: query
+          description: IRI identifying corpus. Current options are `http://kb.phenoscape.org/sim/taxa` or `http://kb.phenoscape.org/sim/genes`
+          required: true
+          type: string
+          format: IRI
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+      responses:
+        200:
+          description: similarity scores
+          examples:
+            application/json:
+              results:
+                - match_profile:
+                    '@id': http://purl.obolibrary.org/obo/VTO_0037378
+                    label: Gymnotiformes
+                  median_score: 0.7506756923676524
+                  expect_score: 0.0014462288121
+                - match_profile:
+                    '@id': http://purl.obolibrary.org/obo/VTO_0037490
+                    label: Eigenmannia
+                  median_score: 0.6217930498438566
+                  expect_score: 0.00352135614022
+            text/tab-separated-values: |
+              taxon IRI taxon label median score  expect score
+              http://purl.obolibrary.org/obo/VTO_0037378  Gymnotiformes 0.7506756923676524  0.0014462288121
+              http://purl.obolibrary.org/obo/VTO_0037490  Eigenmannia 0.6217930498438566  0.00352135614022
+  /similarity/best_matches:
+    get:
+      tags:
+        - Semantic similarity
+      summary: Best annotation matches for comparison
+      description: Retrieve the top matching phenotype annotations, with their most informative common subsumer, for a given pair of profiles, e.g. a gene and a taxon.
+      produces:
+        - application/json
+      parameters:
+        - name: query_iri
+          in: query
+          description: IRI for query profile
+          required: true
+          type: string
+          format: IRI
+        - name: corpus_iri
+          in: query
+          description: IRI for matched profile in corpus
+          required: true
+          type: string
+          format: IRI
+        - name: corpus_graph
+          in: query
+          description: IRI identifying corpus. Current options are `http://kb.phenoscape.org/sim/taxa` or `http://kb.phenoscape.org/sim/genes`
+          required: true
+          type: string
+          format: IRI
+        - name: query_graph
+          in: query
+          description: IRI identifying graph of query items. Current options are `http://kb.phenoscape.org/sim/taxa` or `http://kb.phenoscape.org/sim/genes`
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: best profile matches
+          examples:
+            application/json:
+              results:
+                - query_annotation:
+                    '@id': http://purl.obolibrary.org/obo/MP_0009038
+                    label: decreased inferior colliculus size
+                  corpus_annotation:
+                    '@id': http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000140%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2002106%3E%29+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2Fpato%23towards%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0001945%3E%29#ca1edf06-51cb-40f5-8858-0b266e906ca2
+                    label: position and (inheres in some eminentia granularis) and (towards some superior colliculus)
+                  best_subsumer:
+                    term:
+                      '@id': http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0002950%3E%29
+                      label: has part some (phenotype of some regional part of midbrain)
+                    ic: 0.8926218653448688
+                    disparity: 0.47824477007017246
+  /similarity/best_subsumers:
+    get:
+      tags:
+        - Semantic similarity
+      summary: Best subsumers for comparison
+      description: Retrieve only the most informative subsumers for the top matching phenotype annotations for a given pair of profiles, e.g. a gene and a taxon.
+      produces:
+        - application/json
+      parameters:
+        - name: query_iri
+          in: query
+          description: IRI for query profile
+          required: true
+          type: string
+          format: IRI
+        - name: corpus_iri
+          in: query
+          description: IRI for matched profile in corpus
+          required: true
+          type: string
+          format: IRI
+        - name: corpus_graph
+          in: query
+          description: IRI identifying corpus. Current options are `http://kb.phenoscape.org/sim/taxa` or `http://kb.phenoscape.org/sim/genes`
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: most informative subsumers for the top matching phenotype annotations
+          examples:
+            application/json:
+              results:
+                - term:
+                    '@id': http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0002950%3E%29
+                    label: has part some (phenotype of some regional part of midbrain)
+                  ic: 0.8926218653448688
+                - term:
+                    '@id': http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000050%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0003528%3E%29%29
+                    label: has part some (phenotype of some (part of some brain grey matter))
+                  ic: 0.7506756923676524
+  /similarity/subsumed_annotations:
+    get:
+      tags:
+        - Semantic similarity
+      summary: Subsumed annotations
+      description: Retrieve all annotations for a given profile which are subsumed by a phenotype class.
+      produces:
+        - application/json
+      parameters:
+        - name: subsumer
+          in: query
+          description: IRI for phenotype concept
+          required: true
+          type: string
+          format: IRI
+        - name: instance
+          in: query
+          description: IRI for profile instance
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: subsumed annotations
+          examples:
+            application/json:
+              results:
+                - '@id': http://purl.obolibrary.org/obo/MP_0009038
+                  label: decreased inferior colliculus size
+          schema:
+            $ref: '#/definitions/LabelledTermListResult'
+  /similarity/profile:
+    get:
+      tags:
+        - Semantic similarity
+      summary: Get profile
+      description: Retrieve annotations for a given profile, e.g. gene or taxon.
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: IRI for profile instance
+          required: true
+          type: string
+          format: IRI
+        - name: path
+          in: query
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
+          required: true
+          type: string
+      responses:
+        200:
+          description: profile size
+          examples:
+            application/json:
+              total: 5
+  /similarity/profile_size:
+    get:
+      tags:
+        - Semantic similarity
+      summary: Profile size
+      description: Retrieve number of annotations for a given profile, e.g. gene or taxon.
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: IRI for profile instance
+          required: true
+          type: string
+          format: IRI
+        - name: path
+          in: query
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
+          required: true
+          type: string
+      responses:
+        200:
+          description: profile size
+          examples:
+            application/json:
+              total: 5
+  /similarity/corpus_size:
+    get:
+      tags:
+        - Semantic similarity
+      summary: Corpus size
+      description: Retrieve number of instances in the similarity search corpus (currently, either gene or taxon nodes).
+      produces:
+        - application/json
+      parameters:
+        - name: path
+          in: query
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
+          required: true
+          type: string
+      responses:
+        200:
+          description: corpus size
+          examples:
+            application/json:
+              total: 659
+  /similarity/ic_disparity:
+    get:
+      tags:
+        - Semantic similarity
+      summary: IC disparity
+      description: Query information content disparity for a phenotype class between taxon and gene corpora. The disparity for a class is the IC of the term in the search corpus IC minus the IC of the term in the query corpus.
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: IRI for phenotype class
+          required: true
+          type: string
+          format: IRI
+        - name: corpus_graph
+          in: query
+          description: IRI identifying corpus. Current options are `http://kb.phenoscape.org/sim/taxa` or `http://kb.phenoscape.org/sim/genes`
+          required: true
+          type: string
+          format: IRI
+        - name: query_graph
+          in: query
+          description: IRI identifying graph of query items. Current options are `http://kb.phenoscape.org/sim/taxa` or `http://kb.phenoscape.org/sim/genes`
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: disparity value
+          examples:
+            application/json:
+              value: -0.19564677483705345
+  /similarity/jaccard:
+    get:
+      tags:
+        - Semantic similarity
+      summary: Get pairwise Jaccard similarity for a set of terms.
+      description: Calculate similarity for every pair in a set of terms, for the given relations, and path.
+      produces:
+        - application/json
+      parameters:
+        - name: iris
+          in: query
+          description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
+          required: true
+          type: string
+          format: JSON
+        - name: relations
+          in: query
+          description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
+          required: false
+          default: ["http://www.w3.org/2000/01/rdf-schema#subClassOf","http://purl.obolibrary.org/obo/BFO_0000050"]
+          type: string
+          format: JSON
+        - name: path
+          in: query
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/has_state>/<http://purl.org/describes_phenotype>`
+          required: false
+          type: string
+          format: JSON
+      responses:
+        200:
+          description: similarity scores
+          examples:
+            application/json:
+              results:
+                - terms:
+                    - http://purl.obolibrary.org/obo/UBERON_0000151
+                    - http://purl.obolibrary.org/obo/UBERON_0000152
+                  score: 0.8717948717948718
+                - terms:
+                    - http://purl.obolibrary.org/obo/UBERON_0000151
+                    - http://purl.obolibrary.org/obo/UBERON_0003097
+                  score: 0.37610619469026546
+                - terms:
+                    - http://purl.obolibrary.org/obo/UBERON_0000152
+                    - http://purl.obolibrary.org/obo/UBERON_0003097
+                  score: 0.3695652173913043
+    post:
+      tags:
+        - Semantic similarity
+      summary: Get pairwise Jaccard similarity for a set of terms [IN DEVELOPMENT—SUBJECT TO CHANGE]
+      description: Calculate similarity for every pair in a set of terms.
+      consumes:
+        - application/x-www-form-urlencoded
+      produces:
+        - application/json
+      parameters:
+        - name: iris
+          in: formData
+          description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
+          required: true
+          type: string
+          format: JSON
+      responses:
+        200:
+          description: similarity scores
+          examples:
+            application/json:
+              results:
+                - terms:
+                    - http://purl.obolibrary.org/obo/UBERON_0000151
+                    - http://purl.obolibrary.org/obo/UBERON_0000152
+                  score: 0.8717948717948718
+                - terms:
+                    - http://purl.obolibrary.org/obo/UBERON_0000151
+                    - http://purl.obolibrary.org/obo/UBERON_0003097
+                  score: 0.37610619469026546
+                - terms:
+                    - http://purl.obolibrary.org/obo/UBERON_0000152
+                    - http://purl.obolibrary.org/obo/UBERON_0003097
+                  score: 0.3695652173913043
+  /similarity/matrix:
+    get:
+      tags:
+        - Semantic similarity
+      summary: Get matrix of subsuming terms for a list of terms [IN DEVELOPMENT—SUBJECT TO CHANGE]
+      description: Get matrix of subsuming terms for a list of terms, such that clients can perform their own calculations such as Jaccard similarity.
+      produces:
+        - text/csv
+      parameters:
+        - name: terms
+          in: query
+          description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
+          required: true
+          type: string
+        - name: relations
+          in: query
+          description: JSON array of relation IRIs, e.g. `["http://www.w3.org/2000/01/rdf-schema#subClassOf","http://purl.obolibrary.org/obo/BFO_0000050"]`
+          required: false
+          default: ["http://www.w3.org/2000/01/rdf-schema#subClassOf","http://purl.obolibrary.org/obo/BFO_0000050"]
+          type: string
+          format: JSON
+        - name: path
+          in: query
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/has_state>/<http://purl.org/describes_phenotype>`
+          required: false
+          default:
+          nullable: true
+          type: string
+          format: JSON
+      responses:
+        200:
+          description: 'Subsumer matrix: column headers are input terms; each row is a subsumer class, with 1 if the column header is subsumed by the row term, and 0 if not.'
+          examples:
+            text/csv: |
+              ,http://purl.obolibrary.org/obo/UBERON_0000151,http://purl.obolibrary.org/obo/UBERON_0000152,http://purl.obolibrary.org/obo/UBERON_0003097
+              http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0009569%3E,1,1,0
+              http://purl.obolibrary.org/obo/BFO_0000004,1,1,1
+              http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0000465%3E,1,1,1
+              http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0010083%3E,1,1,0
+              http://purl.obolibrary.org/obo/UBERON_0000061,1,1,1
+              http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0000475%3E,1,1,1
+              http://purl.obolibrary.org/obo/UBERON_0010314,0,0,1
+    post:
+      tags:
+        - Semantic similarity
+      summary: Get matrix of subsuming terms for a list of terms [IN DEVELOPMENT—SUBJECT TO CHANGE]
+      description: Get matrix of subsuming terms for a list of terms, such that clients can perform their own calculations such as Jaccard similarity.
+      consumes:
+        - application/x-www-form-urlencoded
+      produces:
+        - text/csv
+      parameters:
+        - name: terms
+          in: formData
+          description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
+          required: true
+          type: string
+      responses:
+        200:
+          description: 'Subsumer matrix: column headers are input terms; each row is a subsumer class, with 1 if the column header is subsumed by the row term, and 0 if not.'
+          examples:
+            text/csv: |
+              ,http://purl.obolibrary.org/obo/UBERON_0000151,http://purl.obolibrary.org/obo/UBERON_0000152,http://purl.obolibrary.org/obo/UBERON_0003097
+              http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0009569%3E,1,1,0
+              http://purl.obolibrary.org/obo/BFO_0000004,1,1,1
+              http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0000465%3E,1,1,1
+              http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0010083%3E,1,1,0
+              http://purl.obolibrary.org/obo/UBERON_0000061,1,1,1
+              http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0000475%3E,1,1,1
+              http://purl.obolibrary.org/obo/UBERON_0010314,0,0,1
+  /similarity/frequency:
+    get:
+      tags:
+        - Semantic similarity
+      summary: Get frequency score for ontology terms
+      description: Get frequency score (subsumed items) for ontology terms according to some identified corpus.
+      produces:
+        - text/csv
+      parameters:
+        - name: terms
+          in: query
+          description: JSON array of term IRIs, e.g. `["http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0008897%3E"]`
+          required: true
+          type: string
+        - name: path
+          in: query
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
+          required: true
+          type: string
+          format: JSON
+      responses:
+        200:
+          description: 'Term frequency table: first column is term IRI, second column is occurrence count.'
+          examples:
+            text/csv: |
+              http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0008897%3E,237
+    post:
+      tags:
+        - Semantic similarity
+      summary: Get frequency score for ontology terms
+      description: Get frequency score (subsumed items) for ontology terms according to some identified corpus.
+      consumes:
+        - application/x-www-form-urlencoded
+      produces:
+        - text/csv
+      parameters:
+        - name: terms
+          in: query
+          description: JSON array of term IRIs, e.g. `["http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0008897%3E"]`
+          required: true
+          type: string
+        - name: corpus_graph
+          in: query
+          description: IRI of corpus defined in KB, e.g. `http://kb.phenoscape.org/sim/taxa`
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: 'Term frequency table: first column is term IRI, second column is occurrence count.'
+          examples:
+            text/csv: |
+              http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0008897%3E,237
+  /entity/search:
+    get:
+      tags:
+        - Anatomical entities
+      summary: Anatomical entity search
+      description: Search for an anatomcial entity by label or synonym.
+      produces:
+        - application/json
+      parameters:
+        - name: text
+          in: query
+          description: the search text
+          required: true
+          type: string
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+      responses:
+        200:
+          description: matching anatomical terms
+          examples:
+            application/json:
+              results:
+                - '@id': http://purl.obolibrary.org/obo/UBERON_3000957
+                  label: basihyal
+                  matchType: exact
+                - '@id': http://purl.obolibrary.org/obo/UBERON_0011618
+                  label: basihyal bone
+                  matchType: partial
+                - '@id': http://purl.obolibrary.org/obo/UBERON_0011615
+                  label: basihyal cartilage
+                  matchType: partial
+  /entity/presence:
+    get:
+      tags:
+        - Anatomical entities
+      summary: Anatomical entity presence
+      description: Query for taxa inferred to exhibit presence of a given anatomical entity
+      produces:
+        - application/json
+      parameters:
+        - name: entity
+          in: query
+          description: the anatomical entity
+          required: true
+          type: string
+          format: IRI
+        - name: in_taxon
+          in: query
+          description: taxonomic group within which to search
+          required: false
+          type: string
+          format: IRI
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: taxa with anatomical structure
+          examples:
+            application/json:
+              results:
+                - '@id': http://purl.obolibrary.org/obo/VTO_0039086
+                  label: Abramis brama
+                - '@id': http://purl.obolibrary.org/obo/VTO_0064404
+                  label: Acanthobrama hulensis
+                - '@id': http://purl.obolibrary.org/obo/VTO_0041012
+                  label: Acantopsis choirorhynchos
+          schema:
+            $ref: '#/definitions/LabelledTermListResult'
+  /entity/presence/evidence:
+    get:
+      tags:
+        - Anatomical entities
+      summary: Supporting character states
+      description: Query for character states entailing anatomical entity presence in a taxon
+      produces:
+        - application/json
+      parameters:
+        - name: taxon
+          in: query
+          description: the taxon
+          required: true
+          type: string
+          format: IRI
+        - name: entity
+          in: query
+          description: the anatomical entity
+          required: true
+          type: string
+          format: IRI
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: character states entailing presence
+          examples:
+            application/json:
+              results:
+                - '@id': http://purl.org/phenoscape/uuid/1a1a3cfe-c386-4f14-8e65-ffa9d2f8f911
+                  description: 'Y-shaped basihyal: absent'
+                  matrix:
+                    '@id': https://scholar.google.com/scholar?q=Interrelationships+among+families+of+the+order+Cypriniformes+%28Teleostei%29&btnG=&hl=en&as_sdt=0%2C42
+                    label: Siebert, D. J. (1987)
+                  phenotype:
+                    '@id': http://purl.org/phenoscape/uuid/1a1a3cfe-c386-4f14-8e65-ffa9d2f8f911#phenotype
+                    label: 'Y-shaped basihyal: absent'
+  /entity/absence:
+    get:
+      tags:
+        - Anatomical entities
+      summary: Anatomical entity absence
+      description: Query for taxa inferred to exhibit absence of a given anatomical entity
+      produces:
+        - application/json
+      parameters:
+        - name: entity
+          in: query
+          description: the anatomical entity
+          required: true
+          type: string
+          format: IRI
+        - name: in_taxon
+          in: query
+          description: taxonomic group within which to search
+          required: false
+          type: string
+          format: IRI
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: taxa without anatomical structure
+          examples:
+            application/json:
+              results:
+                - '@id': http://purl.obolibrary.org/obo/VTO_9014762
+                  label: Acanthodidae
+                - '@id': http://purl.obolibrary.org/obo/VTO_9011043
+                  label: Acanthodii
+                - '@id': http://purl.obolibrary.org/obo/VTO_0033649
+                  label: Amia calva
+          schema:
+            $ref: '#/definitions/LabelledTermListResult'
+  /entity/absence/evidence:
+    get:
+      tags:
+        - Anatomical entities
+      summary: Supporting character states
+      description: Query for character states entailing anatomical entity absence in a taxon
+      produces:
+        - application/json
+      parameters:
+        - name: taxon
+          in: query
+          description: the taxon
+          required: true
+          type: string
+          format: IRI
+        - name: entity
+          in: query
+          description: the anatomical entity
+          required: true
+          type: string
+          format: IRI
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: character states entailing absence
+          examples:
+            application/json:
+              results:
+                - '@id': http://purl.org/phenoscape/uuid/8d785d05-bb9c-4467-a355-c3c4e539a00a
+                  description: 'Independent endoskeletal basihyal: absent'
+                  matrix:
+                    '@id': http://www.pfeilbook.com/07pala/pdf/2_48d15.pdf
+                    label: Arratia, G. (1999)
+                  phenotype:
+                    '@id': http://purl.org/phenoscape/uuid/8d785d05-bb9c-4467-a355-c3c4e539a00a#phenotype
+                    label: 'Independent endoskeletal basihyal: absent'
+  /entity/homology:
+    get:
+      tags:
+        - Anatomical entities
+      summary: Homology annotations for an anatomical entity
+      description: Get homology annotations with taxon scope and source information.
+      produces:
+        - application/json
+      parameters:
+        - name: entity
+          in: query
+          description: the entity IRI
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: homology annotations
+          examples:
+            application/json:
+              results:
+                - source: many authors...
+                  subject: http://purl.obolibrary.org/obo/UBERON_0000151
+                  relation: http://purl.obolibrary.org/obo/RO_HOM0000027
+                  objectTaxon: http://purl.obolibrary.org/obo/VTO_0000007
+                  object: http://purl.obolibrary.org/obo/UBERON_0000152
+                  subjectTaxon: http://purl.obolibrary.org/obo/VTO_0000007
+                  evidence: http://purl.obolibrary.org/obo/ECO_0000034
+                  negated: false
+                - source: Goodrich, 1930
+                  subject: http://purl.obolibrary.org/obo/UBERON_0000151
+                  relation: http://purl.obolibrary.org/obo/RO_HOM0000007
+                  objectTaxon: http://purl.obolibrary.org/obo/VTO_0001465
+                  object: http://purl.obolibrary.org/obo/UBERON_0002102
+                  subjectTaxon: http://purl.obolibrary.org/obo/VTO_0000007
+                  evidence: http://purl.obolibrary.org/obo/ECO_0000034
+                  negated: false
+  /entity/dependency:
+    get:
+      tags:
+        - Anatomical entities
+      summary: Presence-absence dependency matrix
+      description: Return presence-absence dependency matrix for entities
+      produces:
+        - text/csv
+      parameters:
+        - name: terms
+          in: query
+          description: JSON array of term IRIs `["http://purl.obolibrary.org/obo/UBERON_0000981", "http://purl.obolibrary.org/obo/UBERON_0002103", "http://purl.obolibrary.org/obo/UBERON_0000976", "http://purl.obolibrary.org/obo/UBERON_0002102"]`
+          required: true
+          type: string
+          format: JSON
+      responses:
+        200:
+          description: 'Presence-absence dependency matrix: If presence of row-header implies presence of column-header, then the corresponding matrix entry is 1, else 0'
+          examples:
+            text/csv: |
+              ,http://purl.obolibrary.org/obo/UBERON_0000981,http://purl.obolibrary.org/obo/UBERON_0002103,http://purl.obolibrary.org/obo/UBERON_0000976,http://purl.obolibrary.org/obo/UBERON_0002102
+              http://purl.obolibrary.org/obo/UBERON_0000981,1,1,0,0
+              http://purl.obolibrary.org/obo/UBERON_0002103,0,1,0,0
+              http://purl.obolibrary.org/obo/UBERON_0000976,0,0,1,1
+              http://purl.obolibrary.org/obo/UBERON_0002102,0,0,0,1
+    post:
+      tags:
+        - Anatomical entities
+      summary: Presence-absence dependency matrix
+      description: Return presence-absence dependency matrix for entities
+      consumes:
+        - application/x-www-form-urlencoded
+      produces:
+        - text/csv
+      parameters:
+        - name: terms
+          in: formData
+          description: JSON array of term IRIs `["http://purl.obolibrary.org/obo/UBERON_0000981", "http://purl.obolibrary.org/obo/UBERON_0002103", "http://purl.obolibrary.org/obo/UBERON_0000976", "http://purl.obolibrary.org/obo/UBERON_0002102"]`
+          required: true
+          type: string
+          format: JSON
+      responses:
+        200:
+          description: 'Presence-absence dependency matrix: If presence of row-header implies presence of column-header, then the corresponding matrix entry is 1, else 0'
+          examples:
+            text/csv: |
+              ,http://purl.obolibrary.org/obo/UBERON_0000981,http://purl.obolibrary.org/obo/UBERON_0002103,http://purl.obolibrary.org/obo/UBERON_0000976,http://purl.obolibrary.org/obo/UBERON_0002102
+              http://purl.obolibrary.org/obo/UBERON_0000981,1,1,0,0
+              http://purl.obolibrary.org/obo/UBERON_0002103,0,1,0,0
+              http://purl.obolibrary.org/obo/UBERON_0000976,0,0,1,1
+              http://purl.obolibrary.org/obo/UBERON_0002102,0,0,0,1
+  /taxon:
+    get:
+      tags:
+        - Taxa
+      summary: Taxon info
+      description: Return detail info for a given taxon from the Vertebrate Taxonomy Ontology. Currently this is the label, extinction status, and an optional rank.
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: the VTO taxon IRI
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: taxon info
+          examples:
+            application/json:
+              '@id': http://purl.obolibrary.org/obo/VTO_9020379
+              label: Diplocaulus
+              synonyms:
+                - property: http://www.geneontology.org/formats/oboInOwl#hasRelatedSynonym
+                  value: Permoplatyops
+              extinct: true
+              rank:
+                '@id': http://purl.obolibrary.org/obo/TAXRANK_0000005
+                label: genus
+  /taxon/with_rank:
+    get:
+      tags:
+        - Taxa
+      summary: Taxa with rank
+      description: Retrieve all taxa with a given taxonomic rank, within the given super-taxon. Ranks are term IRIs from the taxonomic rank ontology such as [order](http://purl.obolibrary.org/obo/TAXRANK_0000003), [family](http://purl.obolibrary.org/obo/TAXRANK_0000004), [genus](http://purl.obolibrary.org/obo/TAXRANK_0000005), [species](http://purl.obolibrary.org/obo/TAXRANK_0000006).
+      produces:
+        - application/json
+      parameters:
+        - name: rank
+          in: query
+          description: taxonomic rank IRI
+          required: true
+          type: string
+          format: IRI
+        - name: in_taxon
+          in: query
+          description: taxonomic group within which to search
+          required: false
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: taxa of given rank
+          examples:
+            application/json:
+              results:
+                - '@id': http://purl.obolibrary.org/obo/VTO_0041714
+                  label: Polymixiiformes
+                - '@id': http://purl.obolibrary.org/obo/VTO_0041730
+                  label: Stephanoberyciformes
+                - '@id': http://purl.obolibrary.org/obo/VTO_0041825
+                  label: Dactylopteriformes
+          schema:
+            $ref: '#/definitions/LabelledTermListResult'
+  /phenotype/info:
+    get:
+      tags:
+        - Phenotypes
+      summary: Retrieve detailed info about a phenotype
+      description: Retrieve info including any annotated character states and most specific related entities and qualities
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: IRI of phenotype
+          required: true
+          type: string
+          format: IRI
+        - name: annotated_states_only
+          in: query
+          description: include in the response only those states which are annotated to a taxon in a matrix
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: Phenotype label, annotated character states, and EQ info.
+          examples:
+            application/json:
+              results:
+                '@id': 'http://purl.org/phenoscape/expression?value=%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%0A++++%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0002000%3E%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FRO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0000468%3E%29%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FRO_0002503%3E+value+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2002023%3E%29%29%29%0A+and+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2002023%3E%29'
+                label: second preethmoid absent
+                states:
+                  - '@id': 'http://purl.org/phenoscape/uuid/0af4c283-4d5b-43a9-b221-837b9dfe02f3'
+                    label: absent
+                    character:
+                      '@id': 'http://purl.org/phenoscape/uuid/112207e8-bd19-4b3b-b49e-cb18802196c2'
+                      label: 2nd pre-ethmoid
+                    study:
+                      '@id': 'http://www.worldcat.org/oclc/612613233'
+                      label: Siebert (1987)
+                  - '@id': 'http://purl.org/phenoscape/uuid/1109bb4b-5bc8-4277-9b14-7074ab1dd4fa'
+                    label: absent
+                    character:
+                      '@id': 'http://purl.org/phenoscape/uuid/2867e037-8450-4a8a-aa80-9f24f1de8284'
+                      label: Ossified palatomaxillary elements
+                    study:
+                      '@id': 'http://www.worldcat.org/oclc/612613233'
+                      label: Siebert (1987)
+                  - '@id': 'http://purl.org/phenoscape/uuid/cad22494-d599-4680-a315-d03bb0890f5b'
+                    label: absent
+                    character:
+                      '@id': 'http://purl.org/phenoscape/uuid/91e54d27-4602-4204-8bb5-70ff4142e29c'
+                      label: Ossified second preethmoid
+                    study:
+                      '@id': 'http://eprints.lib.hokudai.ac.jp/dspace/handle/2115/21871'
+                      label: Sawada (1982)
+                  - '@id': 'http://purl.org/phenoscape/uuid/5d0a5f05-e6b8-4a20-a833-f5371f77d756'
+                    label: ausente
+                    character:
+                      '@id': 'http://purl.org/phenoscape/uuid/99c91e75-d3bc-4b82-ae8a-593e4cca47a2'
+                      label: Segundo pré-etmoide
+                    study:
+                      '@id': 'https://scholar.google.com/scholar?q=Relações+filogenéticas+entre+os+grandes+grupos+de+Clupeomorpha+e+suas+poss%C3%ADveis+relações+com+Ostariophysi&btnG=&hl=en&as_sdt=0%2C42'
+                      label: Di Dario (2004)
+                eqs:
+                  entities:
+                    - 'http://purl.obolibrary.org/obo/UBERON_0000468'
+                  qualities:
+                    - 'http://purl.obolibrary.org/obo/PATO_0002000'
+                  related_entities:
+                    - 'http://purl.obolibrary.org/obo/UBERON_2002023'
+  /phenotype/query:
+    get:
+      tags:
+        - Phenotypes
+      summary: Query for phenotypes
+      description: Retrieve phenotypes related to the given anatomical entity or quality.
+      produces:
+        - application/json
+        - text/tab-separated-values
+      parameters:
+        - name: entity
+          in: query
+          description: Anatomical term IRI, e.g. `http://purl.obolibrary.org/obo/UBERON_0011618`
+          required: false
+          type: string
+          format: IRI
+        - name: quality
+          in: query
+          description: Quality term IRI
+          required: false
+          type: string
+          format: IRI
+        - name: in_taxon
+          in: query
+          description: A taxon group IRI to limit the results
+          required: false
+          type: string
+          format: IRI
+        - name: phenotype
+          in: query
+          description: A phenotype term which must subsume the matched annotations
+          required: false
+          type: string
+          format: IRI
+        - name: publication
+          in: query
+          description: A publication IRI to limit the results
+          required: false
+          type: string
+          format: IRI
+        - name: parts
+          in: query
+          description: whether to include parts of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: historical_homologs
+          in: query
+          description: whether to include historical homologs of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: serial_homologs
+          in: query
+          description: whether to include serial_homologs of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: phenotypes
+          examples:
+            application/json:
+              results:
+                - '@id': http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%0A++++%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000140%3E%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2001223%3E%29%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2Fpato%23towards%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0011618%3E%29%29
+                  label: basibranchial 1 bone position basihyal bone
+                - '@id': http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%0A++++%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0002437%3E%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2001224%3E%29%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2Fpato%23towards%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0011618%3E%29%29
+                  label: basibranchial 2 bone interlocked with basihyal bone
+                - '@id': http://purl.org/phenoscape/expression?value=%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%0A++++%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0002000%3E%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0000468%3E%29%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2Fpato%23towards%3E+value+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0011618%3E%29%29%29%0A+and+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0011618%3E%29
+                  label: basihyal bone absent
+          schema:
+            $ref: '#/definitions/LabelledTermListResult'
+  /taxon/with_phenotype:
+    get:
+      tags:
+        - Taxa
+      summary: Taxa with phenotype
+      description: Retrieve taxa with annotated phenotypes related to the given anatomical entity or quality.
+      produces:
+        - application/json
+        - text/tab-separated-values
+      parameters:
+        - name: entity
+          in: query
+          description: Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+          required: false
+          type: string
+        - name: quality
+          in: query
+          description: Quality class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+          required: false
+          type: string
+        - name: in_taxon
+          in: query
+          description: A taxon group to limit the results
+          required: false
+          type: string
+          format: IRI
+        - name: phenotype
+          in: query
+          description: A phenotype term which must subsume the matched annotations
+          required: false
+          type: string
+          format: IRI
+        - name: parts
+          in: query
+          description: whether to include parts of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: historical_homologs
+          in: query
+          description: whether to include historical homologs of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: serial_homologs
+          in: query
+          description: whether to include serial_homologs of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: taxa with phenotype
+          examples:
+            application/json:
+              results:
+                - '@id': http://purl.obolibrary.org/obo/VTO_0059975
+                  label: Acanthicus hystrix
+                - '@id': http://purl.obolibrary.org/obo/VTO_0061854
+                  label: Acanthocleithron chapini
+                - '@id': http://purl.obolibrary.org/obo/VTO_0061312
+                  label: Acrochordonichthys ischnosoma
+            text/tab-separated-values: |
+              IRI label
+              http://purl.obolibrary.org/obo/VTO_0059975  Acanthicus hystrix
+              http://purl.obolibrary.org/obo/VTO_0061854  Acanthocleithron chapini
+              http://purl.obolibrary.org/obo/VTO_0061312  Acrochordonichthys ischnosoma
+          schema:
+            $ref: '#/definitions/LabelledTermListResult'
+  /taxon/annotated_taxa_count:
+    get:
+      tags:
+        - Taxa
+      summary: Count of annotated taxa
+      description: Retrieve count of taxa with direct annotations within the given super-taxon.
+      produces:
+        - application/json
+      parameters:
+        - name: in_taxon
+          in: query
+          description: A taxon group to limit the results
+          required: false
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: count of taxa
+          examples:
+            application/json:
+              total: 1299
+  /taxon/newick:
+    get:
+      tags:
+        - Taxa
+      summary: Get Newick tree rooted at taxon
+      description: Get Newick tree rooted at taxon, based on the VTO classification. Nodes are taxon labels.
+      produces:
+        - text/plain
+      parameters:
+        - name: iri
+          in: query
+          description: taxon IRI
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: newick tree
+          examples:
+            text/plain: (('Noturus albater', 'Noturus phaeus', 'Noturus baileyi', 'Noturus flavus', 'Noturus nocturnus', 'Noturus stigmosus', 'Noturus trautmani', 'Noturus leptacanthus', 'Noturus miurus', 'Noturus insignis', 'Noturus stanauli', 'Noturus gyrinus', 'Noturus flavater', 'Noturus crypticus', 'Noturus maydeni', 'Noturus taylori', 'Noturus placidus', 'Noturus eleutherus', 'Noturus gladiator', 'Noturus lachneri', 'Noturus fasciatus', 'Noturus elegans', 'Noturus funebris', 'Noturus hildebrandi', 'Noturus exilis', 'Noturus munitus', 'Noturus gilberti', 'Noturus furiosus', 'Noturus flavipinnis')'Noturus', ('Prietella phreatophila', 'Prietella lundbergi')'Prietella', ('Satan eurystomus')'Satan', ('Pylodictis olivaris')'Pylodictis', ('Ictalurus lupus', 'Ictalurus sp. (Fink and Fink 1981)', 'Ictalurus balsanus', 'Ictalurus ochoterenai', 'Ictalurus sp. (Mo 1991)', 'Ictalurus australis', 'Ictalurus mexicanus', 'Ictalurus dugesii', 'Ictalurus sp. (Vigliotta 2008)', 'Ictalurus meridionalis', 'Ictalurus pricei', 'Ictalurus punctatus', 'Ictalurus furcatus')'Ictalurus', ('Trogloglanis pattersoni')'Trogloglanis', ('Astephus sp. (Lundberg 1992)', 'Astephus antiquus', 'Astephus calvus', 'Astephus resimus')'Astephus', ('Ameiurus catus', 'Ameiurus platycephalus', 'Ameiurus brunneus', 'Ameiurus natalis', 'Ameiurus melas', 'Ameiurus sp. (de Pinna 1993)', 'Ameiurus sp. (Vigliotta 2008)', 'Ameiurus serracanthus', 'Ameiurus nebulosus')'Ameiurus')'Ictaluridae';
+  /taxon/group:
+    get:
+      tags:
+        - Taxa
+      summary: Get user friendly group label
+      description: Get a user friendly label for the major group to which the taxon belongs, and a link to a phylopic.
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: taxon IRI
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: group and phylopic
+          examples:
+            application/json:
+              label: ray-finned fishes
+              phylopic: http://phylopic.org/image/ad7e6eb0-82fe-4c1a-9b3b-e07fe42d3890/
+  /taxon/phenotypes:
+    get:
+      tags:
+        - Taxa
+      summary: Taxon phenotypes
+      description: Retrieve direct phenotype annotations for a given taxon.
+      produces:
+        - application/json
+      parameters:
+        - name: taxon
+          in: query
+          description: IRI for taxon
+          required: true
+          type: string
+          format: IRI
+        - name: entity
+          in: query
+          description: Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+          required: false
+          type: string
+        - name: quality
+          in: query
+          description: Quality class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
+          required: false
+          type: string
+        - name: phenotype
+          in: query
+          description: A phenotype term which must subsume the matched annotations
+          required: false
+          type: string
+          format: IRI
+        - name: parts
+          in: query
+          description: whether to include parts of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: historical_homologs
+          in: query
+          description: whether to include historical homologs of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: serial_homologs
+          in: query
+          description: whether to include serial_homologs of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: phenotypes annotated to taxa
+  /taxon/variation_profile:
+    get:
+      tags:
+        - Taxa
+      summary: Taxon variation profile
+      description: Retrieve phenotype annotations inferred to vary at the level of this taxon.
+      produces:
+        - application/json
+      parameters:
+        - name: taxon
+          in: query
+          description: IRI for taxon
+          required: true
+          type: string
+          format: IRI
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: phenotypes varying within taxon
+  /taxon/annotations:
+    get:
+      tags:
+        - Taxa
+      summary: Taxon phenotype annotations
+      description: Query for taxon phenotype annotations.
+      produces:
+        - application/json
+        - text/tab-separated-values
+      parameters:
+        - name: entity
+          in: query
+          description: Anatomical entity term IRI
+          required: false
+          type: string
+          format: IRI
+        - name: quality
+          in: query
+          description: Quality term IRI
+          required: false
+          type: string
+          format: IRI
+        - name: in_taxon
+          in: query
+          description: A taxon group IRI to limit the results
+          required: false
+          type: string
+          format: IRI
+        - name: phenotype
+          in: query
+          description: A phenotype term which must subsume the matched annotations
+          required: false
+          type: string
+          format: IRI
+        - name: publication
+          in: query
+          description: A publication IRI to limit the results
+          required: false
+          type: string
+          format: IRI
+        - name: parts
+          in: query
+          description: whether to include parts of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: historical_homologs
+          in: query
+          description: whether to include historical homologs of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: serial_homologs
+          in: query
+          description: whether to include serial_homologs of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: taxon phenotype annotations
+          examples:
+            application/json:
+              results:
+                - taxon:
+                    '@id': 'http://purl.obolibrary.org/obo/VTO_0039086'
+                    label: Abramis brama
+                  phenotype:
+                    '@id': 'http://purl.org/phenoscape/expression?value=%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%0A++++%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0002000%3E%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0000468%3E%29%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2Fpato%23towards%3E+value+%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fsubclassof%3Fvalue%3D%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FUBERON_0004529%253E%250A%2Band%2B%2528%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050%253E%2Bsome%2B%250A%2B%2B%2B%2B%2528%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBSPO_0000084%253E%250A%2B%2B%2B%2B%2Band%2B%2528%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050%253E%2Bsome%2B%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FUBERON_2001226%253E%2529%2529%2529%23834eb858-476b-43b6-8186-7f3d2f195dc3%3E%29%29%29%0A+and+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fsubclassof%3Fvalue%3D%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FUBERON_0004529%253E%250A%2Band%2B%2528%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050%253E%2Bsome%2B%250A%2B%2B%2B%2B%2528%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBSPO_0000084%253E%250A%2B%2B%2B%2B%2Band%2B%2528%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050%253E%2Bsome%2B%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FUBERON_2001226%253E%2529%2529%2529%23834eb858-476b-43b6-8186-7f3d2f195dc3%3E%29'
+                    label: anatomical projection and (part of some (ventral region and (part of some basibranchial 4 bone))) absent
+                - taxon:
+                    '@id': 'http://purl.obolibrary.org/obo/VTO_0039086'
+                    label: Abramis brama
+                  phenotype:
+                    '@id': 'http://purl.org/phenoscape/expression?value=%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%0A++++%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0002000%3E%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0000468%3E%29%0A+++++and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2Fpato%23towards%3E+value+%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fsubclassof%3Fvalue%3D%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FUBERON_0004529%253E%250A%2Band%2B%2528%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050%253E%2Bsome%2B%250A%2B%2B%2B%2B%2528%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBSPO_0000084%253E%250A%2B%2B%2B%2B%2Band%2B%2528%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050%253E%2Bsome%2B%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FUBERON_2001918%253E%2529%2529%2529%23122873be-272d-42e9-9ef7-195299b26dd4%3E%29%29%29%0A+and+%28%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fsubclassof%3Fvalue%3D%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FUBERON_0004529%253E%250A%2Band%2B%2528%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050%253E%2Bsome%2B%250A%2B%2B%2B%2B%2528%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBSPO_0000084%253E%250A%2B%2B%2B%2B%2Band%2B%2528%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050%253E%2Bsome%2B%253Chttp%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FUBERON_2001918%253E%2529%2529%2529%23122873be-272d-42e9-9ef7-195299b26dd4%3E%29'
+                    label: anatomical projection and (part of some (ventral region and (part of some basibranchial 4 element))) absent
+  /taxon/annotation/sources:
+    get:
+      tags:
+        - Taxa
+      summary: Matrix sources for a taxon phenotype annotation
+      description: Return character states linked to a given taxon which are annotated this phenotype.
+      produces:
+        - application/json
+      parameters:
+        - name: taxon
+          in: query
+          description: the taxon IRI
+          required: true
+          type: string
+          format: IRI
+        - name: phenotype
+          in: query
+          description: the phenotype IRI
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: list of matrix sources (characters and states)
+          examples:
+            application/json:
+              results:
+                - publication:
+                    '@id': 'http://www.worldcat.org/oclc/612613233'
+                    label: Siebert (1987)
+                  character_num: 22
+                  character_text: T-shaped basibranchial 2
+                  state_text: absent
+  /gene:
+    get:
+      tags:
+        - Genes
+      summary: Gene info
+      description: Return detail info for a given gene.
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: the gene IRI
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: info for a gene
+  /gene/search:
+    get:
+      tags:
+        - Genes
+      summary: Gene search
+      description: Search for genes by gene symbol.
+      produces:
+        - application/json
+        - text/tab-separated-values
+      parameters:
+        - name: text
+          in: query
+          description: text to match in the gene symbol
+          required: true
+          type: string
+        - name: taxon
+          in: query
+          description: NCBI IRI for taxon
+          required: false
+          type: string
+          format: IRI
+        - name: limit
+          in: query
+          description: maximum results to return; returns all results for limit=0
+          required: false
+          type: integer
+          default: 100
+      responses:
+        200:
+          description: gene matches
+          examples:
+            application/json:
+              results:
+                - '@id': http://zfin.org/ZDB-GENE-040426-731
+                  label: brpf1
+                  taxon:
+                    '@id': http://purl.obolibrary.org/obo/NCBITaxon_7955
+                    label: Danio rerio
+                  matchType: exact
+            text/tab-separated-values: |
+              IRI label taxon
+              http://zfin.org/ZDB-GENE-040426-731 brpf1 zebrafish
+              http://www.informatics.jax.org/marker/MGI:1926033 Brpf1 mouse
+  /gene/affecting_entity_phenotype:
+    get:
+      tags:
+        - Genes
+      summary: Genes with entity phenotype
+      description: Query for genes associated with phenotypes of a given anatomical entity.
+      produces:
+        - application/json
+        - text/tab-separated-values
+      parameters:
+        - name: iri
+          in: query
+          description: anatomical entity IRI
+          required: false
+          type: string
+          format: IRI
+        - name: quality
+          in: query
+          description: quality IRI
+          required: false
+          type: string
+          format: IRI
+        - name: parts
+          in: query
+          description: whether to include phenotypes of parts of the entity
+          required: false
+          type: boolean
+          default: false
+        - name: historical_homologs
+          in: query
+          description: whether to include historical homologs of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: serial_homologs
+          in: query
+          description: whether to include serial_homologs of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: gene affecting phenotype
+          examples:
+            application/json:
+              results:
+                - '@id': http://zfin.org/ZDB-GENE-040426-731
+                  label: brpf1
+                  taxon:
+                    '@id': http://purl.obolibrary.org/obo/NCBITaxon_7955
+                    label: Danio rerio
+                - '@id': http://zfin.org/ZDB-GENE-030131-2317
+                  label: ewsr1a
+                  taxon:
+                    '@id': http://purl.obolibrary.org/obo/NCBITaxon_7955
+                    label: Danio rerio
+            text/tab-separated-values: |
+              IRI label taxon
+              http://zfin.org/ZDB-GENE-040426-731 brpf1 Danio rerio
+              http://zfin.org/ZDB-GENE-030131-2317  ewsr1a  Danio rerio
+  /gene/expressed_within_entity:
+    get:
+      tags:
+        - Genes
+      summary: Genes expressed within entity
+      description: Query for genes expressed within a given anatomical entity (including its parts).
+      produces:
+        - application/json
+        - text/tab-separated-values
+      parameters:
+        - name: iri
+          in: query
+          description: anatomical entity IRI
+          required: true
+          type: string
+          format: IRI
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: gene expressed in structure
+          examples:
+            application/json:
+              results:
+                - '@id': http://www.informatics.jax.org/marker/MGI:105378
+                  label: Adam12
+                  taxon:
+                    '@id': http://purl.obolibrary.org/obo/NCBITaxon_10090
+                    label: Mus musculus
+                - '@id': http://www.informatics.jax.org/marker/MGI:87934
+                  label: Adra2a
+                  taxon:
+                    '@id': http://purl.obolibrary.org/obo/NCBITaxon_10090
+                    label: Mus musculus
+            text/tab-separated-values: |
+              IRI label taxon
+              http://www.informatics.jax.org/marker/MGI:105378  Adam12  Mus musculus
+              http://www.informatics.jax.org/marker/MGI:87934 Adra2a  Mus musculus
+  /gene/phenotypic_profile:
+    get:
+      tags:
+        - Genes
+      summary: Phenotypes directly annotated for gene
+      description: Phenotypes directly annotated for gene along with links to sources at MOD sites (if available).
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: Gene IRI
+          required: false
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: phenotypes
+          examples:
+            applications/json:
+              results:
+                - '@id': http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%0A++++%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000052%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FZFA_0001205%3E%29%29
+                  label: Meckel's cartilage shape
+                  sources:
+                    - '@id': http://zfin.org/ZDB-FIG-080929-13
+                    - '@id': http://zfin.org/ZDB-FIG-080604-23
+                - '@id': http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000051%3E+some+%0A++++%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0001483%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FZFA_0000316%3E%29%29
+                  label: basihyal bone aplastic
+                  sources:
+                    - '@id': http://zfin.org/ZDB-FIG-080604-35
+                    - '@id': http://zfin.org/ZDB-FIG-080604-30
+                    - '@id': http://zfin.org/ZDB-FIG-080929-13
+  /gene/expression_profile:
+    get:
+      tags:
+        - Genes
+      summary: Expression locations directly annotated for gene
+      description: Anatomical structures directly annotated for expression of a gene along with links to sources at MOD sites (if available). There may be more than one non-redundant entity or quality in each grouping.
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: Gene IRI
+          required: false
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: phenotypes
+          examples:
+            applications/json:
+              results:
+                results:
+                  - '@id': http://purl.obolibrary.org/obo/ZFA_0000100
+                    label: cerebellum (zebrafish)
+                    sources:
+                      - '@id': http://zfin.org/ZDB-PUB-080515-4
+                  - '@id': http://purl.obolibrary.org/obo/ZFA_0001486
+                    label: epithelium (zebrafish)
+                    sources:
+                      - '@id': http://zfin.org/ZDB-PUB-080515-4
+  /gene/eq:
+    get:
+      tags:
+        - Genes
+      summary: Get EQ associations for gene
+      description: Return most specific entity and quality pairs (inferred via ontology) based on gene phenotype annotations
+      produces:
+        - application/json
+      parameters:
+        - name: id
+          in: query
+          description: Gene IRI
+          required: false
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: EQs
+          examples:
+            application/json:
+              - entity:
+                  - http://purl.obolibrary.org/obo/UBERON_0002050
+                  - http://purl.obolibrary.org/obo/UBERON_0012075
+                  - http://purl.obolibrary.org/obo/UBERON_0010313
+                  - http://purl.obolibrary.org/obo/UBERON_0011618
+                  - http://purl.obolibrary.org/obo/UBERON_0013765
+                  - http://purl.obolibrary.org/obo/UBERON_0003103
+                  - http://purl.obolibrary.org/obo/UBERON_0003457
+                quality:
+                  - http://purl.obolibrary.org/obo/PATO_0001483
+              - entity:
+                  - http://purl.obolibrary.org/obo/UBERON_0002050
+                  - http://purl.obolibrary.org/obo/UBERON_0012075
+                  - http://purl.obolibrary.org/obo/UBERON_0010313
+                  - http://purl.obolibrary.org/obo/UBERON_0013765
+                  - http://purl.obolibrary.org/obo/UBERON_0003103
+                  - http://purl.obolibrary.org/obo/UBERON_0011611
+                  - http://purl.obolibrary.org/obo/UBERON_0003457
+                quality:
+                  - http://purl.obolibrary.org/obo/PATO_0000051
+  /study/query:
+    get:
+      tags:
+        - Studies
+      summary: Query studies by taxa and anatomical entity
+      description: Return studies containing taxa which are members of the optional input taxon  andhave annotated phenotypes which are relevant to the optional input anatomical entity or quality.
+      produces:
+        - application/json
+      parameters:
+        - name: entity
+          in: query
+          description: anatomical entity IRI
+          required: false
+          type: string
+          format: IRI
+        - name: quality
+          in: query
+          description: quality term IRI
+          required: false
+          type: string
+          format: IRI
+        - name: in_taxon
+          in: query
+          description: A taxon group to limit the results
+          required: false
+          type: string
+          format: IRI
+        - name: phenotype
+          in: query
+          description: A phenotype term which must subsume the matched annotations
+          required: false
+          type: string
+          format: IRI
+        - name: publication
+          in: query
+          description: Limit results to data from a particular publication
+          required: false
+          type: string
+          format: IRI
+        - name: parts
+          in: query
+          description: whether to include parts of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: historical_homologs
+          in: query
+          description: whether to include historical homologs of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: serial_homologs
+          in: query
+          description: whether to include serial_homologs of the entity in the query
+          required: false
+          type: boolean
+          default: false
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: relevant studies
+          examples:
+            application/json:
+              results:
+                - '@id': https://scholar.google.com/scholar?q=Higher-level+Phylogeny+of+Siluriformes%2C+With+a+New+Classification+of+the+Order+%28Teleostei%2C+Ostariophysi%29&btnG=&hl=en&as_sdt=0%2C42
+                  label: De Pinna, M. C. (1993)
+                - '@id': http://dx.doi.org/10.1111/j.1096-3642.1981.tb01575.x
+                  label: Fink, S. V, & Fink, W. L. (1981);  Fink, S. V, & Fink, W. L. (1996)
+                - '@id': http://search.informit.com.au/documentSummary;dn=057273049071593;res=IELHSS
+                  label: Kailola, P. J. (2004)
+          schema:
+            $ref: '#/definitions/LabelledTermListResult'
+  /study/taxa:
+    get:
+      tags:
+        - Studies
+      summary: Taxa annotated within a study
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: the study IRI
+          required: true
+          type: string
+          format: IRI
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: list of taxa
+          examples:
+            application/json:
+              results:
+                - '@id': http://purl.obolibrary.org/obo/VTO_0035553
+                  label: Acrochordonichthys rugosus
+                - '@id': http://purl.obolibrary.org/obo/VTO_0061318
+                  label: Acrochordonichthys sp. (de Pinna 1993)
+          schema:
+            $ref: '#/definitions/LabelledTermListResult'
+  /study/phenotypes:
+    get:
+      tags:
+        - Studies
+      summary: Character states and their phenotypes annotated within a study
+      produces:
+        - application/json
+      parameters:
+        - name: iri
+          in: query
+          description: the study IRI
+          required: true
+          type: string
+          format: IRI
+        - name: limit
+          in: query
+          description: maximum results to return
+          required: false
+          type: integer
+          default: 20
+        - name: offset
+          in: query
+          description: index of results to begin returning
+          required: false
+          type: integer
+          default: 0
+        - name: total
+          in: query
+          description: whether to return the total result count rather than the results
+          required: false
+          type: boolean
+          default: false
+      responses:
+        200:
+          description: list of character state phenotype annotations
+          examples:
+            application/json:
+              results:
+                - '@id': http://purl.org/phenoscape/uuid/40c8963d-854e-4d8e-8664-674184104937
+                  description: 'A ligament between the second dorsal radial and the rib of the sixth vertebra: in catfishes, unossified'
+                  matrix:
+                    '@id': https://scholar.google.com/scholar?q=Higher-level+Phylogeny+of+Siluriformes%2C+With+a+New+Classification+of+the+Order+%28Teleostei%2C+Ostariophysi%29&btnG=&hl=en&as_sdt=0%2C42
+                    label: De Pinna, M. C. (1993)
+                  phenotype:
+                    '@id': http://purl.org/phenoscape/uuid/40c8963d-854e-4d8e-8664-674184104937#phenotype
+                    label: 'A ligament between the second dorsal radial and the rib of the sixth vertebra: in catfishes, unossified'
+                - '@id': http://purl.org/phenoscape/uuid/44d0aac0-69bb-435f-bc45-76287a67fe11
+                  description: 'A ligament between the second dorsal radial and the rib of the sixth vertebra: ossified ligament between second dorsal-fin spine radial and rib of sixth vertebra'
+                  matrix:
+                    '@id': https://scholar.google.com/scholar?q=Higher-level+Phylogeny+of+Siluriformes%2C+With+a+New+Classification+of+the+Order+%28Teleostei%2C+Ostariophysi%29&btnG=&hl=en&as_sdt=0%2C42
+                    label: De Pinna, M. C. (1993)
+                  phenotype:
+                    '@id': http://purl.org/phenoscape/uuid/44d0aac0-69bb-435f-bc45-76287a67fe11#phenotype
+                    label: 'A ligament between the second dorsal radial and the rib of the sixth vertebra: ossified ligament between second dorsal-fin spine radial and rib of sixth vertebra'
+  /study/matrix:
+    get:
+      tags:
+        - Studies
+      summary: Data matrix for study
+      description: Return a data matrix in NeXML format containing the data for a given study.
+      produces:
+        - application/xml
+      parameters:
+        - name: iri
+          in: query
+          description: the study IRI
+          required: true
+          type: string
+          format: IRI
+      responses:
+        200:
+          description: NeXML format data matrix
+          examples:
+            application/xml: |
+              <nexml version="0.9" xsi:schemaLocation="http://www.nexml.org/2009 http://www.nexml.org/2009/nexml.xsd http://www.bioontologies.org/obd/schema/pheno http://purl.org/phenoscape/phenoxml.xsd" xmlns="http://www.nexml.org/2009" xmlns:dc="http://purl.org/dc/terms/" xmlns:dwc="http://rs.tdwg.org/dwc/terms/" xmlns:obo="http://purl.obolibrary.org/obo/" xmlns:ps="http://purl.org/phenoscape/vocab.owl#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <meta xsi:type="ResourceMeta" rel="dc:source" href="http://dx.doi.org/10.1111/j.1096-3642.1981.tb01575.x">
+                  <meta xsi:type="LiteralMeta" property="dc:bibliographicCitation"> Fink, S. V, &amp; Fink, W. L. (1981). Interrelationships of the ostariophysan fishes (Teleostei). Zoological Journal of the Linnean Society, 72(4), 297?353.; Fink, S. V, &amp; Fink, W. L. (1996). Interrelationships of the ostariophysan fishes (Teleostei). In M. L. J. Stiassny, L. R. Parenti, &amp; G. D. Johnson (Eds.), Interrelationships of Fishes (pp. 209?249). </meta>
+                  <meta xsi:type="LiteralMeta" property="rdfs:label" content="Fink, S. V, &amp; Fink, W. L. (1981); Fink, S. V, &amp; Fink, W. L. (1996)"/>
+                </meta>
+                <otus id="otus_be87ff53-e967-4822-b34e-2a6bd15a03fb">
+                  <otu id="otu_58fd80c4-0312-4a9b-af15-0677013fbf58" about="#otu_58fd80c4-0312-4a9b-af15-0677013fbf58" label="Notogoneus osculus">
+                    <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href="http://purl.obolibrary.org/obo/VTO_0066303"/>
+                  </otu>
+                  <otu id="otu_0bda4e13-dd6b-4ffd-8bce-1d8337537a19" about="#otu_0bda4e13-dd6b-4ffd-8bce-1d8337537a19" label="Salmo gairdneri">
+                    <meta xsi:type="ResourceMeta" rel="dwc:taxonID" href="http://purl.obolibrary.org/obo/VTO_0058222"/>
+                  </otu>
+                </otus>
+                <characters id="characters_f3ae1e68-99d1-4190-a163-9f82346abedb" xsi:type="StandardCells" otus="otus_be87ff53-e967-4822-b34e-2a6bd15a03fb">
+                  <format>
+                    <states id="states_c7382498-080a-498d-be82-b88ad18c450f">
+                      <state id="state_dbb5efe7-28f4-4134-95c1-b4da7648078c" about="#state_dbb5efe7-28f4-4134-95c1-b4da7648078c" label="absent" symbol="1">
+                        <meta xsi:type="ResourceMeta" rel="ps:describes_phenotype" href="http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0002000%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0000468%3E%29+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2Fpato%23towards%3E+value+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2001406%3E%29#264e0620-8a16-411c-aa61-975c73bbc361"> </meta>
+                      </state>
+                      <state id="state_722dc67a-f9b4-4092-af4f-d4152be45560" about="#state_722dc67a-f9b4-4092-af4f-d4152be45560" label="present" symbol="0">
+                        <meta xsi:type="ResourceMeta" rel="ps:describes_phenotype" href="http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0000467%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2001406%3E%29#1121a9e2-487b-46ab-b84e-7ead15c4b179"> </meta>
+                      </state>
+                    </states>
+                    <states id="states_4d605bf9-556e-45ad-a88b-a907e68dd818">
+                      <state id="state_0c0037e2-b093-4fd5-8534-8a8bd7b41959" about="#state_0c0037e2-b093-4fd5-8534-8a8bd7b41959" label="vomer articulates anteriorly with the mesethmoid; vomer has a vertical or oblique synchondral joint with the mesethmoid" symbol="1">
+                        <meta xsi:type="ResourceMeta" rel="ps:describes_phenotype" href="http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0001854%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2001680%3E%29#070f4846-e2e0-445d-b41d-f8438c28f8d7"> </meta>
+                      </state>
+                      <state id="state_8e5b6b69-47dc-4077-b52a-85b0d674475b" about="#state_8e5b6b69-47dc-4077-b52a-85b0d674475b" label="extends anteroventral to the mesethmoid" symbol="0">
+                        <meta xsi:type="ResourceMeta" rel="ps:describes_phenotype" href="http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FPATO_0001855%3E+and+%28%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000052%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_2001680%3E%29#a5ee1311-9ccc-489d-ac76-eb494337b35e"> </meta>
+                      </state>
+                    </states>
+                    <char id="character_c7382498-080a-498d-be82-b88ad18c450f" label="Kinethmoid bone" states="states_c7382498-080a-498d-be82-b88ad18c450f"/>
+                    <char id="character_4d605bf9-556e-45ad-a88b-a907e68dd818" label="Vomer" states="states_4d605bf9-556e-45ad-a88b-a907e68dd818"/>
+                  </format>
+                  <matrix>
+                    <row id="row_otu_58fd80c4-0312-4a9b-af15-0677013fbf58" otu="otu_58fd80c4-0312-4a9b-af15-0677013fbf58">
+                          <cell char="character_c7382498-080a-498d-be82-b88ad18c450f" state="state_dbb5efe7-28f4-4134-95c1-b4da7648078c"/>
+                          <cell char="character_4d605bf9-556e-45ad-a88b-a907e68dd818" state="state_8e5b6b69-47dc-4077-b52a-85b0d674475b"/>
+                    </row>
+                    <row id="row_otu_0bda4e13-dd6b-4ffd-8bce-1d8337537a19" otu="otu_0bda4e13-dd6b-4ffd-8bce-1d8337537a19">
+                      <cell char="character_c7382498-080a-498d-be82-b88ad18c450f" state="state_dbb5efe7-28f4-4134-95c1-b4da7648078c"/>
+                      <cell char="character_4d605bf9-556e-45ad-a88b-a907e68dd818" state="state_8e5b6b69-47dc-4077-b52a-85b0d674475b"/>
+                    </row>
+                  </matrix>
+                </characters>
+              </nexml>
+definitions:
+  Term:
+    type: object
+    properties:
+      '@id':
+        type: string
+        format: IRI
+        example: http://purl.obolibrary.org/obo/UBERON_0011618
+  UnlabelledTermListResult:
+    type: object
+    properties:
+      results:
+        type: array
+        items:
+          $ref: '#/definitions/Term'
+  TermWithLabel:
+    type: object
+    required:
+      - '@id'
+      - label
+    properties:
+      '@id':
+        type: string
+        format: IRI
+        example: http://purl.obolibrary.org/obo/UBERON_0011618
+      label:
+        type: string
+        example: basihyal bone
+  LabelledTermListResult:
+    type: object
+    properties:
+      results:
+        type: array
+        items:
+          $ref: '#/definitions/TermWithLabel'
+  inline_response_200:
+    properties:
+      annotated_matrices:
+        type: integer
+        example: 154
+      annotated_taxa:
+        type: integer
+        example: 5071
+      annotated_characters:
+        type: integer
+        example: 9602
+      annotated_states:
+        type: integer
+        example: 21182
+  inline_response_200_1_results:
+    properties:
+      '@id':
+        type: string
+        format: IRI
+        example: http://purl.obolibrary.org/obo/UBERON_3000957
+      label:
+        type: string
+        example: basihyal
+      matchType:
+        type: string
+        example: exact
+      isDefinedBy:
+        type: string
+        format: IRI
+        example: http://purl.obolibrary.org/obo/uberon.owl
+        description: Ontology source for term (may not be present)
+  inline_response_200_1:
+    properties:
+      results:
+        type: array
+        items:
+          $ref: '#/definitions/inline_response_200_1_results'
+  inline_response_200_2_results:
+    properties:
+      '@id':
+        type: string
+        format: IRI
+        example: http://purl.obolibrary.org/obo/UBERON_3000957
+      label:
+        type: string
+        example: basihyal
+      matchType:
+        type: string
+        example: exact
+  inline_response_200_2:
+    properties:
+      results:
+        type: array
+        items:
+          $ref: '#/definitions/inline_response_200_2_results'
+  inline_response_200_3:
+    properties:
+      results:
+        type: array
+        items:
+          $ref: '#/definitions/TermWithLabel'
+  inline_response_200_4:
+    properties:
+      '@id':
+        type: string
+        format: IRI
+        example: http://purl.obolibrary.org/obo/UBERON_0011618
+      label:
+        type: string
+        example: basihyal bone
+      subClassOf:
+        type: array
+        items:
+          $ref: '#/definitions/TermWithLabel'
+      equivalentTo:
+        type: array
+        items:
+          $ref: '#/definitions/TermWithLabel'
+      superClassOf:
+        type: array
+        items:
+          $ref: '#/definitions/TermWithLabel'
+  inline_response_200_5:
+    properties:
+      annotated_matrices:
+        type: integer
+        example: 154
+      annotated_taxa:
+        type: integer
+        example: 5071
+      annotated_characters:
+        type: integer
+        example: 9602
+      annotated_states:
+        type: integer
+        example: 21182
+  inline_response_200_6:
+    properties:
+      results:
+        type: array
+        items:
+          $ref: '#/definitions/inline_response_200_1_results'
+  inline_response_200_7:
+    properties:
+      results:
+        type: array
+        items:
+          $ref: '#/definitions/inline_response_200_2_results'
+  inline_response_200_8:
+    properties:
+      results:
+        type: array
+        items:
+          $ref: '#/definitions/TermWithLabel'
+  inline_response_200_9:
+    properties:
+      '@id':
+        type: string
+        format: IRI
+        example: http://purl.obolibrary.org/obo/UBERON_0011618
+      label:
+        type: string
+        example: basihyal bone
+      subClassOf:
+        type: array
+        items:
+          $ref: '#/definitions/TermWithLabel'
+      equivalentTo:
+        type: array
+        items:
+          $ref: '#/definitions/TermWithLabel'
+      superClassOf:
+        type: array
+        items:
+          $ref: '#/definitions/TermWithLabel'

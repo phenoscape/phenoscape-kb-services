@@ -136,24 +136,34 @@ object Main extends HttpApp with App {
         respondWithHeaders(RawHeader("Vary", "negotiate, Accept")) {
           rejectEmptyResponse {
             pathSingleSlash {
-              redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
-            } ~ pathPrefix("kb") {
-              path("metadata") {
-                complete {
-                  KB.getKBMetadata
-                }
+              redirect(Uri("../docs/"), StatusCodes.SeeOther)
+            } ~
+              pathPrefix("docs") {
+                pathEnd {
+                  redirect(Uri("docs/"), StatusCodes.MovedPermanently)
+                } ~
+                  pathSingleSlash {
+                    getFromResource("swaggerDocs/index.html")
+                  } ~
+                  getFromResourceDirectory("swaggerDocs")
               } ~
-                path("annotation_summary") {
+              pathPrefix("kb") {
+                path("metadata") {
                   complete {
-                    KB.annotationSummary
+                    KB.getKBMetadata
                   }
                 } ~
-                path("annotation_report") {
-                  complete {
-                    KB.annotationReport
+                  path("annotation_summary") {
+                    complete {
+                      KB.annotationSummary
+                    }
+                  } ~
+                  path("annotation_report") {
+                    complete {
+                      KB.annotationReport
+                    }
                   }
-                }
-            } ~
+              } ~
               pathPrefix("term") {
                 path("search") {
                   parameters('text,
@@ -378,6 +388,13 @@ object Main extends HttpApp with App {
                       }
                     }
                   } ~
+                  path("profile") {
+                    parameters("iri".as[IRI], "path".as[Path]) { (iri, path) =>
+                      complete {
+                        Similarity.getProfile(iri, path)
+                      }
+                    }
+                  } ~
                   path("profile_size") {
                     parameters('iri.as[IRI], 'path.as[Path]) { (iri, path) =>
                       complete {
@@ -386,9 +403,9 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("corpus_size") {
-                    parameters('corpus_graph.as[IRI]) { (corpusGraph) =>
+                    parameters('path.as[Path]) { path =>
                       complete {
-                        Similarity.corpusSize(corpusGraph).map(ResultCount(_))
+                        Similarity.corpusSize(path).map(ResultCount(_))
                       }
                     }
                   } ~

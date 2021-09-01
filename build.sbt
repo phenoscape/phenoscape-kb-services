@@ -30,19 +30,22 @@ resolvers += ("BBOP repository" at "http://code.berkeleybop.org/maven/repository
 
 testFrameworks += new TestFramework("utest.runner.Framework")
 
+val akkaVersion = "2.6.16"
+val akkaHttpVersion = "10.2.6"
+
 libraryDependencies ++= {
   Seq(
-    "com.typesafe.akka"      %% "akka-stream"             % "2.6.12",
-    "com.typesafe.akka"      %% "akka-actor"              % "2.6.12",
-    "com.typesafe.akka"      %% "akka-slf4j"              % "2.6.12",
-    "com.typesafe.akka"      %% "akka-http"               % "10.2.5",
-    "com.typesafe.akka"      %% "akka-http-caching"       % "10.2.5",
-    "com.typesafe.akka"      %% "akka-http-spray-json"    % "10.2.5",
-    "ch.megard"              %% "akka-http-cors"          % "1.1.1",
-    "com.lightbend.akka"     %% "akka-stream-alpakka-xml" % "3.0.2",
+    "com.typesafe.akka"      %% "akka-stream"             % akkaVersion,
+    "com.typesafe.akka"      %% "akka-actor"              % akkaVersion,
+    "com.typesafe.akka"      %% "akka-slf4j"              % akkaVersion,
+    "com.typesafe.akka"      %% "akka-http"               % akkaHttpVersion,
+    "com.typesafe.akka"      %% "akka-http-caching"       % akkaHttpVersion,
+    "com.typesafe.akka"      %% "akka-http-spray-json"    % akkaHttpVersion,
+    "ch.megard"              %% "akka-http-cors"          % "1.1.2",
+    "com.lightbend.akka"     %% "akka-stream-alpakka-xml" % "3.0.3",
     "io.spray"               %% "spray-json"              % "1.3.6",
-    "net.sourceforge.owlapi" %  "owlapi-distribution"     % "4.5.18",
-    "org.phenoscape"         %% "owlet"                   % "1.9" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
+    "net.sourceforge.owlapi" %  "owlapi-distribution"     % "4.5.20",
+    "org.phenoscape"         %% "owlet"                   % "1.8.1" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
     "org.phenoscape"         %% "scowl"                   % "1.4.0",
     "org.phenoscape"         %% "kb-owl-tools"            % "1.13.0" exclude("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
     "org.phenoscape"         %% "phenoscape-kb-ingest"    % "1.6.2",

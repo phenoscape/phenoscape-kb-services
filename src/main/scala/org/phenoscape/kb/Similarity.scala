@@ -1,6 +1,6 @@
 package org.phenoscape.kb
 
-import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller, ToResponseMarshallable}
 import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.graph.{NodeFactory, Node_Variable}
 import org.apache.jena.query.{Query, QueryFactory, QuerySolution}
@@ -22,6 +22,7 @@ import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.sparql.FromQuerySolutionOWL._
 import org.phenoscape.owlet.SPARQLComposer
 import org.semanticweb.owlapi.model.{IRI, OWLClass, OWLNamedIndividual}
 import spray.json.DefaultJsonProtocol._
@@ -134,8 +135,23 @@ object Similarity {
       labelledTerms <- Future.sequence(irisFuture.map(Term.computedLabel))
     } yield labelledTerms
 
-  def profileSize(profileSubject: IRI, path: Path): Future[Int] = {
+  def getProfile(profileSubject: IRI, path: Path): Future[Seq[IRI]] = {
+    final case class Annotation(annotation: IRI)
+    val query =
+      sparql"""
+               SELECT DISTINCT ?annotation
+               FROM $KBMainGraph
+               FROM $KBRedundantRelationGraph
+               FROM $KBClosureGraph
+               WHERE {
+                $profileSubject $path ?annotation .
+                FILTER(isIRI(?annotation))
+                }
+              """
+    App.executeSPARQLQueryStringCase[Annotation](query.text).map(_.map(_.annotation))
+  }
 
+  def profileSize(profileSubject: IRI, path: Path): Future[Int] = {
     val query =
       sparql"""
                SELECT (COUNT(DISTINCT ?phen) AS ?count) 
@@ -144,6 +160,7 @@ object Similarity {
                FROM $KBClosureGraph
                WHERE {
                 $profileSubject $path ?phen .
+                FILTER(isIRI(?phen))
                 }
               """
     App.executeSPARQLQuery(query.toQuery).map(ResultCount.count)
@@ -168,11 +185,17 @@ object Similarity {
   def addDisparity(subsumer: Subsumer, queryGraph: IRI, corpusGraph: IRI): Future[SubsumerWithDisparity] =
     icDisparity(Class(subsumer.term.iri), queryGraph, corpusGraph).map(SubsumerWithDisparity(subsumer, _))
 
-  //FIXME this query is way too slow
-  def corpusSize(corpusGraph: IRI): Future[Int] = {
-    val query = select() from corpusGraph.toString where (bgp(t('comparison, for_corpus_profile, 'profile)))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("profile"))))
-    App.executeSPARQLQuery(query).map(ResultCount.count)
+  def corpusSize(path: Path): Future[Int] = {
+    val query =
+      sparql"""
+            SELECT (COUNT(DISTINCT ?item) AS ?count)
+            WHERE {
+              ?item $path ?term .
+              FILTER(isIRI(?item))
+              FILTER(isIRI(?term))
+            }
+            """
+    App.executeSPARQLQuery(query.toQuery).map(ResultCount.count)
   }
 
   private def triplesBlock(elements: Element*): ElementGroup = {
@@ -318,10 +341,13 @@ object Similarity {
   }
 
   def frequency(terms: Set[IRI], path: Path): Future[TermFrequencyTable] = {
-    val values = terms.map(Term.asRelationalTerm)
+    val values = terms
+      .map(Term.asRelationalTerm)
       .map { case RelationalTerm(relation, term) =>
         sparql" ($relation $term) "
-      }.reduceOption(_ + _).getOrElse(sparql"")
+      }
+      .reduceOption(_ + _)
+      .getOrElse(sparql"")
     val query =
       sparql"""
             SELECT (COUNT(DISTINCT ?item) AS ?count)
