@@ -50,6 +50,7 @@ object TaxonPhenotypes {
       SELECT (COUNT(*) AS ?count)
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       WHERE {
         SELECT DISTINCT ?phenotype ?phenotype_label 
@@ -61,6 +62,7 @@ object TaxonPhenotypes {
       SELECT DISTINCT ?phenotype ?phenotype_label
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       $whereClause
       ORDER BY LCASE(?phenotype_label) ?phenotype

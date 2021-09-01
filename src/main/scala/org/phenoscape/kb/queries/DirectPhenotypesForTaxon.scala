@@ -47,6 +47,7 @@ object DirectPhenotypesForTaxon {
       SELECT (COUNT(*) AS ?count)
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       WHERE {
         SELECT DISTINCT ?state ?description ?matrix ?matrix_label ?phenotype
@@ -58,6 +59,7 @@ object DirectPhenotypesForTaxon {
       SELECT DISTINCT ?state ?description ?matrix ?matrix_label ?phenotype ?character ?character_label
       FROM $KBMainGraph
       FROM $KBClosureGraph
+      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       $whereClause
       ORDER BY LCASE(?description) ?phenotype

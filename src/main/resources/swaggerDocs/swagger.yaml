@@ -9,8 +9,8 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-#host: kb.phenoscape.org
-basePath: /api
+host: kb.phenoscape.org
+basePath: /api/v2-beta2
 tags:
   - name: Knowledgebase status
   - name: Terms
@@ -406,7 +406,7 @@ paths:
       tags:
         - Terms
       summary: Property neighbors for object
-      description: Return subjects of existential relations to the given object. For a subject `S` with an existential 'part_of' relation to the object `O`, it means that `S` SubClassOf `part_of` some `O`. The only currently supported property is `http://purl.obolibrary.org/obo/BFO_0000050` (part_of).
+      description: Return subjects related to the given object through the given property.
       produces:
         - application/json
       parameters:
@@ -422,6 +422,12 @@ paths:
           required: true
           type: string
           format: IRI
+        - name: direct
+          in: query
+          description: Returns only direct neighbors when set `true`. Filters out superclasses and transitively related terms.
+          required: false
+          type: boolean
+          default: false
       responses:
         200:
           description: subject terms related to this object
@@ -432,7 +438,7 @@ paths:
       tags:
         - Terms
       summary: Property neighbors for subject
-      description: Return objects of existential relations to the given subject. For a subject `S` with an existential 'part_of' relation to the object `O`, it means that `S` SubClassOf `part_of` some `O`. The only currently supported property is `http://purl.obolibrary.org/obo/BFO_0000050` (part_of).
+      description: Return objects related to the given subject through the given property.
       produces:
         - application/json
       parameters:
@@ -448,6 +454,12 @@ paths:
           required: true
           type: string
           format: IRI
+        - name: direct
+          in: query
+          description: Returns only direct neighbors when set `true`. Filters out superclasses and transitively related terms.
+          required: false
+          type: boolean
+          default: false
       responses:
         200:
           description: object terms related to this subject
@@ -510,8 +522,8 @@ paths:
           type: boolean
           default: true
       responses:
-          200:
-            description: NeXML-format evolutionary character matrix
+        200:
+          description: NeXML-format evolutionary character matrix
     post:
       tags:
         - OntoTrace
@@ -745,6 +757,12 @@ paths:
           required: true
           type: string
           format: IRI
+        - name: path
+          in: query
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
+          required: true
+          type: string
+          format: JSON
       responses:
         200:
           description: profile size
@@ -809,8 +827,8 @@ paths:
     get:
       tags:
         - Semantic similarity
-      summary: Get pairwise Jaccard similarity for a set of terms [IN DEVELOPMENT—SUBJECT TO CHANGE]
-      description: Calculate similarity for every pair in a set of terms.
+      summary: Get pairwise Jaccard similarity for a set of terms.
+      description: Calculate similarity for every pair in a set of terms, for the given relations, and path.
       produces:
         - application/json
       parameters:
@@ -818,6 +836,19 @@ paths:
           in: query
           description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
           required: true
+          type: string
+          format: JSON
+        - name: relations
+          in: query
+          description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
+          required: false
+          default: ["http://www.w3.org/2000/01/rdf-schema#subClassOf","http://purl.obolibrary.org/obo/BFO_0000050"]
+          type: string
+          format: JSON
+        - name: path
+          in: query
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/has_state>/<http://purl.org/describes_phenotype>`
+          required: false
           type: string
           format: JSON
       responses:
@@ -886,6 +917,21 @@ paths:
           description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
           required: true
           type: string
+        - name: relations
+          in: query
+          description: JSON array of relation IRIs, e.g. `["http://www.w3.org/2000/01/rdf-schema#subClassOf","http://purl.obolibrary.org/obo/BFO_0000050"]`
+          required: false
+          default: ["http://www.w3.org/2000/01/rdf-schema#subClassOf","http://purl.obolibrary.org/obo/BFO_0000050"]
+          type: string
+          format: JSON
+        - name: path
+          in: query
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/has_state>/<http://purl.org/describes_phenotype>`
+          required: false
+          default:
+          nullable: true
+          type: string
+          format: JSON
       responses:
         200:
           description: 'Subsumer matrix: column headers are input terms; each row is a subsumer class, with 1 if the column header is subsumed by the row term, and 0 if not.'
@@ -941,11 +987,12 @@ paths:
           description: JSON array of term IRIs, e.g. `["http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0008897%3E"]`
           required: true
           type: string
-        - name: corpus_graph
+        - name: path
           in: query
-          description: IRI of corpus defined in KB, e.g. `http://kb.phenoscape.org/sim/taxa`
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
           required: true
           type: string
+          format: JSON
       responses:
         200:
           description: 'Term frequency table: first column is term IRI, second column is occurrence count.'
@@ -1959,6 +2006,12 @@ paths:
           required: false
           type: string
           format: IRI
+        - name: limit
+          in: query
+          description: maximum results to return; returns all results for limit=0
+          required: false
+          type: integer
+          default: 100
       responses:
         200:
           description: gene matches
@@ -1988,7 +2041,7 @@ paths:
         - name: iri
           in: query
           description: anatomical entity IRI
-          required: true
+          required: false
           type: string
           format: IRI
         - name: quality

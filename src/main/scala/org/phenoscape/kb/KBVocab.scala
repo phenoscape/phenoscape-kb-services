@@ -17,6 +17,7 @@ object KBVocab {
   val BDRank = IRI.create(s"${BDSearchPrefix}rank")
   val rdfsLabel = ObjectProperty(RDFS_LABEL.getIRI)
   val rdfsSubClassOf = ObjectProperty(RDFS_SUBCLASS_OF.getIRI)
+  val transitiveProperty = IRI.create("http://www.w3.org/2002/07/owl#TransitiveProperty")
   val owlIntersectionOf = ObjectProperty(OWL2.intersectionOf.getURI)
   val rdfFirst = ObjectProperty(RDF.first.getURI)
   val rdfRest = ObjectProperty(RDF.rest.getURI)
@@ -52,12 +53,13 @@ object KBVocab {
   val associationHasPredicate = ObjectProperty(s"${oban}association_has_predicate")
   val associationHasObject = ObjectProperty(s"${oban}association_has_object")
   // this 'negated' property is not part of OBAN, so we use a phenoscape namespace
-  val associationIsNegated =  IRI.create("http://purl.org/phenoscape/oban/is_negated")
+  val associationIsNegated = IRI.create("http://purl.org/phenoscape/oban/is_negated")
 
   val has_phenotype = IRI.create("http://purl.obolibrary.org/obo/RO_0002200")
 
   val KBMainGraph = IRI.create("http://kb.phenoscape.org/")
   val KBClosureGraph = IRI.create("http://kb.phenoscape.org/closure")
+  val KBRedundantRelationGraph = IRI.create("http://kb.phenoscape.org/property_graphs/redundant")
 
   val entityRoot = IRI.create("http://purl.obolibrary.org/obo/UBERON_0000061")
   val qualityRoot = IRI.create("http://purl.obolibrary.org/obo/PATO_0000001")
@@ -67,5 +69,10 @@ object KBVocab {
   val InferredAbsence = IRI.create("http://purl.org/phenoscape/vocab.owl#inferred_absence")
 
   val AnnotatedGene = IRI.create("http://purl.org/phenoscape/vocab.owl#AnnotatedGene")
+  val Pseudogene = IRI.create("http://purl.obolibrary.org/obo/SO_0000336")
+  val ProteinCodingGene = IRI.create("http://purl.obolibrary.org/obo/SO_0001217")
+  val lincRNA_gene = IRI.create("http://purl.obolibrary.org/obo/SO_0001641")
+  val lncRNA_gene = IRI.create("http://purl.obolibrary.org/obo/SO_0002127")
+  val miRNA_gene = IRI.create("http://purl.obolibrary.org/obo/SO_0001265")
 
 }
