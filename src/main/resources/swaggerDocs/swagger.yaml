@@ -1012,7 +1012,6 @@ paths:
           description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
           required: true
           type: string
-          format: JSON
       responses:
         200:
           description: 'Term frequency table: first column is term IRI, second column is occurrence count.'
@@ -1034,12 +1033,11 @@ paths:
           description: JSON array of term IRIs, e.g. `["http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0008897%3E"]`
           required: true
           type: string
-        - name: corpus_graph
+        - name: path
           in: query
-          description: IRI of corpus defined in KB, e.g. `http://kb.phenoscape.org/sim/taxa`
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
           required: true
           type: string
-          format: IRI
       responses:
         200:
           description: 'Term frequency table: first column is term IRI, second column is occurrence count.'
