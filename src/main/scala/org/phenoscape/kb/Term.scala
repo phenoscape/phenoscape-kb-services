@@ -554,6 +554,7 @@ object RelationalTerm {
   def unapply(iri: IRI): Option[(IRI, IRI)] = iri match {
     case regex(relation, term) =>
       Some((IRI.create(URLDecoder.decode(relation, "utf-8")), IRI.create(URLDecoder.decode(term, "utf-8"))))
+    case _ => None
   }
 
 }
