@@ -406,9 +406,9 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("corpus_size") {
-                    parameters("path".as[Path]) { path =>
+                    parameters("path".as[Path], "specifier_property".as[IRI].?, "specifier_value".as[IRI].?) { (path, specProp, specVal) =>
                       complete {
-                        Similarity.corpusSize(path).map(ResultCount(_))
+                        Similarity.corpusSize(path, specProp, specVal).map(ResultCount(_))
                       }
                     }
                   } ~
@@ -484,19 +484,18 @@ object Main extends HttpApp with App {
                   } ~
                   path("frequency") {
                     get {
-                      //FIXME not sure IRI for identifying corpus is best approach, particularly when scores are not stored ahead of time in a graph
-                      parameters("terms".as[Seq[IRI]], "path".as[Path]) { (iris, path) =>
+                      parameters("terms".as[Seq[IRI]], "path".as[Path], "specifier_property".as[IRI].?, "specifier_value".as[IRI].?) { (iris, path, specProp, specVal) =>
                         complete {
                           import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                          Similarity.frequency(iris.toSet, path)
+                          Similarity.frequency(iris.toSet, path, specProp, specVal)
                         }
                       }
                     } ~
                       post {
-                        formFields("terms".as[Seq[IRI]], "path".as[Path]) { (iris, path) =>
+                        formFields("terms".as[Seq[IRI]], "path".as[Path], "specifier_property".as[IRI].?, "specifier_value".as[IRI].?) { (iris, path, specProp, specVal) =>
                           complete {
                             import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                            Similarity.frequency(iris.toSet, path)
+                            Similarity.frequency(iris.toSet, path, specProp, specVal)
                           }
                         }
                       }

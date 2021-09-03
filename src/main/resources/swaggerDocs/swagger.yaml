@@ -804,6 +804,18 @@ paths:
           description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
           required: true
           type: string
+        - name: specifier_property
+          in: query
+          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `specifier_value`.
+          required: false
+          type: string
+          format: IRI
+        - name: specifier_value
+          in: query
+          description: Value for an additional triple constraint to select members of the corpus. If used, must also provide `specifier_property`.
+          required: false
+          type: string
+          format: IRI
       responses:
         200:
           description: corpus size
@@ -1012,6 +1024,18 @@ paths:
           description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
           required: true
           type: string
+        - name: specifier_property
+          in: query
+          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `specifier_value`.
+          required: false
+          type: string
+          format: IRI
+        - name: specifier_value
+          in: query
+          description: Value for an additional triple constraint to select members of the corpus. If used, must also provide `specifier_property`.
+          required: false
+          type: string
+          format: IRI
       responses:
         200:
           description: 'Term frequency table: first column is term IRI, second column is occurrence count.'
@@ -1038,6 +1062,18 @@ paths:
           description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
           required: true
           type: string
+        - name: specifier_property
+          in: query
+          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `specifier_value`.
+          required: false
+          type: string
+          format: IRI
+        - name: specifier_value
+          in: query
+          description: Value for an additional triple constraint to select members of the corpus. If used, must also provide `specifier_property`.
+          required: false
+          type: string
+          format: IRI
       responses:
         200:
           description: 'Term frequency table: first column is term IRI, second column is occurrence count.'

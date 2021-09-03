@@ -157,7 +157,7 @@ object Gene {
         UNION
         {
           VALUES ?gene_type { ${Vocab.Gene} $Pseudogene $ProteinCodingGene $lincRNA_gene $lncRNA_gene $miRNA_gene }
-          ?gene $rdfsSubClassOf ?gene_type .
+          $iri $rdfsSubClassOf ?gene_type .
         }
       }
           """.toQuery

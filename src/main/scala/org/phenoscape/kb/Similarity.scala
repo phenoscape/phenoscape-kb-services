@@ -185,11 +185,16 @@ object Similarity {
   def addDisparity(subsumer: Subsumer, queryGraph: IRI, corpusGraph: IRI): Future[SubsumerWithDisparity] =
     icDisparity(Class(subsumer.term.iri), queryGraph, corpusGraph).map(SubsumerWithDisparity(subsumer, _))
 
-  def corpusSize(path: Path): Future[Int] = {
+  def corpusSize(path: Path, specifierPropertyOpt: Option[IRI], specifierValueOpt: Option[IRI]): Future[Int] = {
+    val specifierPattern = (for {
+      specifierProperty <- specifierPropertyOpt
+      specifierValue <- specifierValueOpt
+    } yield sparql"?item $specifierProperty $specifierValue .").getOrElse(sparql"")
     val query =
       sparql"""
             SELECT (COUNT(DISTINCT ?item) AS ?count)
             WHERE {
+              $specifierPattern
               ?item $path ?term .
               FILTER(isIRI(?item))
               FILTER(isIRI(?term))
@@ -340,7 +345,14 @@ object Similarity {
     App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
   }
 
-  def frequency(terms: Set[IRI], path: Path): Future[TermFrequencyTable] = {
+  def frequency(terms: Set[IRI],
+                path: Path,
+                specifierPropertyOpt: Option[IRI],
+                specifierValueOpt: Option[IRI]): Future[TermFrequencyTable] = {
+    val specifierPattern = (for {
+      specifierProperty <- specifierPropertyOpt
+      specifierValue <- specifierValueOpt
+    } yield sparql"?item $specifierProperty $specifierValue .").getOrElse(sparql"")
     val values = terms
       .map(Term.asRelationalTerm)
       .map { case RelationalTerm(relation, term) =>
@@ -350,20 +362,26 @@ object Similarity {
       .getOrElse(sparql"")
     val query =
       sparql"""
-            SELECT (COUNT(DISTINCT ?item) AS ?count)
+            SELECT ?relation ?term (COUNT(DISTINCT ?item) AS ?count)
             WHERE {
               VALUES (?relation ?term) { $values }
+              $specifierPattern
               ?item $path ?cls .
               ?cls ?relation ?term .
             }
-
+            GROUP BY ?relation ?term
             """
     App
-      .executeSPARQLQueryString(query.text,
-                                qs =>
-                                  IRI.create(qs.getResource("term").getURI) ->
-                                    qs.getLiteral("count").getInt)
+      .executeSPARQLQueryString(
+        query.text,
+        qs =>
+          (IRI.create(qs.getResource("relation").getURI), IRI.create(qs.getResource("term").getURI)) ->
+            qs.getLiteral("count").getInt)
       .map(_.toMap)
+      .map(_.map { case ((relation, term), count) =>
+        val termIRI = if (relation == rdfsSubClassOf.getIRI) term else RelationalTerm(relation, term).iri
+        termIRI -> count
+      })
       .map { result =>
         val foundTerms = result.keySet
         // add in 0 counts for terms not returned by the query
