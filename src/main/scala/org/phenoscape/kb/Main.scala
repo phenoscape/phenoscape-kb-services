@@ -110,7 +110,7 @@ object Main extends HttpApp with App {
     Unmarshaller.firstOf(SeqFromJSONString.map(_.map(IRI.create)), IRISeqUnmarshaller)
 
   val cacheKeyer: PartialFunction[RequestContext, (Uri, Option[HttpHeader], HttpMethod)] = {
-    case r: RequestContext if (r.request.method == GET) =>
+    case r: RequestContext if r.request.method == GET =>
       (r.request.uri, r.request.headers.find(_.is("accept")), r.request.method)
   }
 
@@ -166,24 +166,25 @@ object Main extends HttpApp with App {
               } ~
               pathPrefix("term") {
                 path("search") {
-                  parameters('text,
-                             'type.as[IRI].?(owlClass),
-                             'properties.as[Seq[IRI]].?,
-                             'definedBy.as[Seq[IRI]].?,
-                             'includeDeprecated.as[Boolean].?(false),
-                             'limit.as[Int].?(100)) {
-                    (text, termType, properties, definedByOpt, includeDeprecated, limit) =>
-                      complete {
-                        val props = properties.getOrElse(
-                          List(rdfsLabel, hasExactSynonym.getIRI, hasNarrowSynonym.getIRI, hasBroadSynonym.getIRI))
-                        val definedBys = definedByOpt.getOrElse(Nil)
-                        import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                        Term.search(text, termType, props, definedBys, includeDeprecated, limit)
-                      }
+                  parameters(
+                    "text",
+                    "type".as[IRI].?(owlClass),
+                    "properties".as[Seq[IRI]].?,
+                    "definedBy".as[Seq[IRI]].?,
+                    "includeDeprecated".as[Boolean].?(false),
+                    "limit".as[Int].?(100)
+                  ) { (text, termType, properties, definedByOpt, includeDeprecated, limit) =>
+                    complete {
+                      val props = properties.getOrElse(
+                        List(rdfsLabel, hasExactSynonym.getIRI, hasNarrowSynonym.getIRI, hasBroadSynonym.getIRI))
+                      val definedBys = definedByOpt.getOrElse(Nil)
+                      import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
+                      Term.search(text, termType, props, definedBys, includeDeprecated, limit)
+                    }
                   }
                 } ~
                   path("search_classes") {
-                    parameters('text, 'definedBy.as[IRI], 'limit.as[Int].?(0)) { (text, definedBy, limit) =>
+                    parameters("text", "definedBy".as[IRI], "limit".as[Int].?(0)) { (text, definedBy, limit) =>
                       complete {
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                         Term.searchOntologyTerms(text, definedBy, limit)
@@ -191,7 +192,7 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("label") {
-                    parameters('iri.as[IRI]) { (iri) =>
+                    parameters("iri".as[IRI]) { iri =>
                       complete {
                         Term.labels(iri).map(_.head)
                       }
@@ -199,7 +200,7 @@ object Main extends HttpApp with App {
                   } ~
                   path("labels") {
                     get {
-                      parameters('iris.as[Seq[IRI]]) { (iris) =>
+                      parameters("iris".as[Seq[IRI]]) { iris =>
                         complete {
                           import org.phenoscape.kb.MinimalTerm.comboSeqMarshaller
                           Term.labels(iris: _*)
@@ -207,7 +208,7 @@ object Main extends HttpApp with App {
                       }
                     } ~
                       post {
-                        formFields('iris.as[Seq[IRI]]) { (iris) =>
+                        formFields("iris".as[Seq[IRI]]) { iris =>
                           complete {
                             import org.phenoscape.kb.MinimalTerm.comboSeqMarshaller
                             Term.labels(iris: _*)
@@ -216,28 +217,28 @@ object Main extends HttpApp with App {
                       }
                   } ~
                   path("classification") {
-                    parameters('iri.as[IRI], 'definedBy.as[IRI].?) { (iri, source) =>
+                    parameters("iri".as[IRI], "definedBy".as[IRI].?) { (iri, source) =>
                       complete {
                         Term.classification(iri, source)
                       }
                     }
                   } ~
                   path("least_common_subsumers") {
-                    parameters('iris.as[Seq[IRI]], 'definedBy.as[IRI].?) { (iris, source) =>
+                    parameters("iris".as[Seq[IRI]], "definedBy".as[IRI].?) { (iris, source) =>
                       complete {
                         Term.leastCommonSubsumers(iris, source)
                       }
                     }
                   } ~
                   path("all_ancestors") {
-                    parameters('iri.as[IRI], 'parts.as[Boolean].?(false)) { (iri, includeAsPart) =>
+                    parameters("iri".as[IRI], "parts".as[Boolean].?(false)) { (iri, includeAsPart) =>
                       complete {
                         Term.allAncestors(iri, includeAsPart)
                       }
                     }
                   } ~
                   path("all_descendants") {
-                    parameters('iri.as[IRI], 'parts.as[Boolean].?(false)) { (iri, includeParts) =>
+                    parameters("iri".as[IRI], "parts".as[Boolean].?(false)) { (iri, includeParts) =>
                       complete {
                         Term.allDescendants(iri, includeParts)
                       }
@@ -245,7 +246,7 @@ object Main extends HttpApp with App {
                   } ~
                   pathPrefix("property_neighbors") {
                     path("object") {
-                      parameters('term.as[IRI], 'property.as[IRI], 'direct.as[Boolean].?(false)) {
+                      parameters("term".as[IRI], "property".as[IRI], "direct".as[Boolean].?(false)) {
                         (term, property, direct) =>
                           complete {
                             Graph.propertyNeighborsForObject(term, property, direct)
@@ -253,7 +254,7 @@ object Main extends HttpApp with App {
                       }
                     } ~
                       path("subject") {
-                        parameters('term.as[IRI], 'property.as[IRI], 'direct.as[Boolean].?(false)) {
+                        parameters("term".as[IRI], "property".as[IRI], "direct".as[Boolean].?(false)) {
                           (term, property, direct) =>
                             complete {
                               Graph.propertyNeighborsForSubject(term, property, direct)
@@ -262,7 +263,7 @@ object Main extends HttpApp with App {
                       }
                   } ~
                   path("resolve_label_expression") {
-                    parameters('expression) { (expression) =>
+                    parameters("expression") { expression =>
                       complete {
                         Term.resolveLabelExpression(expression) match {
                           case Success(expression) => expression
@@ -272,7 +273,7 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   pathEnd {
-                    parameters('iri.as[IRI]) { iri =>
+                    parameters("iri".as[IRI]) { iri =>
                       complete {
                         Term.withIRI(iri)
                       }
@@ -282,12 +283,12 @@ object Main extends HttpApp with App {
               path("ontotrace") {
                 get {
                   parameters(
-                    'entity.as[OWLClassExpression].?,
-                    'entity_list.as[Seq[IRI]].?,
-                    'taxon.as[OWLClassExpression].?,
-                    'taxon_list.as[Seq[IRI]].?,
-                    'variable_only.as[Boolean].?(true),
-                    'parts.as[Boolean].?(false)
+                    "entity".as[OWLClassExpression].?,
+                    "entity_list".as[Seq[IRI]].?,
+                    "taxon".as[OWLClassExpression].?,
+                    "taxon_list".as[Seq[IRI]].?,
+                    "variable_only".as[Boolean].?(true),
+                    "parts".as[Boolean].?(false)
                   ) {
                     (entityClassExpression,
                      entityIRIListOpt,
@@ -318,12 +319,12 @@ object Main extends HttpApp with App {
                 } ~
                   post {
                     formFields(
-                      'entity.as[OWLClassExpression].?,
-                      'entity_list.as[Seq[IRI]].?,
-                      'taxon.as[OWLClassExpression].?,
-                      'taxon_list.as[Seq[IRI]].?,
-                      'variable_only.as[Boolean].?(true),
-                      'parts.as[Boolean].?(false)
+                      "entity".as[OWLClassExpression].?,
+                      "entity_list".as[Seq[IRI]].?,
+                      "taxon".as[OWLClassExpression].?,
+                      "taxon_list".as[Seq[IRI]].?,
+                      "variable_only".as[Boolean].?(true),
+                      "parts".as[Boolean].?(false)
                     ) {
                       (entityClassExpression,
                        entityIRIListOpt,
@@ -335,7 +336,7 @@ object Main extends HttpApp with App {
                         val nonEmptyTaxonListOpt = taxonIRIListOpt.flatMap(asNonEmptyList)
                         validate(
                           !(entityClassExpression.isEmpty && nonEmptyEntityListOpt.isEmpty) && !(taxonClassExpression.isEmpty && nonEmptyTaxonListOpt.isEmpty),
-                          "Atleast one of the class expression or IRI list is required."
+                          "At least one of the class expression or IRI list is required."
                         ) {
                           respondWithHeader(headers.`Content-Disposition`(ContentDispositionTypes.attachment,
                                                                           Map("filename" -> "ontotrace.xml"))) {
@@ -355,7 +356,7 @@ object Main extends HttpApp with App {
               } ~
               pathPrefix("similarity") {
                 path("query") {
-                  parameters('iri.as[IRI], 'corpus_graph.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0)) {
+                  parameters("iri".as[IRI], "corpus_graph".as[IRI], "limit".as[Int].?(20), "offset".as[Int].?(0)) {
                     (query, corpusGraph, limit, offset) =>
                       complete {
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
@@ -364,16 +365,18 @@ object Main extends HttpApp with App {
                   }
                 } ~ // why 2 graphs??
                   path("best_matches") {
-                    parameters('query_iri.as[IRI], 'corpus_iri.as[IRI], 'query_graph.as[IRI], 'corpus_graph.as[IRI]) {
-                      (queryItem, corpusItem, queryGraph, corpusGraph) =>
-                        complete {
-                          import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                          Similarity.bestAnnotationsMatchesForComparison(queryItem, queryGraph, corpusItem, corpusGraph)
-                        }
+                    parameters("query_iri".as[IRI],
+                               "corpus_iri".as[IRI],
+                               "query_graph".as[IRI],
+                               "corpus_graph".as[IRI]) { (queryItem, corpusItem, queryGraph, corpusGraph) =>
+                      complete {
+                        import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
+                        Similarity.bestAnnotationsMatchesForComparison(queryItem, queryGraph, corpusItem, corpusGraph)
+                      }
                     }
                   } ~
                   path("best_subsumers") {
-                    parameters('query_iri.as[IRI], 'corpus_iri.as[IRI], 'corpus_graph.as[IRI]) {
+                    parameters("query_iri".as[IRI], "corpus_iri".as[IRI], "corpus_graph".as[IRI]) {
                       (queryItem, corpusItem, corpusGraph) =>
                         complete {
                           import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
@@ -382,7 +385,7 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("subsumed_annotations") {
-                    parameters('subsumer.as[OWLClass], 'instance.as[OWLNamedIndividual]) { (subsumer, instance) =>
+                    parameters("subsumer".as[OWLClass], "instance".as[OWLNamedIndividual]) { (subsumer, instance) =>
                       complete {
                         Similarity.subsumedAnnotations(instance, subsumer)
                       }
@@ -396,21 +399,21 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("profile_size") {
-                    parameters('iri.as[IRI], 'path.as[Path]) { (iri, path) =>
+                    parameters("iri".as[IRI], "path".as[Path]) { (iri, path) =>
                       complete {
                         Similarity.profileSize(iri, path).map(ResultCount(_))
                       }
                     }
                   } ~
                   path("corpus_size") {
-                    parameters('path.as[Path]) { path =>
+                    parameters("path".as[Path]) { path =>
                       complete {
                         Similarity.corpusSize(path).map(ResultCount(_))
                       }
                     }
                   } ~
                   path("ic_disparity") {
-                    parameters('iri.as[OWLClass], 'query_graph.as[IRI], 'corpus_graph.as[IRI]) {
+                    parameters("iri".as[OWLClass], "query_graph".as[IRI], "corpus_graph".as[IRI]) {
                       (term, queryGraph, corpusGraph) =>
                         complete {
                           Similarity
@@ -420,12 +423,12 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("states") {
-                    parameters('leftStudy.as[IRI],
-                               'leftCharacter.as[Int],
-                               'leftSymbol,
-                               'rightStudy.as[IRI],
-                               'rightCharacter.as[Int],
-                               'rightSymbol) {
+                    parameters("leftStudy".as[IRI],
+                               "leftCharacter".as[Int],
+                               "leftSymbol",
+                               "rightStudy".as[IRI],
+                               "rightCharacter".as[Int],
+                               "rightSymbol") {
                       (leftStudyIRI, leftCharacterNum, leftSymbol, rightStudyIRI, rightCharacterNum, rightSymbol) =>
                         complete {
                           Similarity
@@ -441,18 +444,18 @@ object Main extends HttpApp with App {
                   } ~
                   path("jaccard") { //FIXME can GET and POST share code better?
                     get {
-                      parameters('iris.as[Seq[IRI]],
-                                 'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                                 'path.as[Path].?) { (iris, relations, path) =>
+                      parameters("iris".as[Seq[IRI]],
+                                 "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                                 "path".as[Path].?) { (iris, relations, path) =>
                         complete {
                           Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path)
                         }
                       }
                     } ~
                       post {
-                        formFields('iris.as[Seq[IRI]],
-                                   'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                                   'path.as[Path].?) { (iris, relations, path) =>
+                        formFields("iris".as[Seq[IRI]],
+                                   "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                                   "path".as[Path].?) { (iris, relations, path) =>
                           complete {
                             Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path)
                           }
@@ -461,18 +464,18 @@ object Main extends HttpApp with App {
                   } ~
                   path("matrix") {
                     get {
-                      parameters('terms.as[Seq[IRI]],
-                                 'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                                 'path.as[Path].?) { (terms, relations, path) =>
+                      parameters("terms".as[Seq[IRI]],
+                                 "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                                 "path".as[Path].?) { (terms, relations, path) =>
                         complete {
                           Graph.ancestorMatrix(terms.toSet, relations.toSet, path)
                         }
                       }
                     } ~
                       post {
-                        formFields('terms.as[Seq[IRI]],
-                                   'relations.as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                                   'path.as[Path].?) { (terms, relations, path) =>
+                        formFields("terms".as[Seq[IRI]],
+                                   "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                                   "path".as[Path].?) { (terms, relations, path) =>
                           complete {
                             Graph.ancestorMatrix(terms.toSet, relations.toSet, path)
                           }
@@ -482,7 +485,7 @@ object Main extends HttpApp with App {
                   path("frequency") {
                     get {
                       //FIXME not sure IRI for identifying corpus is best approach, particularly when scores are not stored ahead of time in a graph
-                      parameters('terms.as[Seq[IRI]], 'path.as[Path]) { (iris, path) =>
+                      parameters("terms".as[Seq[IRI]], "path".as[Path]) { (iris, path) =>
                         complete {
                           import Similarity.TermFrequencyTable.TermFrequencyTableCSV
                           Similarity.frequency(iris.toSet, path)
@@ -490,7 +493,7 @@ object Main extends HttpApp with App {
                       }
                     } ~
                       post {
-                        formFields('terms.as[Seq[IRI]], 'path.as[Path]) { (iris, path) =>
+                        formFields("terms".as[Seq[IRI]], "path".as[Path]) { (iris, path) =>
                           complete {
                             import Similarity.TermFrequencyTable.TermFrequencyTableCSV
                             Similarity.frequency(iris.toSet, path)
@@ -501,7 +504,7 @@ object Main extends HttpApp with App {
               } ~
               pathPrefix("characterstate") {
                 path("search") { //undocumented and currently unused
-                  parameters('text, 'limit.as[Int]) { (text, limit) =>
+                  parameters("text", "limit".as[Int]) { (text, limit) =>
                     complete {
                       import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                       CharacterDescription.search(text, limit)
@@ -510,11 +513,11 @@ object Main extends HttpApp with App {
                 } ~
                   path("query") { //undocumented and currently unused
                     parameters(
-                      'entity.as[OWLClassExpression].?(owlThing: OWLClassExpression),
-                      'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression),
-                      'limit.as[Int].?(20),
-                      'offset.as[Int].?(0),
-                      'total.as[Boolean].?(false)
+                      "entity".as[OWLClassExpression].?(owlThing: OWLClassExpression),
+                      "taxon".as[OWLClassExpression].?(owlThing: OWLClassExpression),
+                      "limit".as[Int].?(20),
+                      "offset".as[Int].?(0),
+                      "total".as[Boolean].?(false)
                     ) { (entity, taxon, limit, offset, total) =>
                       complete {
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
@@ -524,7 +527,7 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("with_annotation") { //undocumented and currently unused
-                    parameter('iri.as[IRI]) { iri =>
+                    parameter("iri".as[IRI]) { iri =>
                       complete {
                         CharacterDescription.annotatedCharacterDescriptionWithAnnotation(iri)
                       }
@@ -534,16 +537,16 @@ object Main extends HttpApp with App {
               pathPrefix("taxon") {
                 path("phenotypes") {
                   parameters(
-                    'taxon.as[IRI],
-                    'entity.as[OWLClassExpression].?,
-                    'quality.as[OWLClassExpression].?,
-                    'phenotype.as[IRI].?,
-                    'parts.as[Boolean].?(false),
-                    'historical_homologs.as[Boolean].?(false),
-                    'serial_homologs.as[Boolean].?(false),
-                    'limit.as[Int].?(20),
-                    'offset.as[Int].?(0),
-                    'total.as[Boolean].?(false)
+                    "taxon".as[IRI],
+                    "entity".as[OWLClassExpression].?,
+                    "quality".as[OWLClassExpression].?,
+                    "phenotype".as[IRI].?,
+                    "parts".as[Boolean].?(false),
+                    "historical_homologs".as[Boolean].?(false),
+                    "serial_homologs".as[Boolean].?(false),
+                    "limit".as[Int].?(20),
+                    "offset".as[Int].?(0),
+                    "total".as[Boolean].?(false)
                   ) {
                     (taxon,
                      entityOpt,
@@ -609,10 +612,10 @@ object Main extends HttpApp with App {
                   }
                 } ~
                   path("variation_profile") {
-                    parameters('taxon.as[IRI],
-                               'limit.as[Int].?(20),
-                               'offset.as[Int].?(0),
-                               'total.as[Boolean].?(false)) { (taxon, limit, offset, total) =>
+                    parameters("taxon".as[IRI],
+                               "limit".as[Int].?(20),
+                               "offset".as[Int].?(0),
+                               "total".as[Boolean].?(false)) { (taxon, limit, offset, total) =>
                       complete {
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                         if (total) Taxon.variationProfileTotalFor(taxon).map(ResultCount(_))
@@ -622,17 +625,17 @@ object Main extends HttpApp with App {
                   } ~
                   path("with_phenotype") {
                     parameters(
-                      'entity.as[OWLClassExpression].?,
-                      'quality.as[OWLClassExpression].?,
-                      'in_taxon.as[IRI].?,
-                      'phenotype.as[IRI].?,
-                      'publication.as[IRI].?,
-                      'parts.as[Boolean].?(false),
-                      'historical_homologs.as[Boolean].?(false),
-                      'serial_homologs.as[Boolean].?(false),
-                      'limit.as[Int].?(20),
-                      'offset.as[Int].?(0),
-                      'total.as[Boolean].?(false)
+                      "entity".as[OWLClassExpression].?,
+                      "quality".as[OWLClassExpression].?,
+                      "in_taxon".as[IRI].?,
+                      "phenotype".as[IRI].?,
+                      "publication".as[IRI].?,
+                      "parts".as[Boolean].?(false),
+                      "historical_homologs".as[Boolean].?(false),
+                      "serial_homologs".as[Boolean].?(false),
+                      "limit".as[Int].?(20),
+                      "offset".as[Int].?(0),
+                      "total".as[Boolean].?(false)
                     ) {
                       (entityOpt,
                        qualityOpt,
@@ -706,13 +709,13 @@ object Main extends HttpApp with App {
                   } ~
                   path("facet" / "phenotype" / Segment) { facetBy =>
                     parameters(
-                      'entity.as[IRI].?,
-                      'quality.as[QualitySpec].?,
-                      'in_taxon.as[IRI].?,
-                      'publication.as[IRI].?,
-                      'parts.as[Boolean].?(false),
-                      'historical_homologs.as[Boolean].?(false),
-                      'serial_homologs.as[Boolean].?(false)
+                      "entity".as[IRI].?,
+                      "quality".as[QualitySpec].?,
+                      "in_taxon".as[IRI].?,
+                      "publication".as[IRI].?,
+                      "parts".as[Boolean].?(false),
+                      "historical_homologs".as[Boolean].?(false),
+                      "serial_homologs".as[Boolean].?(false)
                     ) {
                       (entityOpt,
                        qualitySpecOpt,
@@ -755,13 +758,13 @@ object Main extends HttpApp with App {
                   } ~
                   path("facet" / "annotations" / Segment) { facetBy =>
                     parameters(
-                      'entity.as[IRI].?,
-                      'quality.as[QualitySpec].?,
-                      'in_taxon.as[IRI].?,
-                      'publication.as[IRI].?,
-                      'parts.as[Boolean].?(false),
-                      'historical_homologs.as[Boolean].?(false),
-                      'serial_homologs.as[Boolean].?(false)
+                      "entity".as[IRI].?,
+                      "quality".as[QualitySpec].?,
+                      "in_taxon".as[IRI].?,
+                      "publication".as[IRI].?,
+                      "parts".as[Boolean].?(false),
+                      "historical_homologs".as[Boolean].?(false),
+                      "serial_homologs".as[Boolean].?(false)
                     ) {
                       (entityOpt,
                        qualitySpecOpt,
@@ -805,17 +808,17 @@ object Main extends HttpApp with App {
                   path("annotations") {
                     tsvOrJson { optAccept =>
                       parameters(
-                        'entity.as[IRI].?,
-                        'quality.as[QualitySpec].?,
-                        'in_taxon.as[IRI].?,
-                        'phenotype.as[IRI].?,
-                        'publication.as[IRI].?,
-                        'parts.as[Boolean].?(false),
-                        'historical_homologs.as[Boolean].?(false),
-                        'serial_homologs.as[Boolean].?(false),
-                        'limit.as[Int].?(20),
-                        'offset.as[Int].?(0),
-                        'total.as[Boolean].?(false)
+                        "entity".as[IRI].?,
+                        "quality".as[QualitySpec].?,
+                        "in_taxon".as[IRI].?,
+                        "phenotype".as[IRI].?,
+                        "publication".as[IRI].?,
+                        "parts".as[Boolean].?(false),
+                        "historical_homologs".as[Boolean].?(false),
+                        "serial_homologs".as[Boolean].?(false),
+                        "limit".as[Int].?(20),
+                        "offset".as[Int].?(0),
+                        "total".as[Boolean].?(false)
                       ) {
                         (entity,
                          qualitySpecOpt,
@@ -896,7 +899,7 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("annotation" / "sources") {
-                    parameters('taxon.as[IRI], 'phenotype.as[IRI]) { (taxon, phenotype) =>
+                    parameters("taxon".as[IRI], "phenotype".as[IRI]) { (taxon, phenotype) =>
                       complete {
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                         TaxonPhenotypeAnnotation.annotationSources(taxon, phenotype)
@@ -904,7 +907,7 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("with_rank") {
-                    parameters('rank.as[IRI], 'in_taxon.as[IRI]) { (rank, inTaxon) =>
+                    parameters("rank".as[IRI], "in_taxon".as[IRI]) { (rank, inTaxon) =>
                       complete {
                         import Taxon.ComboTaxaMarshaller
                         Taxon.taxaWithRank(rank, inTaxon)
@@ -912,28 +915,28 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("annotated_taxa_count") {
-                    parameter('in_taxon.as[IRI]) { inTaxon =>
+                    parameter("in_taxon".as[IRI]) { inTaxon =>
                       complete {
                         Taxon.countOfAnnotatedTaxa(inTaxon).map(ResultCount(_))
                       }
                     }
                   } ~
                   path("newick") {
-                    parameters('iri.as[IRI]) { (taxon) =>
+                    parameters("iri".as[IRI]) { taxon =>
                       complete {
                         Taxon.newickTreeWithRoot(taxon)
                       }
                     }
                   } ~
                   path("group") {
-                    parameters('iri.as[IRI]) { (taxon) =>
+                    parameters("iri".as[IRI]) { taxon =>
                       complete {
                         Taxon.commonGroupFor(taxon)
                       }
                     }
                   } ~
                   pathEnd {
-                    parameters('iri.as[IRI]) { iri =>
+                    parameters("iri".as[IRI]) { iri =>
                       complete {
                         Taxon.withIRI(iri)
                       }
@@ -942,7 +945,7 @@ object Main extends HttpApp with App {
               } ~
               pathPrefix("entity") {
                 path("search") {
-                  parameters('text, 'limit.as[Int].?(20)) { (text, limit) =>
+                  parameters("text", "limit".as[Int].?(20)) { (text, limit) =>
                     complete {
                       import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                       Term.searchOntologyTerms(text, Uberon, limit)
@@ -951,11 +954,11 @@ object Main extends HttpApp with App {
                 } ~
                   pathPrefix("absence") {
                     path("evidence") {
-                      parameters('taxon.as[IRI],
-                                 'entity.as[IRI],
-                                 'limit.as[Int].?(20),
-                                 'offset.as[Int].?(0),
-                                 'total.as[Boolean].?(false)) { (taxon, entity, limit, offset, totalOnly) =>
+                      parameters("taxon".as[IRI],
+                                 "entity".as[IRI],
+                                 "limit".as[Int].?(20),
+                                 "offset".as[Int].?(0),
+                                 "total".as[Boolean].?(false)) { (taxon, entity, limit, offset, totalOnly) =>
                         complete {
                           import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                           if (totalOnly)
@@ -965,11 +968,11 @@ object Main extends HttpApp with App {
                       }
                     } ~
                       pathEnd {
-                        parameters('entity.as[IRI],
-                                   'in_taxon.as[IRI].?,
-                                   'limit.as[Int].?(20),
-                                   'offset.as[Int].?(0),
-                                   'total.as[Boolean].?(false)) { (entity, taxonFilter, limit, offset, totalOnly) =>
+                        parameters("entity".as[IRI],
+                                   "in_taxon".as[IRI].?,
+                                   "limit".as[Int].?(20),
+                                   "offset".as[Int].?(0),
+                                   "total".as[Boolean].?(false)) { (entity, taxonFilter, limit, offset, totalOnly) =>
                           complete {
                             import Taxon.ComboTaxaMarshaller
                             if (totalOnly)
@@ -988,11 +991,11 @@ object Main extends HttpApp with App {
                   } ~
                   pathPrefix("presence") {
                     path("evidence") {
-                      parameters('taxon.as[IRI],
-                                 'entity.as[IRI],
-                                 'limit.as[Int].?(20),
-                                 'offset.as[Int].?(0),
-                                 'total.as[Boolean].?(false)) { (taxon, entity, limit, offset, totalOnly) =>
+                      parameters("taxon".as[IRI],
+                                 "entity".as[IRI],
+                                 "limit".as[Int].?(20),
+                                 "offset".as[Int].?(0),
+                                 "total".as[Boolean].?(false)) { (taxon, entity, limit, offset, totalOnly) =>
                         complete {
                           import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                           if (totalOnly)
@@ -1002,11 +1005,11 @@ object Main extends HttpApp with App {
                       }
                     } ~
                       pathEnd {
-                        parameters('entity.as[IRI],
-                                   'in_taxon.as[IRI].?,
-                                   'limit.as[Int].?(20),
-                                   'offset.as[Int].?(0),
-                                   'total.as[Boolean].?(false)) { (entity, taxonFilter, limit, offset, totalOnly) =>
+                        parameters("entity".as[IRI],
+                                   "in_taxon".as[IRI].?,
+                                   "limit".as[Int].?(20),
+                                   "offset".as[Int].?(0),
+                                   "total".as[Boolean].?(false)) { (entity, taxonFilter, limit, offset, totalOnly) =>
                           complete {
                             import Taxon.ComboTaxaMarshaller
                             if (totalOnly)
@@ -1023,7 +1026,7 @@ object Main extends HttpApp with App {
                       }
                   } ~
                   path("homology") {
-                    parameters('entity.as[IRI]) { (entity) =>
+                    parameters("entity".as[IRI]) { entity =>
                       complete {
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                         AnatomicalEntity.homologyAnnotations(entity, false)
@@ -1032,14 +1035,14 @@ object Main extends HttpApp with App {
                   } ~
                   path("dependency") {
                     get {
-                      parameters('terms.as[Seq[IRI]]) { iris =>
+                      parameters("terms".as[Seq[IRI]]) { iris =>
                         complete {
                           AnatomicalEntity.presenceAbsenceDependencyMatrix(iris.toList)
                         }
                       }
                     } ~
                       post {
-                        formFields('terms.as[Seq[IRI]]) { iris =>
+                        formFields("terms".as[Seq[IRI]]) { iris =>
                           complete {
                             AnatomicalEntity.presenceAbsenceDependencyMatrix(iris.toList)
                           }
@@ -1049,7 +1052,7 @@ object Main extends HttpApp with App {
               } ~
               pathPrefix("gene") {
                 path("search") {
-                  parameters('text, 'taxon.as[IRI].?, 'limit.as[Int].?(100)) { (text, taxonOpt, limit) =>
+                  parameters("text", "taxon".as[IRI].?, "limit".as[Int].?(100)) { (text, taxonOpt, limit) =>
                     complete {
                       import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                       Gene.search(text, taxonOpt, if (limit < 1) None else Some(limit))
@@ -1057,7 +1060,7 @@ object Main extends HttpApp with App {
                   }
                 } ~
                   path("eq") {
-                    parameters('id.as[IRI]) { iri =>
+                    parameters("id".as[IRI]) { iri =>
                       complete {
                         EQForGene.query(iri)
                       }
@@ -1065,12 +1068,12 @@ object Main extends HttpApp with App {
                   } ~
                   path("phenotype_annotations") { // undocumented and not currently used
                     parameters(
-                      'entity.as[OWLClassExpression].?,
-                      'quality.as[OWLClassExpression].?,
-                      'in_taxon.as[IRI].?,
-                      'limit.as[Int].?(20),
-                      'offset.as[Int].?(0),
-                      'total.as[Boolean].?(false)
+                      "entity".as[OWLClassExpression].?,
+                      "quality".as[OWLClassExpression].?,
+                      "in_taxon".as[IRI].?,
+                      "limit".as[Int].?(20),
+                      "offset".as[Int].?(0),
+                      "total".as[Boolean].?(false)
                     ) { (entity, quality, taxonOpt, limit, offset, total) =>
                       complete {
                         import GenePhenotypeAnnotation.ComboGenePhenotypeAnnotationsMarshaller
@@ -1081,11 +1084,11 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("expression_annotations") { // undocumented and not currently used
-                    parameters('entity.as[OWLClassExpression].?,
-                               'in_taxon.as[IRI].?,
-                               'limit.as[Int].?(20),
-                               'offset.as[Int].?(0),
-                               'total.as[Boolean].?(false)) { (entity, taxonOpt, limit, offset, total) =>
+                    parameters("entity".as[OWLClassExpression].?,
+                               "in_taxon".as[IRI].?,
+                               "limit".as[Int].?(20),
+                               "offset".as[Int].?(0),
+                               "total".as[Boolean].?(false)) { (entity, taxonOpt, limit, offset, total) =>
                       complete {
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                         if (total) GeneExpressionAnnotation.queryAnnotationsTotal(entity, taxonOpt).map(ResultCount(_))
@@ -1095,11 +1098,11 @@ object Main extends HttpApp with App {
                   } ~
                   path("query") { // undocumented and not currently used
                     parameters(
-                      'entity.as[OWLClassExpression].?(owlThing: OWLClassExpression),
-                      'taxon.as[OWLClassExpression].?(owlThing: OWLClassExpression),
-                      'limit.as[Int].?(20),
-                      'offset.as[Int].?(0),
-                      'total.as[Boolean].?(false)
+                      "entity".as[OWLClassExpression].?(owlThing: OWLClassExpression),
+                      "taxon".as[OWLClassExpression].?(owlThing: OWLClassExpression),
+                      "limit".as[Int].?(20),
+                      "offset".as[Int].?(0),
+                      "total".as[Boolean].?(false)
                     ) { (entity, taxon, limit, offset, total) =>
                       complete {
                         import Gene.ComboGenesMarshaller
@@ -1109,7 +1112,7 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("phenotypic_profile") {
-                    parameters('iri.as[IRI]) { (iri) =>
+                    parameters("iri".as[IRI]) { iri =>
                       complete {
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                         Gene.phenotypicProfile(iri)
@@ -1117,7 +1120,7 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("expression_profile") {
-                    parameters('iri.as[IRI]) { (iri) =>
+                    parameters("iri".as[IRI]) { iri =>
                       complete {
                         import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
                         Gene.expressionProfile(iri)
@@ -1126,14 +1129,14 @@ object Main extends HttpApp with App {
                   } ~
                   path("affecting_entity_phenotype") {
                     parameters(
-                      'iri.as[IRI].?,
-                      'quality.as[IRI].?,
-                      'parts.as[Boolean].?(false),
-                      'historical_homologs.as[Boolean].?(false),
-                      'serial_homologs.as[Boolean].?(false),
-                      'limit.as[Int].?(20),
-                      'offset.as[Int].?(0),
-                      'total.as[Boolean].?(false)
+                      "iri".as[IRI].?,
+                      "quality".as[IRI].?,
+                      "parts".as[Boolean].?(false),
+                      "historical_homologs".as[Boolean].?(false),
+                      "serial_homologs".as[Boolean].?(false),
+                      "limit".as[Int].?(20),
+                      "offset".as[Int].?(0),
+                      "total".as[Boolean].?(false)
                     ) {
                       (iri,
                        quality,
@@ -1165,21 +1168,23 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("expressed_within_entity") {
-                    parameters('iri.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                      (iri, limit, offset, total) =>
-                        complete {
-                          import Gene.ComboGenesMarshaller
-                          if (total) Gene.expressedWithinEntityTotal(iri).map(ResultCount(_))
-                          else Gene.expressedWithinEntity(iri, limit, offset)
-                        }
+                    parameters("iri".as[IRI],
+                               "limit".as[Int].?(20),
+                               "offset".as[Int].?(0),
+                               "total".as[Boolean].?(false)) { (iri, limit, offset, total) =>
+                      complete {
+                        import Gene.ComboGenesMarshaller
+                        if (total) Gene.expressedWithinEntityTotal(iri).map(ResultCount(_))
+                        else Gene.expressedWithinEntity(iri, limit, offset)
+                      }
                     }
                   } ~
                   path("facet" / "phenotype" / Segment) { facetBy =>
-                    parameters('entity.as[IRI].?,
-                               'quality.as[IRI].?,
-                               'parts.as[Boolean].?(false),
-                               'historical_homologs.as[Boolean].?(false),
-                               'serial_homologs.as[Boolean].?(false)) {
+                    parameters("entity".as[IRI].?,
+                               "quality".as[IRI].?,
+                               "parts".as[Boolean].?(false),
+                               "historical_homologs".as[Boolean].?(false),
+                               "serial_homologs".as[Boolean].?(false)) {
                       (entityOpt, qualityOpt, includeParts, includeHistoricalHomologs, includeSerialHomologs) =>
                         complete {
                           import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
@@ -1201,7 +1206,7 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   pathEnd {
-                    parameters('iri.as[IRI]) { iri =>
+                    parameters("iri".as[IRI]) { iri =>
                       complete {
                         Gene.withIRI(iri)
                       }
@@ -1211,17 +1216,17 @@ object Main extends HttpApp with App {
               pathPrefix("study") {
                 path("query") { //FIXME doc out of date
                   parameters(
-                    'entity.as[IRI].?,
-                    'quality.as[QualitySpec].?,
-                    'in_taxon.as[IRI].?,
+                    "entity".as[IRI].?,
+                    "quality".as[QualitySpec].?,
+                    "in_taxon".as[IRI].?,
                     'phenotype.as[IRI].?,
-                    'publication.as[IRI].?,
-                    'parts.as[Boolean].?(false),
-                    'historical_homologs.as[Boolean].?(false),
-                    'serial_homologs.as[Boolean].?(false),
-                    'limit.as[Int].?(20),
-                    'offset.as[Int].?(0),
-                    'total.as[Boolean].?(false)
+                    "publication".as[IRI].?,
+                    "parts".as[Boolean].?(false),
+                    "historical_homologs".as[Boolean].?(false),
+                    "serial_homologs".as[Boolean].?(false),
+                    "limit".as[Int].?(20),
+                    "offset".as[Int].?(0),
+                    "total".as[Boolean].?(false)
                   ) {
                     (entity,
                      qualitySpecOpt,
@@ -1263,13 +1268,13 @@ object Main extends HttpApp with App {
                 } ~
                   path("facet" / Segment) { facetBy =>
                     parameters(
-                      'entity.as[IRI].?,
-                      'quality.as[QualitySpec].?,
-                      'in_taxon.as[IRI].?,
-                      'publication.as[IRI].?,
-                      'parts.as[Boolean].?(false),
-                      'historical_homologs.as[Boolean].?(false),
-                      'serial_homologs.as[Boolean].?(false)
+                      "entity".as[IRI].?,
+                      "quality".as[QualitySpec].?,
+                      "in_taxon".as[IRI].?,
+                      "publication".as[IRI].?,
+                      "parts".as[Boolean].?(false),
+                      "historical_homologs".as[Boolean].?(false),
+                      "serial_homologs".as[Boolean].?(false)
                     ) {
                       (entityOpt,
                        qualitySpecOpt,
@@ -1311,34 +1316,38 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("taxa") {
-                    parameters('iri.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                      (studyIRI, limit, offset, total) =>
-                        complete {
-                          import Taxon.ComboTaxaMarshaller
-                          if (total) Study.annotatedTaxaTotal(studyIRI).map(ResultCount(_))
-                          else Study.annotatedTaxa(studyIRI, limit, offset)
-                        }
+                    parameters("iri".as[IRI],
+                               "limit".as[Int].?(20),
+                               "offset".as[Int].?(0),
+                               "total".as[Boolean].?(false)) { (studyIRI, limit, offset, total) =>
+                      complete {
+                        import Taxon.ComboTaxaMarshaller
+                        if (total) Study.annotatedTaxaTotal(studyIRI).map(ResultCount(_))
+                        else Study.annotatedTaxa(studyIRI, limit, offset)
+                      }
                     }
                   } ~
                   path("phenotypes") {
-                    parameters('iri.as[IRI], 'limit.as[Int].?(20), 'offset.as[Int].?(0), 'total.as[Boolean].?(false)) {
-                      (studyIRI, limit, offset, total) =>
-                        complete {
-                          import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-                          if (total) Study.annotatedPhenotypesTotal(studyIRI).map(ResultCount(_))
-                          else Study.annotatedPhenotypes(studyIRI, limit, offset)
-                        }
+                    parameters("iri".as[IRI],
+                               "limit".as[Int].?(20),
+                               "offset".as[Int].?(0),
+                               "total".as[Boolean].?(false)) { (studyIRI, limit, offset, total) =>
+                      complete {
+                        import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
+                        if (total) Study.annotatedPhenotypesTotal(studyIRI).map(ResultCount(_))
+                        else Study.annotatedPhenotypes(studyIRI, limit, offset)
+                      }
                     }
                   } ~
                   path("matrix") {
-                    parameters('iri.as[IRI]) { iri =>
+                    parameters("iri".as[IRI]) { iri =>
                       complete {
                         Study.queryMatrix(iri)
                       }
                     }
                   } ~
                   pathEnd {
-                    parameters('iri.as[IRI]) { iri =>
+                    parameters("iri".as[IRI]) { iri =>
                       complete {
                         Study.withIRI(iri)
                       }
@@ -1348,17 +1357,17 @@ object Main extends HttpApp with App {
               pathPrefix("phenotype") {
                 path("query") {
                   parameters(
-                    'entity.as[IRI].?,
-                    'quality.as[QualitySpec].?,
-                    'in_taxon.as[IRI].?,
-                    'phenotype.as[IRI].?,
-                    'publication.as[IRI].?,
-                    'parts.as[Boolean].?(false),
-                    'historical_homologs.as[Boolean].?(false),
-                    'serial_homologs.as[Boolean].?(false),
-                    'limit.as[Int].?(20),
-                    'offset.as[Int].?(0),
-                    'total.as[Boolean].?(false)
+                    "entity".as[IRI].?,
+                    "quality".as[QualitySpec].?,
+                    "in_taxon".as[IRI].?,
+                    "phenotype".as[IRI].?,
+                    "publication".as[IRI].?,
+                    "parts".as[Boolean].?(false),
+                    "historical_homologs".as[Boolean].?(false),
+                    "serial_homologs".as[Boolean].?(false),
+                    "limit".as[Int].?(20),
+                    "offset".as[Int].?(0),
+                    "total".as[Boolean].?(false)
                   ) {
                     (entity,
                      qualitySpecOpt,
@@ -1401,13 +1410,13 @@ object Main extends HttpApp with App {
                 } ~
                   path("facet" / Segment) { facetBy =>
                     parameters(
-                      'entity.as[IRI].?,
-                      'quality.as[QualitySpec].?,
-                      'in_taxon.as[IRI].?,
-                      'publication.as[IRI].?,
-                      'parts.as[Boolean].?(false),
-                      'historical_homologs.as[Boolean].?(false),
-                      'serial_homologs.as[Boolean].?(false)
+                      "entity".as[IRI].?,
+                      "quality".as[QualitySpec].?,
+                      "in_taxon".as[IRI].?,
+                      "publication".as[IRI].?,
+                      "parts".as[Boolean].?(false),
+                      "historical_homologs".as[Boolean].?(false),
+                      "serial_homologs".as[Boolean].?(false)
                     ) {
                       (entityOpt,
                        qualitySpecOpt,
@@ -1449,7 +1458,7 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("info") {
-                    parameters('iri.as[IRI], 'annotated_states_only.as[Boolean].?(false)) {
+                    parameters("iri".as[IRI], "annotated_states_only".as[Boolean].?(false)) {
                       (iri, annotatedStatesOnly) =>
                         complete {
                           Phenotype.info(iri, annotatedStatesOnly)
@@ -1457,14 +1466,14 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("direct_annotations") { // undocumented and not currently used //FIXME actually this is used in a popup in web UI
-                    parameters('iri.as[IRI]) { (iri) =>
+                    parameters("iri".as[IRI]) { (iri) =>
                       complete {
                         CharacterDescription.eqAnnotationsForPhenotype(iri)
                       }
                     }
                   } ~
                   path("nearest_eq") { // undocumented and not currently used
-                    parameters('iri.as[IRI]) { (iri) =>
+                    parameters("iri".as[IRI]) { (iri) =>
                       complete {
                         Phenotype.eqForPhenotype(iri)
                       }
