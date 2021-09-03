@@ -2,9 +2,7 @@ package org.phenoscape.kb
 
 import org.apache.jena.sys.JenaSystem
 import org.apache.jena.sparql.path.Path
-
 import org.phenoscape.kb.util.PropertyPathParser
-
 import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
 import org.phenoscape.owl.Vocab.part_of
 import org.phenoscape.kb.OWLFormats.ManchesterSyntaxClassExpressionUnmarshaller
@@ -12,16 +10,13 @@ import org.phenoscape.kb.OWLFormats.OWLClassExpressionMarshaller
 import org.phenoscape.kb.PhenexDataSet.DataSetMarshaller
 import org.phenoscape.kb.Term.IRIsMarshaller
 import org.phenoscape.kb.MinimalTerm.comboSeqMarshaller
-
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClass
 import org.semanticweb.owlapi.model.OWLClassExpression
 import org.semanticweb.owlapi.model.OWLNamedIndividual
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary
-
 import com.typesafe.config.ConfigFactory
-
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -32,7 +27,7 @@ import akka.http.scaladsl.model.headers.ContentDispositionTypes
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
 import akka.http.scaladsl.marshalling.{Marshal, Marshaller, ToByteStringMarshaller, ToEntityMarshaller}
-import akka.http.scaladsl.server.{ContentNegotiator, ExceptionHandler, HttpApp, RequestContext, Route}
+import akka.http.scaladsl.server.{ContentNegotiator, ExceptionHandler, HttpApp, RequestContext, Route, ValidationRejection}
 import akka.http.scaladsl.server.Directives.handleExceptions
 import akka.http.scaladsl.settings.ServerSettings
 import akka.http.scaladsl.unmarshalling.Unmarshaller
@@ -42,7 +37,6 @@ import akka.util.ByteString
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
-
 import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
@@ -406,10 +400,14 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("corpus_size") {
-                    parameters("path".as[Path], "specifier_property".as[IRI].?, "specifier_value".as[IRI].?) { (path, specProp, specVal) =>
-                      complete {
-                        Similarity.corpusSize(path, specProp, specVal).map(ResultCount(_))
-                      }
+                    parameters("path".as[Path], "specifier_property".as[IRI].?, "specifier_value".as[IRI].?) {
+                      (path, specProp, specVal) =>
+                        validate((specProp.isEmpty && specVal.isEmpty) || (specProp.nonEmpty && specVal.nonEmpty),
+                                 "Specifier property and value must be provided together if at all") {
+                          complete {
+                            Similarity.corpusSize(path, specProp, specVal).map(ResultCount(_))
+                          }
+                        }
                     }
                   } ~
                   path("ic_disparity") {
@@ -484,15 +482,24 @@ object Main extends HttpApp with App {
                   } ~
                   path("frequency") {
                     get {
-                      parameters("terms".as[Seq[IRI]], "path".as[Path], "specifier_property".as[IRI].?, "specifier_value".as[IRI].?) { (iris, path, specProp, specVal) =>
-                        complete {
-                          import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                          Similarity.frequency(iris.toSet, path, specProp, specVal)
+                      parameters("terms".as[Seq[IRI]],
+                                 "path".as[Path],
+                                 "specifier_property".as[IRI].?,
+                                 "specifier_value".as[IRI].?) { (iris, path, specProp, specVal) =>
+                        validate((specProp.isEmpty && specVal.isEmpty) || (specProp.nonEmpty && specVal.nonEmpty),
+                                 "Specifier property and value must be provided together if at all") {
+                          complete {
+                            import Similarity.TermFrequencyTable.TermFrequencyTableCSV
+                            Similarity.frequency(iris.toSet, path, specProp, specVal)
+                          }
                         }
                       }
                     } ~
                       post {
-                        formFields("terms".as[Seq[IRI]], "path".as[Path], "specifier_property".as[IRI].?, "specifier_value".as[IRI].?) { (iris, path, specProp, specVal) =>
+                        formFields("terms".as[Seq[IRI]],
+                                   "path".as[Path],
+                                   "specifier_property".as[IRI].?,
+                                   "specifier_value".as[IRI].?) { (iris, path, specProp, specVal) =>
                           complete {
                             import Similarity.TermFrequencyTable.TermFrequencyTableCSV
                             Similarity.frequency(iris.toSet, path, specProp, specVal)
