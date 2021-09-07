@@ -400,10 +400,10 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("corpus_size") {
-                    parameters("path".as[Path], "specifier_property".as[IRI].?, "specifier_value".as[IRI].?) {
+                    parameters("path".as[Path], "subject_filter_property".as[IRI].?, "subject_filter_value".as[IRI].?) {
                       (path, specProp, specVal) =>
                         validate((specProp.isEmpty && specVal.isEmpty) || (specProp.nonEmpty && specVal.nonEmpty),
-                                 "Specifier property and value must be provided together if at all") {
+                                 "Subject filter property and value must be provided together if at all") {
                           complete {
                             Similarity.corpusSize(path, specProp, specVal).map(ResultCount(_))
                           }
@@ -484,10 +484,10 @@ object Main extends HttpApp with App {
                     get {
                       parameters("terms".as[Seq[IRI]],
                                  "path".as[Path],
-                                 "specifier_property".as[IRI].?,
-                                 "specifier_value".as[IRI].?) { (iris, path, specProp, specVal) =>
+                                 "subject_filter_property".as[IRI].?,
+                                 "subject_filter_value".as[IRI].?) { (iris, path, specProp, specVal) =>
                         validate((specProp.isEmpty && specVal.isEmpty) || (specProp.nonEmpty && specVal.nonEmpty),
-                                 "Specifier property and value must be provided together if at all") {
+                                 "Subject filter property and value must be provided together if at all") {
                           complete {
                             import Similarity.TermFrequencyTable.TermFrequencyTableCSV
                             Similarity.frequency(iris.toSet, path, specProp, specVal)
@@ -498,11 +498,14 @@ object Main extends HttpApp with App {
                       post {
                         formFields("terms".as[Seq[IRI]],
                                    "path".as[Path],
-                                   "specifier_property".as[IRI].?,
-                                   "specifier_value".as[IRI].?) { (iris, path, specProp, specVal) =>
-                          complete {
-                            import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                            Similarity.frequency(iris.toSet, path, specProp, specVal)
+                                   "subject_filter_property".as[IRI].?,
+                                   "subject_filter_value".as[IRI].?) { (iris, path, specProp, specVal) =>
+                          validate((specProp.isEmpty && specVal.isEmpty) || (specProp.nonEmpty && specVal.nonEmpty),
+                                   "Subject filter property and value must be provided together if at all") {
+                            complete {
+                              import Similarity.TermFrequencyTable.TermFrequencyTableCSV
+                              Similarity.frequency(iris.toSet, path, specProp, specVal)
+                            }
                           }
                         }
                       }
