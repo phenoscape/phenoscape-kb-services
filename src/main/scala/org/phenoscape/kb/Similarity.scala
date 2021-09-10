@@ -279,9 +279,11 @@ object Similarity {
 
   def pairwiseJaccardSimilarity(iris: Set[IRI],
                                 relations: Set[IRI],
-                                pathOpt: Option[Path]): Future[Seq[JaccardScore]] = {
+                                pathOpt: Option[Path],
+                                specifierPropertyOpt: Option[IRI],
+                                specifierValueOpt: Option[IRI]): Future[Seq[JaccardScore]] = {
 
-    val termSubsumerPairsFut = getTermSubsumerPairs(iris, relations, pathOpt)
+    val termSubsumerPairsFut = getTermSubsumerPairs(iris, relations, pathOpt, specifierPropertyOpt, specifierValueOpt)
 
     val termSubsumersMapFut = for {
       termSubsumerPairs <- termSubsumerPairsFut

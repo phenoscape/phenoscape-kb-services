@@ -442,40 +442,56 @@ object Main extends HttpApp with App {
                   } ~
                   path("jaccard") { //FIXME can GET and POST share code better?
                     get {
-                      parameters("iris".as[Seq[IRI]],
-                                 "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                                 "path".as[Path].?) { (iris, relations, path) =>
+                      parameters(
+                        "iris".as[Seq[IRI]],
+                        "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                        "path".as[Path].?,
+                        "specifier_property".as[IRI].?,
+                        "specifier_value".as[IRI].?
+                      ) { (iris, relations, path, specProp, specVal) =>
                         complete {
-                          Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path)
+                          Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path, specProp, specVal)
                         }
                       }
                     } ~
                       post {
-                        formFields("iris".as[Seq[IRI]],
-                                   "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                                   "path".as[Path].?) { (iris, relations, path) =>
+                        formFields(
+                          "iris".as[Seq[IRI]],
+                          "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                          "path".as[Path].?,
+                          "specifier_property".as[IRI].?,
+                          "specifier_value".as[IRI].?
+                        ) { (iris, relations, path, specProp, specVal) =>
                           complete {
-                            Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path)
+                            Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path, specProp, specVal)
                           }
                         }
                       }
                   } ~
                   path("matrix") {
                     get {
-                      parameters("terms".as[Seq[IRI]],
-                                 "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                                 "path".as[Path].?) { (terms, relations, path) =>
+                      parameters(
+                        "terms".as[Seq[IRI]],
+                        "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                        "path".as[Path].?,
+                        "specifier_property".as[IRI].?,
+                        "specifier_value".as[IRI].?
+                      ) { (terms, relations, path, specProp, specVal) =>
                         complete {
-                          Graph.ancestorMatrix(terms.toSet, relations.toSet, path)
+                          Graph.ancestorMatrix(terms.toSet, relations.toSet, path, specProp, specVal)
                         }
                       }
                     } ~
                       post {
-                        formFields("terms".as[Seq[IRI]],
-                                   "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                                   "path".as[Path].?) { (terms, relations, path) =>
+                        formFields(
+                          "terms".as[Seq[IRI]],
+                          "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
+                          "path".as[Path].?,
+                          "specifier_property".as[IRI].?,
+                          "specifier_value".as[IRI].?
+                        ) { (terms, relations, path, specProp, specVal) =>
                           complete {
-                            Graph.ancestorMatrix(terms.toSet, relations.toSet, path)
+                            Graph.ancestorMatrix(terms.toSet, relations.toSet, path, specProp, specVal)
                           }
                         }
                       }
