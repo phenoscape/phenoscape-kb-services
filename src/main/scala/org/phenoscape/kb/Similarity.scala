@@ -185,10 +185,10 @@ object Similarity {
   def addDisparity(subsumer: Subsumer, queryGraph: IRI, corpusGraph: IRI): Future[SubsumerWithDisparity] =
     icDisparity(Class(subsumer.term.iri), queryGraph, corpusGraph).map(SubsumerWithDisparity(subsumer, _))
 
-  def corpusSize(path: Path, specifierPropertyOpt: Option[IRI], specifierValueOpt: Option[IRI]): Future[Int] = {
+  def corpusSize(path: Path, subjectPropertyOpt: Option[IRI], subjectValueOpt: Option[IRI]): Future[Int] = {
     val specifierPattern = (for {
-      specifierProperty <- specifierPropertyOpt
-      specifierValue <- specifierValueOpt
+      specifierProperty <- subjectPropertyOpt
+      specifierValue <- subjectValueOpt
     } yield sparql"?item $specifierProperty $specifierValue .").getOrElse(sparql"")
     val query =
       sparql"""
@@ -280,10 +280,10 @@ object Similarity {
   def pairwiseJaccardSimilarity(iris: Set[IRI],
                                 relations: Set[IRI],
                                 pathOpt: Option[Path],
-                                specifierPropertyOpt: Option[IRI],
-                                specifierValueOpt: Option[IRI]): Future[Seq[JaccardScore]] = {
+                                subjectPropertyOpt: Option[IRI],
+                                subjectValueOpt: Option[IRI]): Future[Seq[JaccardScore]] = {
 
-    val termSubsumerPairsFut = getTermSubsumerPairs(iris, relations, pathOpt, specifierPropertyOpt, specifierValueOpt)
+    val termSubsumerPairsFut = getTermSubsumerPairs(iris, relations, pathOpt, subjectPropertyOpt, subjectValueOpt)
 
     val termSubsumersMapFut = for {
       termSubsumerPairs <- termSubsumerPairsFut
@@ -349,11 +349,11 @@ object Similarity {
 
   def frequency(terms: Set[IRI],
                 path: Path,
-                specifierPropertyOpt: Option[IRI],
-                specifierValueOpt: Option[IRI]): Future[TermFrequencyTable] = {
+                subjectPropertyOpt: Option[IRI],
+                subjectValueOpt: Option[IRI]): Future[TermFrequencyTable] = {
     val specifierPattern = (for {
-      specifierProperty <- specifierPropertyOpt
-      specifierValue <- specifierValueOpt
+      specifierProperty <- subjectPropertyOpt
+      specifierValue <- subjectValueOpt
     } yield sparql"?item $specifierProperty $specifierValue .").getOrElse(sparql"")
     val values = terms
       .map(Term.asRelationalTerm)

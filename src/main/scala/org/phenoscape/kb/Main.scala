@@ -401,11 +401,11 @@ object Main extends HttpApp with App {
                   } ~
                   path("corpus_size") {
                     parameters("path".as[Path], "subject_filter_property".as[IRI].?, "subject_filter_value".as[IRI].?) {
-                      (path, specProp, specVal) =>
-                        validate((specProp.isEmpty && specVal.isEmpty) || (specProp.nonEmpty && specVal.nonEmpty),
+                      (path, subjProp, subjVal) =>
+                        validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
                                  "Subject filter property and value must be provided together if at all") {
                           complete {
-                            Similarity.corpusSize(path, specProp, specVal).map(ResultCount(_))
+                            Similarity.corpusSize(path, subjProp, subjVal).map(ResultCount(_))
                           }
                         }
                     }
@@ -446,11 +446,11 @@ object Main extends HttpApp with App {
                         "iris".as[Seq[IRI]],
                         "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
                         "path".as[Path].?,
-                        "specifier_property".as[IRI].?,
-                        "specifier_value".as[IRI].?
-                      ) { (iris, relations, path, specProp, specVal) =>
+                        "subject_property".as[IRI].?,
+                        "subject_value".as[IRI].?
+                      ) { (iris, relations, path, subjProp, subjVal) =>
                         complete {
-                          Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path, specProp, specVal)
+                          Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path, subjProp, subjVal)
                         }
                       }
                     } ~
@@ -459,11 +459,11 @@ object Main extends HttpApp with App {
                           "iris".as[Seq[IRI]],
                           "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
                           "path".as[Path].?,
-                          "specifier_property".as[IRI].?,
-                          "specifier_value".as[IRI].?
-                        ) { (iris, relations, path, specProp, specVal) =>
+                          "subject_property".as[IRI].?,
+                          "subject_value".as[IRI].?
+                        ) { (iris, relations, path, subjProp, subjVal) =>
                           complete {
-                            Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path, specProp, specVal)
+                            Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path, subjProp, subjVal)
                           }
                         }
                       }
@@ -474,11 +474,11 @@ object Main extends HttpApp with App {
                         "terms".as[Seq[IRI]],
                         "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
                         "path".as[Path].?,
-                        "specifier_property".as[IRI].?,
-                        "specifier_value".as[IRI].?
-                      ) { (terms, relations, path, specProp, specVal) =>
+                        "subject_property".as[IRI].?,
+                        "subject_value".as[IRI].?
+                      ) { (terms, relations, path, subjProp, subjVal) =>
                         complete {
-                          Graph.ancestorMatrix(terms.toSet, relations.toSet, path, specProp, specVal)
+                          Graph.ancestorMatrix(terms.toSet, relations.toSet, path, subjProp, subjVal)
                         }
                       }
                     } ~
@@ -487,11 +487,11 @@ object Main extends HttpApp with App {
                           "terms".as[Seq[IRI]],
                           "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
                           "path".as[Path].?,
-                          "specifier_property".as[IRI].?,
-                          "specifier_value".as[IRI].?
-                        ) { (terms, relations, path, specProp, specVal) =>
+                          "subject_property".as[IRI].?,
+                          "subject_value".as[IRI].?
+                        ) { (terms, relations, path, subjProp, subjVal) =>
                           complete {
-                            Graph.ancestorMatrix(terms.toSet, relations.toSet, path, specProp, specVal)
+                            Graph.ancestorMatrix(terms.toSet, relations.toSet, path, subjProp, subjVal)
                           }
                         }
                       }
@@ -501,12 +501,12 @@ object Main extends HttpApp with App {
                       parameters("terms".as[Seq[IRI]],
                                  "path".as[Path],
                                  "subject_filter_property".as[IRI].?,
-                                 "subject_filter_value".as[IRI].?) { (iris, path, specProp, specVal) =>
-                        validate((specProp.isEmpty && specVal.isEmpty) || (specProp.nonEmpty && specVal.nonEmpty),
+                                 "subject_filter_value".as[IRI].?) { (iris, path, subjProp, subjVal) =>
+                        validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
                                  "Subject filter property and value must be provided together if at all") {
                           complete {
                             import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                            Similarity.frequency(iris.toSet, path, specProp, specVal)
+                            Similarity.frequency(iris.toSet, path, subjProp, subjVal)
                           }
                         }
                       }
@@ -515,12 +515,12 @@ object Main extends HttpApp with App {
                         formFields("terms".as[Seq[IRI]],
                                    "path".as[Path],
                                    "subject_filter_property".as[IRI].?,
-                                   "subject_filter_value".as[IRI].?) { (iris, path, specProp, specVal) =>
-                          validate((specProp.isEmpty && specVal.isEmpty) || (specProp.nonEmpty && specVal.nonEmpty),
+                                   "subject_filter_value".as[IRI].?) { (iris, path, subjProp, subjVal) =>
+                          validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
                                    "Subject filter property and value must be provided together if at all") {
                             complete {
                               import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                              Similarity.frequency(iris.toSet, path, specProp, specVal)
+                              Similarity.frequency(iris.toSet, path, subjProp, subjVal)
                             }
                           }
                         }

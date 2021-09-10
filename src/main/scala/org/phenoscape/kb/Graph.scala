@@ -105,8 +105,8 @@ object Graph {
   def getTermSubsumerPairs(terms: Set[IRI],
                            relations: Set[IRI],
                            pathOpt: Option[Path],
-                           specifierPropertyOpt: Option[IRI],
-                           specifierValueOpt: Option[IRI]): Future[Seq[(IRI, IRI)]] = {
+                           subjectPropertyOpt: Option[IRI],
+                           subjectValueOpt: Option[IRI]): Future[Seq[(IRI, IRI)]] = {
     val termsElements = terms.map(t => sparql" $t ").reduceOption(_ + _).getOrElse(sparql"")
     val relationsElements = relations.map(r => sparql" $r ").reduceOption(_ + _).getOrElse(sparql"")
     val queryPattern = pathOpt match {
@@ -114,10 +114,10 @@ object Graph {
       case None       => sparql""" ?term ?relation ?subsumer . """
     }
 
-    val specifierPattern = (for {
-      specifierProperty <- specifierPropertyOpt
-      specifierValue <- specifierValueOpt
-    } yield sparql"?term $specifierProperty $specifierValue .").getOrElse(sparql"")
+    val subjectPattern = (for {
+      subjectProperty <- subjectPropertyOpt
+      subjectValue <- subjectValueOpt
+    } yield sparql"?term $subjectProperty $subjectValue .").getOrElse(sparql"")
 
     val query =
       sparql"""
@@ -129,7 +129,7 @@ object Graph {
          VALUES ?term { $termsElements }
          VALUES ?relation { $relationsElements }
          $queryPattern
-         $specifierPattern
+         $subjectPattern
          FILTER(?subsumer != $owlThing)
          FILTER(isIRI(?subsumer))
        }
@@ -164,12 +164,12 @@ object Graph {
   def ancestorMatrix(terms: Set[IRI],
                      relations: Set[IRI],
                      pathOpt: Option[Path],
-                     specifierPropertyOpt: Option[IRI],
-                     specifierValueOpt: Option[IRI]): Future[AncestorMatrix] =
+                     subjectPropertyOpt: Option[IRI],
+                     subjectValueOpt: Option[IRI]): Future[AncestorMatrix] =
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
       val termSubsumerPairsFut =
-        getTermSubsumerPairs(terms, relations, pathOpt, specifierPropertyOpt, specifierValueOpt)
+        getTermSubsumerPairs(terms, relations, pathOpt, subjectPropertyOpt, subjectValueOpt)
       for {
         termSubsumerPairs <- termSubsumerPairsFut
       } yield {
