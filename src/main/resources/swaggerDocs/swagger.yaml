@@ -524,7 +524,7 @@ paths:
       tags:
         - OntoTrace
       summary: OntoTrace
-      description: Generate matrix of inferred presence/absence associations for entity (anatomical structures) vs taxon. The entity and taxon can either be from the exact list of term IRIs provided in the list, or can be those subsumed by the provided class expression; it being necessary to provide at least one of the two. Returns a NeXML-format evolutionary character 1Z85F6090496540245.
+      description: Generate matrix of inferred presence/absence associations for entity (anatomical structures) vs taxon. The entity and taxon can either be from the exact list of term IRIs provided in the list, or can be those subsumed by the provided class expression; it being necessary to provide at least one of the two. Returns a NeXML-format evolutionary character matrix.
       consumes:
         - application/x-www-form-urlencoded
       produces:
@@ -879,7 +879,7 @@ paths:
           format: JSON
         - name: path
           in: query
-          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/has_state>/<http://purl.org/describes_phenotype>`
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.obolibrary.org/obo/RO_0002158>/<http://purl.obolibrary.org/obo/RO_0002487>`
           required: false
           type: string
           format: JSON
@@ -970,7 +970,7 @@ paths:
           format: JSON
         - name: path
           in: query
-          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/has_state>/<http://purl.org/describes_phenotype>`
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.obolibrary.org/obo/RO_0002158>/<http://purl.obolibrary.org/obo/RO_0002487>`
           required: false
           default:
           nullable: true
