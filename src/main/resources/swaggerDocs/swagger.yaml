@@ -524,7 +524,7 @@ paths:
       tags:
         - OntoTrace
       summary: OntoTrace
-      description: Generate matrix of inferred presence/absence associations for entity (anatomical structures) vs taxon. The entity and taxon can either be from the exact list of term IRIs provided in the list, or can be those subsumed by the provided class expression; it being necessary to provide at least one of the two. Returns a NeXML-format evolutionary character matrix.
+      description: Generate matrix of inferred presence/absence associations for entity (anatomical structures) vs taxon. The entity and taxon can either be from the exact list of term IRIs provided in the list, or can be those subsumed by the provided class expression; it being necessary to provide at least one of the two. Returns a NeXML-format evolutionary character 1Z85F6090496540245.
       consumes:
         - application/x-www-form-urlencoded
       produces:
@@ -883,6 +883,18 @@ paths:
           required: false
           type: string
           format: JSON
+        - name: subject_property
+          in: query
+          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_value`.
+          required: false
+          type: string
+          format: IRI
+        - name: subject_value
+          in: query
+          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_property`.
+          required: false
+          type: string
+          format: IRI
       responses:
         200:
           description: similarity scores
