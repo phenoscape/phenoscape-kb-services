@@ -879,7 +879,7 @@ paths:
           format: JSON
         - name: path
           in: query
-          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.obolibrary.org/obo/RO_0002158>/<http://purl.obolibrary.org/obo/RO_0002487>`
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
           required: false
           type: string
           format: JSON
@@ -970,7 +970,7 @@ paths:
           format: JSON
         - name: path
           in: query
-          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.obolibrary.org/obo/RO_0002158>/<http://purl.obolibrary.org/obo/RO_0002487>`
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
           required: false
           default:
           nullable: true
