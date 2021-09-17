@@ -353,35 +353,33 @@ object Similarity {
       specifierProperty <- specifierPropertyOpt
       specifierValue <- specifierValueOpt
     } yield sparql"?item $specifierProperty $specifierValue .").getOrElse(sparql"")
-    val values = terms
-      .map(Term.asRelationalTerm)
-      .map { case RelationalTerm(relation, term) =>
-        sparql" ($relation $term) "
-      }
-      .reduceOption(_ + _)
-      .getOrElse(sparql"")
-    val query =
-      sparql"""
-            SELECT ?relation ?term (COUNT(DISTINCT ?item) AS ?count)
+
+    val groupsResults = terms.map { term =>
+      val relTerm = Term.asRelationalTerm(term)
+      val query =
+        sparql"""
+            SELECT (${relTerm.relation} AS ?relation) (${relTerm.term} AS ?term) (COUNT(DISTINCT ?item) AS ?count)
             WHERE {
-              VALUES (?relation ?term) { $values }
               $specifierPattern
               ?item $path ?cls .
-              ?cls ?relation ?term .
+              ?cls ${relTerm.relation} ${relTerm.term} .
             }
-            GROUP BY ?relation ?term
             """
-    App
-      .executeSPARQLQueryString(
-        query.text,
-        qs =>
-          (IRI.create(qs.getResource("relation").getURI), IRI.create(qs.getResource("term").getURI)) ->
-            qs.getLiteral("count").getInt)
-      .map(_.toMap)
-      .map(_.map { case ((relation, term), count) =>
-        val termIRI = if (relation == rdfsSubClassOf.getIRI) term else RelationalTerm(relation, term).iri
-        termIRI -> count
-      })
+      App
+        .executeSPARQLQueryString(
+          query.text,
+          qs =>
+            (IRI.create(qs.getResource("relation").getURI), IRI.create(qs.getResource("term").getURI)) ->
+              qs.getLiteral("count").getInt)
+        .map(_.toMap)
+        .map(_.map { case ((relation, term), count) =>
+          val termIRI = if (relation == rdfsSubClassOf.getIRI) term else RelationalTerm(relation, term).iri
+          termIRI -> count
+        })
+    }
+    Future
+      .sequence(groupsResults)
+      .map(_.fold(Map.empty)(_ ++ _))
       .map { result =>
         val foundTerms = result.keySet
         // add in 0 counts for terms not returned by the query
