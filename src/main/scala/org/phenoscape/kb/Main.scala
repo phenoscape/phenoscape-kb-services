@@ -402,8 +402,10 @@ object Main extends HttpApp with App {
                   path("corpus_size") {
                     parameters("path".as[Path], "subject_filter_property".as[IRI].?, "subject_filter_value".as[IRI].?) {
                       (path, subjProp, subjVal) =>
-                        validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                 "Subject filter property and value must be provided together if at all") {
+                        validate(
+                          (subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
+                          "Subject filter property and value must be provided together if at all"
+                        ) {
                           complete {
                             Similarity.corpusSize(path, subjProp, subjVal).map(ResultCount(_))
                           }
@@ -446,13 +448,14 @@ object Main extends HttpApp with App {
                         "iris".as[Seq[IRI]],
                         "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
                         "path".as[Path].?,
-                        "subject_property".as[IRI].?,
-                        "subject_value".as[IRI].?
+                        "subject_filter_property".as[IRI].?,
+                        "subject_filter_value".as[IRI].?
                       ) { (iris, relations, path, subjProp, subjVal) =>
                         validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                 "Subject filter property and value must be provided together if at all")
-                        complete {
-                          Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path, subjProp, subjVal)
+                                 "Subject filter property and value must be provided together if at all") {
+                          complete {
+                            Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path, subjProp, subjVal)
+                          }
                         }
                       }
                     } ~
@@ -482,9 +485,10 @@ object Main extends HttpApp with App {
                         "subject_value".as[IRI].?
                       ) { (terms, relations, path, subjProp, subjVal) =>
                         validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                 "Subject filter property and value must be provided together if at all")
-                        complete {
-                          Graph.ancestorMatrix(terms.toSet, relations.toSet, path, subjProp, subjVal)
+                                 "Subject filter property and value must be provided together if at all") {
+                          complete {
+                            Graph.ancestorMatrix(terms.toSet, relations.toSet, path, subjProp, subjVal)
+                          }
                         }
                       }
                     } ~
