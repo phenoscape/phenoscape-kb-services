@@ -879,10 +879,22 @@ paths:
           format: JSON
         - name: path
           in: query
-          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/has_state>/<http://purl.org/describes_phenotype>`
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
           required: false
           type: string
           format: JSON
+        - name: subject_property
+          in: query
+          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_value`.
+          required: false
+          type: string
+          format: IRI
+        - name: subject_value
+          in: query
+          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_property`.
+          required: false
+          type: string
+          format: IRI
       responses:
         200:
           description: similarity scores
@@ -958,12 +970,24 @@ paths:
           format: JSON
         - name: path
           in: query
-          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/has_state>/<http://purl.org/describes_phenotype>`
+          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
           required: false
           default:
           nullable: true
           type: string
           format: JSON
+        - name: subject_property
+          in: query
+          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_value`.
+          required: false
+          type: string
+          format: IRI
+        - name: subject_value
+          in: query
+          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_property`.
+          required: false
+          type: string
+          format: IRI
       responses:
         200:
           description: 'Subsumer matrix: column headers are input terms; each row is a subsumer class, with 1 if the column header is subsumed by the row term, and 0 if not.'
@@ -992,6 +1016,18 @@ paths:
           description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
           required: true
           type: string
+        - name: subject_property
+          in: query
+          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_value`.
+          required: false
+          type: string
+          format: IRI
+        - name: subject_value
+          in: query
+          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_property`.
+          required: false
+          type: string
+          format: IRI
       responses:
         200:
           description: 'Subsumer matrix: column headers are input terms; each row is a subsumer class, with 1 if the column header is subsumed by the row term, and 0 if not.'

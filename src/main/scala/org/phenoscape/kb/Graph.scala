@@ -102,13 +102,22 @@ object Graph {
     query.toQuery
   }
 
-  def getTermSubsumerPairs(terms: Set[IRI], relations: Set[IRI], pathOpt: Option[Path]): Future[Seq[(IRI, IRI)]] = {
+  def getTermSubsumerPairs(terms: Set[IRI],
+                           relations: Set[IRI],
+                           pathOpt: Option[Path],
+                           subjectPropertyOpt: Option[IRI],
+                           subjectValueOpt: Option[IRI]): Future[Seq[(IRI, IRI)]] = {
     val termsElements = terms.map(t => sparql" $t ").reduceOption(_ + _).getOrElse(sparql"")
     val relationsElements = relations.map(r => sparql" $r ").reduceOption(_ + _).getOrElse(sparql"")
     val queryPattern = pathOpt match {
       case Some(path) => sparql""" ?term $path ?class . ?class ?relation ?subsumer ."""
       case None       => sparql""" ?term ?relation ?subsumer . """
     }
+
+    val subjectPattern = (for {
+      subjectProperty <- subjectPropertyOpt
+      subjectValue <- subjectValueOpt
+    } yield sparql"?term $subjectProperty $subjectValue .").getOrElse(sparql"")
 
     val query =
       sparql"""
@@ -120,6 +129,7 @@ object Graph {
          VALUES ?term { $termsElements }
          VALUES ?relation { $relationsElements }
          $queryPattern
+         $subjectPattern
          FILTER(?subsumer != $owlThing)
          FILTER(isIRI(?subsumer))
        }
@@ -151,10 +161,15 @@ object Graph {
     termSubsumerSeq
   }
 
-  def ancestorMatrix(terms: Set[IRI], relations: Set[IRI], pathOpt: Option[Path]): Future[AncestorMatrix] =
+  def ancestorMatrix(terms: Set[IRI],
+                     relations: Set[IRI],
+                     pathOpt: Option[Path],
+                     subjectPropertyOpt: Option[IRI],
+                     subjectValueOpt: Option[IRI]): Future[AncestorMatrix] =
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
-      val termSubsumerPairsFut = getTermSubsumerPairs(terms, relations, pathOpt)
+      val termSubsumerPairsFut =
+        getTermSubsumerPairs(terms, relations, pathOpt, subjectPropertyOpt, subjectValueOpt)
       for {
         termSubsumerPairs <- termSubsumerPairsFut
       } yield {
