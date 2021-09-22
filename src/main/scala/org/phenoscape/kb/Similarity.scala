@@ -13,6 +13,8 @@ import org.apache.jena.sparql.syntax._
 import org.phenoscape.kb.Graph.{ancestorMatrix, getTermSubsumerPairs}
 import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.Main.{materializer, system}
+import akka.stream.Materializer
 import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.owl.{NamedRestrictionGenerator, Vocab}
 import org.phenoscape.owl.Vocab._
@@ -208,6 +210,12 @@ object Similarity {
   lazy val genesSubsumersFut = genes.flatMap { t =>
     getTermSubsumerPairs(t.toSet, relations.toSet, Some(path)).map { pairs =>
       pairs.groupBy(_._1).map { case (term, tuple) => (term, tuple.map(_._2)) }
+    }
+  }
+
+  lazy val genesSubsumers = genes.flatMap { t =>
+    getTermSubsumerPairs(t.toSet, relations.toSet, Some(path)).runFold(Map.empty[String, IRI]) {
+      case (map, (term, virtualTermIRI)) => map + (term -> virtualTermIRI)
     }
   }
 

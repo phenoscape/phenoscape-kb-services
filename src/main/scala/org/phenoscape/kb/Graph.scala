@@ -8,13 +8,16 @@ import org.semanticweb.owlapi.model.IRI
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.owl.Vocab.rdfType
 import org.phenoscape.kb.Main.system.dispatcher
+import akka.actor.ActorSystem
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolation.QueryText
 import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.kb.util.StreamingSPARQLResults
 import org.phenoscape.scowl
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
+import org.apache.jena.query.QuerySolution
 
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -100,6 +103,50 @@ object Graph {
               """
 
     query.toQuery
+  }
+
+  def getTermSubsumerPairs(terms: Set[IRI], relations: Set[IRI], pathOpt: Option[Path]) = {
+    val termsElements = terms.map(t => sparql" $t ").reduceOption(_ + _).getOrElse(sparql"")
+    val relationsElements = relations.map(r => sparql" $r ").reduceOption(_ + _).getOrElse(sparql"")
+    val queryPattern = pathOpt match {
+      case Some(path) => sparql""" ?term $path ?class . ?class ?relation ?subsumer ."""
+      case None       => sparql""" ?term ?relation ?subsumer . """
+    }
+
+    val query =
+      sparql"""
+       SELECT DISTINCT ?term ?relation ?subsumer 
+       FROM $KBMainGraph
+       FROM $KBClosureGraph
+       FROM $KBRedundantRelationGraph
+       WHERE {
+         VALUES ?term { $termsElements }
+         VALUES ?relation { $relationsElements }
+         $queryPattern
+         FILTER(?subsumer != $owlThing)
+         FILTER(isIRI(?term))
+         FILTER(isIRI(?relation))
+         FILTER(isIRI(?subsumer))
+       }
+       """
+
+    StreamingSPARQLResults
+      .streamSelectQuery(query.toString)
+      .map(fromQueryResultStream)
+      .map { case (term, relation, subsumer) =>
+        val virtualTermIRI = relation match {
+          case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => IRI.create(subsumer)
+          case _                                                 => RelationalTerm(IRI.create(relation), IRI.create(subsumer)).iri
+        }
+        (term, virtualTermIRI)
+      }
+  }
+
+  def fromQueryResultStream(result: QuerySolution) = {
+    val term = result.getResource("term").getURI
+    val relation = result.getResource("relation").getURI
+    val subsumer = result.getResource("subsumer").getURI
+    (term, relation, subsumer)
   }
 
   def getTermSubsumerPairs(terms: Set[IRI], relations: Set[IRI], pathOpt: Option[Path]): Future[Seq[(IRI, IRI)]] = {

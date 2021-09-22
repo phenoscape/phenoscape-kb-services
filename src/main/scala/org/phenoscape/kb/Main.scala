@@ -2,9 +2,7 @@ package org.phenoscape.kb
 
 import org.apache.jena.sys.JenaSystem
 import org.apache.jena.sparql.path.Path
-
 import org.phenoscape.kb.util.PropertyPathParser
-
 import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
 import org.phenoscape.owl.Vocab.{has_part, has_part_inhering_in, inheres_in, part_of, phenotype_of, towards, IMPLIES_PRESENCE_OF}
 import org.phenoscape.kb.OWLFormats.ManchesterSyntaxClassExpressionUnmarshaller
@@ -12,16 +10,13 @@ import org.phenoscape.kb.OWLFormats.OWLClassExpressionMarshaller
 import org.phenoscape.kb.PhenexDataSet.DataSetMarshaller
 import org.phenoscape.kb.Term.IRIsMarshaller
 import org.phenoscape.kb.MinimalTerm.comboSeqMarshaller
-
 import org.semanticweb.owlapi.apibinding.OWLManager
 import org.semanticweb.owlapi.model.IRI
 import org.semanticweb.owlapi.model.OWLClass
 import org.semanticweb.owlapi.model.OWLClassExpression
 import org.semanticweb.owlapi.model.OWLNamedIndividual
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary
-
 import com.typesafe.config.ConfigFactory
-
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -37,12 +32,12 @@ import akka.http.scaladsl.server.Directives.handleExceptions
 import akka.http.scaladsl.settings.ServerSettings
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.http.scaladsl.server.directives.CachingDirectives._
+import akka.stream.{ActorMaterializer, Materializer}
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
-
 import scalaz._
 import spray.json._
 import spray.json.DefaultJsonProtocol._
@@ -56,6 +51,7 @@ object Main extends HttpApp with App {
   JenaSystem.init()
 
   implicit val system = ActorSystem("phenoscape-kb-system")
+  implicit val materializer = Materializer.matFromSystem
 
   import system.dispatcher
 
