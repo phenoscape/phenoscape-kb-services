@@ -9,9 +9,9 @@ import org.apache.jena.sparql.expr._
 import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
 import org.apache.jena.sparql.syntax.{ElementFilter, ElementSubQuery}
+import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
@@ -20,8 +20,8 @@ import org.semanticweb.owlapi.model.{IRI, OWLClassExpression}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
-import scala.collection.JavaConverters._
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
 
 case class GenePhenotypeAnnotation(gene: MinimalTerm, phenotype: MinimalTerm, source: Option[IRI])

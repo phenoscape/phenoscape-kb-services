@@ -1,40 +1,29 @@
 package org.phenoscape.kb
 
-import scala.concurrent.Future
-
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import org.apache.jena.datatypes.xsd.XSDDatatype
-import org.apache.jena.query.QueryFactory
 import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.E_Exists
-import org.apache.jena.sparql.expr.E_NotExists
-import org.apache.jena.sparql.expr.ExprVar
+import org.apache.jena.sparql.expr.{E_NotExists, ExprVar}
 import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
-import org.apache.jena.sparql.syntax.Element
-import org.apache.jena.sparql.syntax.ElementFilter
-import org.apache.jena.sparql.syntax.ElementGroup
+import org.apache.jena.sparql.syntax.{Element, ElementFilter, ElementGroup}
+import org.apache.jena.vocabulary.DCTerms
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
-
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import spray.json._
-import spray.json.DefaultJsonProtocol._
-import java.util.Date
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
-import org.phenoscape.sparql.SPARQLInterpolation.QueryText
-import org.openrdf.model.vocabulary.DCTERMS
-import org.apache.jena.vocabulary.DCTerms
-import org.semanticweb.owlapi.model.IRI
+import org.semanticweb.owlapi.model.{IRI, OWLObjectProperty}
+import spray.json.DefaultJsonProtocol._
+import spray.json._
+
 import java.time.Instant
+import scala.concurrent.Future
 
 object KB {
 
-  val rdfsLabel = org.phenoscape.kb.KBVocab.rdfsLabel
+  val rdfsLabel: OWLObjectProperty = org.phenoscape.kb.KBVocab.rdfsLabel
 
   def annotationSummary: Future[KBAnnotationSummary] = {
     val matrices = annotatedMatrixCount
