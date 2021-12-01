@@ -1,14 +1,10 @@
 package org.phenoscape.kb
 
-import org.apache.jena.query.ResultSet
-
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport.sprayJsonMarshaller
-
-import spray.json._
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import org.apache.jena.query.ResultSet
 import spray.json.DefaultJsonProtocol._
+import spray.json._
 
 object ResultCount {
 

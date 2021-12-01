@@ -5,13 +5,13 @@ import akka.http.scaladsl.model.MediaTypes
 import akka.util.Timeout
 import org.apache.jena.query.{Query, QuerySolution}
 import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.{E_NotOneOf, Expr, ExprList, ExprVar}
 import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
 import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
+import org.apache.jena.sparql.expr.{E_NotOneOf, Expr, ExprList, ExprVar}
 import org.apache.jena.sparql.syntax.{ElementFilter, ElementSubQuery}
+import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
@@ -20,9 +20,9 @@ import org.semanticweb.owlapi.model.{IRI, OWLClassExpression}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
-import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
 
 case class GeneExpressionAnnotation(gene: MinimalTerm, location: MinimalTerm, source: Option[IRI])

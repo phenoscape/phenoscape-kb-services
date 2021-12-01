@@ -20,7 +20,7 @@ import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.sparql.FromQuerySolution
 import org.semanticweb.owlapi.model.IRI
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps

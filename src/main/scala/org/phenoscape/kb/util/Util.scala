@@ -2,13 +2,6 @@ package org.phenoscape.kb.util
 
 object Util {
 
-  implicit class TraversableOps[A](self: Traversable[A]) {
-
-    def groupMap[K, B](key: A => K)(f: A => B): Map[K, Set[B]] =
-      self.groupBy(key).map { case (k, vs) => k -> vs.map(f).toSet }
-
-  }
-
   implicit class MapOps[K, V](self: Map[K, V]) {
 
     /**
