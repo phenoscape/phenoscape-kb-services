@@ -4,12 +4,11 @@ import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.query.{QueryFactory, QuerySolution}
 import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
-import org.phenoscape.kb.Similarity.rdfsSubClassOf
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.kb.util.SPARQLInterpolatorBlazegraph._
 import org.phenoscape.owl.{NamedRestrictionGenerator, Vocab}
 import org.semanticweb.owlapi.model.IRI
 import spray.json.DefaultJsonProtocol._
@@ -71,7 +70,7 @@ object AnatomicalEntity {
   }
 
   // Output a boolean matrix as CSV
-  def matrixRendererFromMapOfMaps[A](dependencyMatrix: DependencyMatrix[A]) = {
+  def matrixRendererFromMapOfMaps[A](dependencyMatrix: DependencyMatrix[A]): String = {
 
     val mapOfMaps = dependencyMatrix.map
     val orderedKeys = dependencyMatrix.orderedKeys
@@ -79,17 +78,13 @@ object AnatomicalEntity {
 
     val matrix = for (x <- orderedKeys) yield {
       val row = s"$x"
-      val values = for (y <- orderedKeys) yield mapOfMaps(x)(y) match {
-        case true  => 1
-        case false => 0
-      }
+      val values = for (y <- orderedKeys) yield (if (mapOfMaps(x)(y)) 1 else 0)
       s"$row,${values.mkString(",")}"
     }
     s"$headers\n${matrix.mkString("\n")}\n"
   }
 
   def presenceAbsenceDependencyMatrix(iris: List[IRI]): Future[DependencyMatrix[IRI]] = {
-    import org.phenoscape.kb.util.Util.TraversableOps
     import org.phenoscape.kb.util.Util.MapOps
     val query = queryImpliesPresenceOfMulti(iris)
     for {
@@ -123,21 +118,16 @@ object AnatomicalEntity {
         """
 
   private def queryImpliesPresenceOfMulti(terms: Iterable[IRI]): QueryText = {
-    import scalaz._
-    import Scalaz._
     val valuesList = terms.map(t => sparql" $t ").fold(sparql"")(_ + _)
     sparql"""
             SELECT DISTINCT ?x ?y
             FROM $KBClosureGraph
             FROM $KBMainGraph
             FROM $KBRedundantRelationGraph
-            
             WHERE {
-             VALUES ?x { $valuesList }
+              VALUES ?x { $valuesList }
               VALUES ?y { $valuesList }
-              
               ?x $rdfsSubClassOf | $IMPLIES_PRESENCE_OF ?y .
-              
               FILTER(?x != ?y)
             }
         """

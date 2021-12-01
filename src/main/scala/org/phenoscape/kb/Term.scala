@@ -1,6 +1,5 @@
 package org.phenoscape.kb
 
-import java.util.regex.Pattern
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
@@ -10,14 +9,12 @@ import org.apache.jena.query.{Query, QueryFactory, QuerySolution}
 import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.expr._
 import org.apache.jena.sparql.expr.aggregate.AggMin
-import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
 import org.apache.jena.sparql.path.{P_Link, P_OneOrMore1}
 import org.apache.jena.sparql.syntax.{Element, ElementFilter, ElementGroup, ElementUnion}
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.ingest.util.ExpressionUtil
 import org.phenoscape.kb.util.SPARQLEntityChecker
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owl.util.ExpressionsUtil
@@ -35,7 +32,8 @@ import spray.json.DefaultJsonProtocol._
 import spray.json._
 
 import java.net.{URLDecoder, URLEncoder}
-import scala.collection.JavaConverters._
+import java.util.regex.Pattern
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -285,11 +283,10 @@ object Term {
             """
     val partOfs =
       sparql"""
-            ?container $PartOfSome ?term .
-            GRAPH $KBClosureGraph {
-              $iri $rdfsSubClassOf ?container .
-              FILTER($iri != ?container)
-              FILTER(?container != $owlThing)
+            GRAPH $KBRedundantRelationGraph {
+              $iri $part_of ?term .
+              FILTER($iri != ?term)
+              FILTER(?term != $owlThing)
             }
             """
     val all = if (includePartOf) sparql" { $superclasses } UNION { $partOfs } " else superclasses
@@ -317,10 +314,9 @@ object Term {
             """
     val parts =
       sparql"""
-            ?query $PartOfSome $iri .
-            GRAPH $KBClosureGraph {
-              ?term $rdfsSubClassOf ?query .
-              FILTER(?query != ?term)
+            GRAPH $KBRedundantRelationGraph {
+              ?term $part_of $iri .
+              FILTER($iri != ?term)
             }
             """
     val all = if (includeParts) sparql" { $subclasses } UNION { $parts } " else subclasses
@@ -556,6 +552,7 @@ object RelationalTerm {
   def unapply(iri: IRI): Option[(IRI, IRI)] = iri match {
     case regex(relation, term) =>
       Some((IRI.create(URLDecoder.decode(relation, "utf-8")), IRI.create(URLDecoder.decode(term, "utf-8"))))
+    case _ => None
   }
 
 }

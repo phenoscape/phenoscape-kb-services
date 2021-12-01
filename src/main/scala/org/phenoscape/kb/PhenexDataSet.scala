@@ -1,14 +1,12 @@
 package org.phenoscape.kb
 
-import java.io.StringWriter
-import java.util.UUID
-
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.MediaTypes
 import org.phenoscape.io.NeXMLWriter
 import org.phenoscape.model.DataSet
 
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.MediaTypes
+import java.io.StringWriter
+import java.util.UUID
 
 object PhenexDataSet {
 

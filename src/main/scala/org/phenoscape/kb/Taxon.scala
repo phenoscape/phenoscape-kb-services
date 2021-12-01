@@ -1,48 +1,36 @@
 package org.phenoscape.kb
 
-import scala.collection.JavaConverters._
-import scala.concurrent.Future
-import scala.language.postfixOps
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.graph.NodeFactory
-import org.apache.jena.query.Query
-import org.apache.jena.query.QuerySolution
-import org.apache.jena.rdf.model.Model
-import org.apache.jena.rdf.model.Resource
-import org.apache.jena.rdf.model.ResourceFactory
+import org.apache.jena.query.{Query, QuerySolution}
+import org.apache.jena.rdf.model.{Model, Resource, ResourceFactory}
 import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.{E_Coalesce, Expr, ExprList, ExprVar}
-import org.apache.jena.sparql.path.{P_Link, P_OneOrMore1}
-import org.apache.jena.sparql.expr.aggregate.AggCountDistinct
-import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
+import org.apache.jena.sparql.expr.aggregate.{AggCountDistinct, AggCountVarDistinct}
 import org.apache.jena.sparql.expr.nodevalue.NodeValueString
-import org.apache.jena.sparql.syntax.ElementBind
-import org.apache.jena.sparql.syntax.ElementNamedGraph
-import org.apache.jena.sparql.syntax.ElementSubQuery
+import org.apache.jena.sparql.expr.{E_Coalesce, Expr, ExprList, ExprVar}
+import org.apache.jena.sparql.syntax.{ElementBind, ElementNamedGraph, ElementSubQuery}
 import org.apache.jena.vocabulary.RDFS
 import org.phenoscape.kb.Facets.Facet
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.kb.KBVocab.rdfsLabel
-import org.phenoscape.kb.KBVocab.rdfsSubClassOf
-import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-import org.phenoscape.kb.queries.DirectPhenotypesForTaxon
-import org.phenoscape.kb.queries.TaxaWithPhenotype
+import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
+import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.queries.QueryUtil.{PhenotypicQuality, QualitySpec}
+import org.phenoscape.kb.queries.{DirectPhenotypesForTaxon, TaxaWithPhenotype}
 import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
-import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
+import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
-import org.semanticweb.owlapi.model.{IRI, OWLClassExpression, OWLEntity, OWLObject}
-import org.semanticweb.owlapi.model.OWLClassExpression
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.MediaTypes
-import org.phenoscape.kb.queries.QueryUtil.{PhenotypicQuality, QualitySpec}
-import spray.json._
+import org.semanticweb.owlapi.model.{IRI, OWLClassExpression}
 import spray.json.DefaultJsonProtocol._
+import spray.json._
+
+import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
+import scala.language.postfixOps
 
 object Taxon {
 
