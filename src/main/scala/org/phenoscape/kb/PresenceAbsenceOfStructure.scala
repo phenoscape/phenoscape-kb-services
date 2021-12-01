@@ -9,12 +9,12 @@ import org.apache.jena.sparql.syntax.ElementSubQuery
 import org.apache.log4j.Logger
 import org.obo.datamodel.impl.OBOClassImpl
 import org.phenoscape.io.NeXMLUtil
-import org.phenoscape.kb.KBVocab.{KBMainGraph, rdfsLabel, rdfsSubClassOf}
+import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, KBMainGraph}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.model.MultipleState.MODE
 import org.phenoscape.model.{Character, DataSet, MultipleState, State, Taxon => MatrixTaxon}
 import org.phenoscape.owl.NamedRestrictionGenerator
-import org.phenoscape.owl.Vocab.{ABSENCE_OF, IMPLIES_PRESENCE_OF, dcDescription, describes_phenotype, exhibits_state, has_absence_of, has_character, has_presence_of, may_have_state_value, part_of}
+import org.phenoscape.owl.Vocab.{dcDescription, describes_phenotype, exhibits_state, has_absence_of, has_character, has_presence_of, may_have_state_value, part_of, ABSENCE_OF, IMPLIES_PRESENCE_OF}
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
@@ -32,6 +32,8 @@ import scala.jdk.CollectionConverters._
 import scala.language.{implicitConversions, postfixOps}
 
 object PresenceAbsenceOfStructure {
+
+  val implies_presence_of_some = NamedRestrictionGenerator.getClassRelationIRI(IMPLIES_PRESENCE_OF.getIRI)
 
   implicit def owlEntityToJenaProperty(prop: OWLEntity): Property = ResourceFactory.createProperty(prop.getIRI.toString)
 
@@ -173,19 +175,19 @@ object PresenceAbsenceOfStructure {
                        taxonClass: Option[OWLClassExpression],
                        taxonList: Option[NonEmptyList[IRI]]): Query = {
     val entityExpressionQueryOpt = entityClass.map(cls => sparql" ?entity $rdfsSubClassOf ${cls.asOMN} . ")
-    val entityValuesOpt = entityList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map {
-      iris =>
+    val entityValuesOpt =
+      entityList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map { iris =>
         sparql"VALUES ?entity { $iris }"
-    }
+      }
     val entityQuery = (entityExpressionQueryOpt, entityValuesOpt) match {
       case (Some(expressionQuery), Some(entityValues)) => sparql"{ $expressionQuery } UNION { $entityValues } "
       case _                                           => entityExpressionQueryOpt.orElse(entityValuesOpt).getOrElse(sparql"")
     }
     val taxonExpressionQueryOpt = taxonClass.map(cls => sparql" ?taxon $rdfsSubClassOf ${cls.asOMN} . ")
-    val taxonValuesOpt = taxonList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map {
-      iris =>
+    val taxonValuesOpt =
+      taxonList.flatMap(list => list.map(iri => sparql" $iri ").list.reduceLeftOption(_ + _)).map { iris =>
         sparql"VALUES ?taxon { $iris }"
-    }
+      }
     val taxonQuery = (taxonExpressionQueryOpt, taxonValuesOpt) match {
       case (Some(expressionQuery), Some(taxonValues)) => sparql"{ $expressionQuery } UNION { $taxonValues } "
       case _                                          => taxonExpressionQueryOpt.orElse(taxonValuesOpt).getOrElse(sparql"")
