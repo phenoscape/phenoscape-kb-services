@@ -20,7 +20,7 @@ import scala.language.postfixOps
 
 object Phenotype {
 
-  implicit val timeout = Timeout(10 minutes)
+  private implicit val timeout = Timeout(10 minutes)
 
   def info(phenotype: IRI, annotatedStatesOnly: Boolean): Future[Phenotype] = {
     val eqsFuture = eqForPhenotype(phenotype)

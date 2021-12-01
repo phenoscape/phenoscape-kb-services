@@ -1,13 +1,11 @@
 package org.phenoscape.kb
 
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
+import akka.http.scaladsl.model.MediaTypes
+import akka.http.scaladsl.unmarshalling.Unmarshaller
 import org.phenoscape.owlet.ManchesterSyntaxClassExpressionParser
 import org.phenoscape.owlet.OwletManchesterSyntaxDataType.SerializableClassExpression
 import org.semanticweb.owlapi.model.OWLClassExpression
-
-import akka.http.scaladsl.marshalling.Marshaller
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.MediaTypes
-import akka.http.scaladsl.unmarshalling.Unmarshaller
 import scalaz._
 
 object OWLFormats {

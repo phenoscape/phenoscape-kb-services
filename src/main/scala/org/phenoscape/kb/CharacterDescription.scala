@@ -19,9 +19,12 @@ import org.phenoscape.owlet.SPARQLComposer._
 import org.semanticweb.owlapi.model.{IRI, OWLClassExpression}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
+import org.phenoscape.kb.KBVocab.KBMainGraph
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.Future
+import org.phenoscape.sparql.SPARQLInterpolation._
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
 
 object CharacterDescription {
 
@@ -58,12 +61,16 @@ object CharacterDescription {
     App.executeSPARQLQuery(buildCharacterDescriptionQuery(iri), fromQuerySolution(iri)).map(_.headOption)
 
   def annotatedCharacterDescriptionWithAnnotation(iri: IRI): Future[Option[AnnotatedCharacterDescription]] = {
-    val query = select_distinct('state, 'description, 'matrix, 'matrix_label) where bgp(
-      t('state, describes_phenotype, iri),
-      t('state, dcDescription, 'description),
-      t('matrix, has_character / may_have_state_value, 'state),
-      t('matrix, rdfsLabel, 'matrix_label)
-    )
+    val query =
+      sparql"""
+        SELECT DISTINCT ?state ?description ?matrix ?matrix_label
+        WHERE {
+          ?state $describes_phenotype $iri .
+          ?state $dcDescription ?description .
+          ?matrix $has_character/$may_have_state_value ?state .
+          ?matrix $rdfsLabel ?matrix_label .
+        }
+      """.toQuery
     val result = App.executeSPARQLQuery(
       query,
       result =>
@@ -84,34 +91,41 @@ object CharacterDescription {
     result.flatMap(Future.sequence(_)).map(_.headOption)
   }
 
-  def buildBasicQuery(entity: OWLClassExpression = owlThing,
-                      taxon: OWLClassExpression = owlThing,
-                      publications: Iterable[IRI] = Nil): Query = {
-    val entityPatterns =
-      if (entity == owlThing) Nil
+  def buildWhereClause(entity: OWLClassExpression = owlThing,
+                       taxon: OWLClassExpression = owlThing,
+                       publications: Iterable[IRI] = Nil): QueryText = {
+    val entityPattern =
+      if (entity == owlThing) sparql""
+      else sparql"""
+           ?phenotype $ps_entity_term|$ps_related_entity_term ?entity .
+           ?entity $rdfsSubClassOf ${entity.asOMN}
+         """
+    val taxonPattern =
+      if (taxon == owlThing) sparql""
       else
-        t('phenotype, ps_entity_term | ps_related_entity_term, 'entity) :: t('entity,
-                                                                             rdfsSubClassOf,
-                                                                             entity.asOMN) :: Nil
-    val taxonPatterns =
-      if (taxon == owlThing) Nil
-      else
-        t('taxon, exhibits_state, 'state) :: t('taxon, rdfsSubClassOf, taxon.asOMN) :: Nil
-    val filters =
-      if (publications.isEmpty) Nil
-      else
-        new ElementFilter(
-          new E_OneOf(new ExprVar('matrix),
-                      new ExprList(publications.map(new NodeValueNode(_)).toBuffer[Expr].asJava))) :: Nil
-    select_distinct() from "http://kb.phenoscape.org/" where (bgp(
-      t('state, dcDescription, 'state_desc) ::
-        t('state, describes_phenotype, 'phenotype) ::
-        t('matrix, has_character / may_have_state_value, 'state) ::
-        t('matrix, rdfsLabel, 'matrix_label) ::
-        entityPatterns ++
-        taxonPatterns: _*
-    ) ::
-      filters: _*)
+        sparql"""
+          ?taxon $exhibits_state ?state .
+          ?taxon $rdfsSubClassOf ${taxon.asOMN} .
+        """
+    val publicationsFilter =
+      if (publications.isEmpty) sparql""
+      else {
+        val pubsList = publications.map(p => sparql"$p").reduceOption((l, r) => sparql"$l, $r").getOrElse(sparql"")
+        sparql"""
+          FILTER(?matrix IN ($pubsList))
+        """
+      }
+    sparql"""
+      WHERE {
+        ?state $dcDescription ?state_desc .
+        ?state $describes_phenotype ?phenotype .
+        ?matrix $has_character/$may_have_state_value ?state .
+        ?matrix $rdfsLabel ?matrix_label .
+        $entityPattern
+        $taxonPattern
+        $publicationsFilter
+      }
+    """
   }
 
   def buildQuery(entity: OWLClassExpression = owlThing,
@@ -119,24 +133,26 @@ object CharacterDescription {
                  publications: Iterable[IRI] = Nil,
                  limit: Int = 20,
                  offset: Int = 0): Query = {
-    val query = buildBasicQuery(entity, taxon, publications)
-    query.addResultVar('state)
-    query.addResultVar('state_desc)
-    query.addResultVar('matrix)
-    query.addResultVar('matrix_label)
-    query.setOffset(offset)
-    query.setLimit(limit)
-    query.addOrderBy('state_desc)
-    query.addOrderBy('state)
-    query
+    val whereClause = buildWhereClause(entity, taxon, publications)
+    sparql"""
+      SELECT DISTINCT ?state ?state_desc ?matrix ?matrix_label
+      FROM $KBMainGraph
+      $whereClause
+      ORDER BY ?state_desc ?state
+      LIMIT $limit
+      OFFSET $offset
+    """.toQuery
   }
 
   def buildTotalQuery(entity: OWLClassExpression = owlThing,
                       taxon: OWLClassExpression = owlThing,
                       publications: Iterable[IRI] = Nil): Query = {
-    val query = buildBasicQuery(entity, taxon, publications)
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("state"))))
-    query
+    val whereClause = buildWhereClause(entity, taxon, publications)
+    sparql"""
+      SELECT (COUNT(DISTINCT(?state) AS ?count)
+      FROM $KBMainGraph
+      $whereClause
+    """.toQuery
   }
 
   def buildVariationProfileTotalQuery(taxa: Seq[IRI]): Query = {

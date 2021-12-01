@@ -1,6 +1,5 @@
 package org.phenoscape.kb
 
-import java.util.regex.Pattern
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
@@ -10,14 +9,12 @@ import org.apache.jena.query.{Query, QueryFactory, QuerySolution}
 import org.apache.jena.sparql.core.Var
 import org.apache.jena.sparql.expr._
 import org.apache.jena.sparql.expr.aggregate.AggMin
-import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
 import org.apache.jena.sparql.path.{P_Link, P_OneOrMore1}
 import org.apache.jena.sparql.syntax.{Element, ElementFilter, ElementGroup, ElementUnion}
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.kb.ingest.util.ExpressionUtil
 import org.phenoscape.kb.util.SPARQLEntityChecker
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
 import org.phenoscape.owl.NamedRestrictionGenerator
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owl.util.ExpressionsUtil
@@ -35,7 +32,8 @@ import spray.json.DefaultJsonProtocol._
 import spray.json._
 
 import java.net.{URLDecoder, URLEncoder}
-import scala.collection.JavaConverters._
+import java.util.regex.Pattern
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.postfixOps

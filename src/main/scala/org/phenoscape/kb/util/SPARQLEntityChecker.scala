@@ -10,7 +10,7 @@ import org.apache.jena.sparql.syntax.ElementGroup
 import org.apache.jena.vocabulary.RDF
 import org.apache.jena.vocabulary.RDFS
 import org.phenoscape.kb.KBVocab.KBMainGraph
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.kb.util.SPARQLInterpolatorBlazegraph._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.semanticweb.owlapi.apibinding.OWLManager
