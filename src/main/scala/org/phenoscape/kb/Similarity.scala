@@ -1,38 +1,28 @@
 package org.phenoscape.kb
 
-import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller, ToResponseMarshallable}
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.graph.{NodeFactory, Node_Variable}
-import org.apache.jena.query.{Query, QueryFactory, QuerySolution}
-import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.{E_NotOneOf, Expr, ExprList, ExprVar}
-import org.apache.jena.sparql.path.Path
-import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
-import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
+import org.apache.jena.query.{Query, QuerySolution}
 import org.apache.jena.sparql.path.Path
 import org.apache.jena.sparql.syntax._
 import org.phenoscape.kb.Graph.getTermSubsumerPairs
+import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-import org.phenoscape.owl.{NamedRestrictionGenerator, Vocab}
+import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
+import org.phenoscape.sparql.FromQuerySolutionOWL._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
-import org.phenoscape.sparql.FromQuerySolutionOWL._
-import org.phenoscape.owlet.SPARQLComposer
 import org.semanticweb.owlapi.model.{IRI, OWLClass, OWLNamedIndividual}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
-import scala.collection.JavaConverters._
-import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.collection.immutable.ListMap
 
 object Similarity {
 
@@ -185,11 +175,16 @@ object Similarity {
   def addDisparity(subsumer: Subsumer, queryGraph: IRI, corpusGraph: IRI): Future[SubsumerWithDisparity] =
     icDisparity(Class(subsumer.term.iri), queryGraph, corpusGraph).map(SubsumerWithDisparity(subsumer, _))
 
-  def corpusSize(path: Path): Future[Int] = {
+  def corpusSize(path: Path, subjectPropertyOpt: Option[IRI], subjectValueOpt: Option[IRI]): Future[Int] = {
+    val specifierPattern = (for {
+      specifierProperty <- subjectPropertyOpt
+      specifierValue <- subjectValueOpt
+    } yield sparql"?item $specifierProperty $specifierValue .").getOrElse(sparql"")
     val query =
       sparql"""
             SELECT (COUNT(DISTINCT ?item) AS ?count)
             WHERE {
+              $specifierPattern
               ?item $path ?term .
               FILTER(isIRI(?item))
               FILTER(isIRI(?term))
@@ -274,9 +269,11 @@ object Similarity {
 
   def pairwiseJaccardSimilarity(iris: Set[IRI],
                                 relations: Set[IRI],
-                                pathOpt: Option[Path]): Future[Seq[JaccardScore]] = {
+                                pathOpt: Option[Path],
+                                subjectPropertyOpt: Option[IRI],
+                                subjectValueOpt: Option[IRI]): Future[Seq[JaccardScore]] = {
 
-    val termSubsumerPairsFut = getTermSubsumerPairs(iris, relations, pathOpt)
+    val termSubsumerPairsFut = getTermSubsumerPairs(iris, relations, pathOpt, subjectPropertyOpt, subjectValueOpt)
 
     val termSubsumersMapFut = for {
       termSubsumerPairs <- termSubsumerPairsFut
@@ -340,30 +337,41 @@ object Similarity {
     App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
   }
 
-  def frequency(terms: Set[IRI], path: Path): Future[TermFrequencyTable] = {
-    val values = terms
-      .map(Term.asRelationalTerm)
-      .map { case RelationalTerm(relation, term) =>
-        sparql" ($relation $term) "
-      }
-      .reduceOption(_ + _)
-      .getOrElse(sparql"")
-    val query =
-      sparql"""
-            SELECT (COUNT(DISTINCT ?item) AS ?count)
-            WHERE {
-              VALUES (?relation ?term) { $values }
-              ?item $path ?cls .
-              ?cls ?relation ?term .
-            }
+  def frequency(terms: Set[IRI],
+                path: Path,
+                subjectPropertyOpt: Option[IRI],
+                subjectValueOpt: Option[IRI]): Future[TermFrequencyTable] = {
+    val specifierPattern = (for {
+      specifierProperty <- subjectPropertyOpt
+      specifierValue <- subjectValueOpt
+    } yield sparql"?item $specifierProperty $specifierValue .").getOrElse(sparql"")
 
+    val groupsResults = terms.map { term =>
+      val relTerm = Term.asRelationalTerm(term)
+      val query =
+        sparql"""
+            SELECT (${relTerm.relation} AS ?relation) (${relTerm.term} AS ?term) (COUNT(DISTINCT ?item) AS ?count)
+            WHERE {
+              $specifierPattern
+              ?item $path ?cls .
+              ?cls ${relTerm.relation} ${relTerm.term} .
+            }
             """
-    App
-      .executeSPARQLQueryString(query.text,
-                                qs =>
-                                  IRI.create(qs.getResource("term").getURI) ->
-                                    qs.getLiteral("count").getInt)
-      .map(_.toMap)
+      App
+        .executeSPARQLQueryString(
+          query.text,
+          qs =>
+            (IRI.create(qs.getResource("relation").getURI), IRI.create(qs.getResource("term").getURI)) ->
+              qs.getLiteral("count").getInt)
+        .map(_.toMap)
+        .map(_.map { case ((relation, term), count) =>
+          val termIRI = if (relation == rdfsSubClassOf.getIRI) term else RelationalTerm(relation, term).iri
+          termIRI -> count
+        })
+    }
+    Future
+      .sequence(groupsResults)
+      .map(_.fold(Map.empty)(_ ++ _))
       .map { result =>
         val foundTerms = result.keySet
         // add in 0 counts for terms not returned by the query

@@ -2,7 +2,6 @@ package org.phenoscape.kb
 
 import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
-import org.apache.jena.graph.NodeFactory
 import org.apache.jena.query.{Query, QuerySolution}
 import org.apache.jena.rdf.model.{Model, Property, Resource, ResourceFactory}
 import org.apache.jena.sparql.core.Var
@@ -25,10 +24,10 @@ import spray.json.DefaultJsonProtocol._
 import spray.json._
 import org.phenoscape.sparql.SPARQLInterpolation.{QueryText, _}
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
+import org.phenoscape.kb.util.SPARQLInterpolatorBlazegraph._
 import org.phenoscape.owl.Vocab.{AnnotatedPhenotype, GeneExpression, associated_with_gene, associated_with_taxon, dcSource, has_part, in_taxon, inheres_in, occurs_in, part_of, rdfType, towards}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.Future
 import scala.language.implicitConversions
 
@@ -157,7 +156,7 @@ object Gene {
         UNION
         {
           VALUES ?gene_type { ${Vocab.Gene} $Pseudogene $ProteinCodingGene $lincRNA_gene $lncRNA_gene $miRNA_gene }
-          ?gene $rdfsSubClassOf ?gene_type .
+          $iri $rdfsSubClassOf ?gene_type .
         }
       }
           """.toQuery
