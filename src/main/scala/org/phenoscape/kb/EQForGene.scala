@@ -1,31 +1,19 @@
 package org.phenoscape.kb
 
-import scala.collection.JavaConverters._
+import akka.util.Timeout
+import org.apache.jena.query.Query
+import org.phenoscape.kb.KBVocab._
+import org.phenoscape.owl.Vocab._
+import org.phenoscape.sparql.SPARQLInterpolation._
+import org.semanticweb.owlapi.model.IRI
+import org.phenoscape.sparql.SPARQLInterpolationOWL._
+import spray.json.DefaultJsonProtocol._
+import spray.json._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
-import org.apache.jena.query.Query
-import org.phenoscape.owl.NamedRestrictionGenerator
-import org.phenoscape.owl.Vocab._
-import org.phenoscape.kb.KBVocab._
-import org.phenoscape.owlet.SPARQLComposer._
-import org.phenoscape.scowl._
-
-import org.phenoscape.sparql.SPARQLInterpolation._
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
-import org.phenoscape.sparql.SPARQLInterpolationOWL._
-import org.phenoscape.sparql.SPARQLInterpolation.QueryText
-
-import org.semanticweb.owlapi.apibinding.OWLManager
-import org.semanticweb.owlapi.model.IRI
-
-import com.google.common.collect.HashMultiset
-
-import akka.util.Timeout
-import spray.json._
-import spray.json.DefaultJsonProtocol._
 
 object EQForGene {
 
@@ -56,10 +44,15 @@ object EQForGene {
     App.executeSPARQLQuery(annotationsQuery(geneID), _.getResource("association").getURI)
 
   def annotationsQuery(geneIRI: IRI): Query =
-    select_distinct('association) from "http://kb.phenoscape.org/" where bgp(
-      t('association, rdfType, association),
-      t('association, associationHasPredicate, has_phenotype),
-      t('association, associationHasSubject, geneIRI))
+    sparql"""
+      SELECT DISTINCT ?association
+      FROM $KBMainGraph
+      WHERE {
+        ?association $rdfType $association .
+        ?association $associationHasPredicate $has_phenotype .
+        ?association $associationHasSubject $geneIRI .
+      }
+    """.toQuery
 
   def qualitiesForAnnotation(annotationID: String): Future[Iterable[String]] =
     App.executeSPARQLQuery(annotationSuperQualityQuery(annotationID), _.getResource("quality").getURI)

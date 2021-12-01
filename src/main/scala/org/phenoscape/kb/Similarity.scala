@@ -1,38 +1,28 @@
 package org.phenoscape.kb
 
-import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller, ToResponseMarshallable}
+import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.graph.{NodeFactory, Node_Variable}
-import org.apache.jena.query.{Query, QueryFactory, QuerySolution}
-import org.apache.jena.sparql.core.Var
-import org.apache.jena.sparql.expr.{E_NotOneOf, Expr, ExprList, ExprVar}
-import org.apache.jena.sparql.path.Path
-import org.apache.jena.sparql.expr.aggregate.AggCountVarDistinct
-import org.apache.jena.sparql.expr.nodevalue.NodeValueNode
+import org.apache.jena.query.{Query, QuerySolution}
 import org.apache.jena.sparql.path.Path
 import org.apache.jena.sparql.syntax._
 import org.phenoscape.kb.Graph.getTermSubsumerPairs
+import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
-import org.phenoscape.owl.{NamedRestrictionGenerator, Vocab}
+import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.scowl._
+import org.phenoscape.sparql.FromQuerySolutionOWL._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
-import org.phenoscape.sparql.FromQuerySolutionOWL._
-import org.phenoscape.owlet.SPARQLComposer
 import org.semanticweb.owlapi.model.{IRI, OWLClass, OWLNamedIndividual}
 import spray.json.DefaultJsonProtocol._
 import spray.json._
 
-import scala.collection.JavaConverters._
-import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.collection.immutable.ListMap
 
 object Similarity {
 
