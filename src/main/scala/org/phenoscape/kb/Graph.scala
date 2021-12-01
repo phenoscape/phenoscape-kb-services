@@ -8,17 +8,11 @@ import org.semanticweb.owlapi.model.IRI
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.owl.Vocab.rdfType
 import org.phenoscape.kb.Main.system.dispatcher
-import org.phenoscape.owl.NamedRestrictionGenerator
-import org.phenoscape.owlet.SPARQLComposer._
 import org.phenoscape.sparql.SPARQLInterpolation._
-import org.phenoscape.sparql.SPARQLInterpolation.QueryText
-import org.phenoscape.kb.util.SPARQLInterpolatorOWLAPI._
-import org.phenoscape.scowl
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
 
 import scala.concurrent.Future
 import scala.language.postfixOps
-import java.net.{URLDecoder, URLEncoder}
 
 object Graph {
 
@@ -148,15 +142,14 @@ object Graph {
     val termSubsumerSeq = for {
       pairs <- futurePairs
     } yield {
-      val termSubsumerPairs = pairs.map(p => (p._1 -> (p._2, p._3)))
-      termSubsumerPairs.map { case (term, (relation, subsumer)) =>
+      val termSubsumerPairs = pairs.map(p => p._1 -> (p._2, p._3))
+      termSubsumerPairs.flatMap { case (term, (relation, subsumer)) =>
         val virtualTermIRI = relation match {
           case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => IRI.create(subsumer)
           case _                                                 => RelationalTerm(IRI.create(relation), IRI.create(subsumer)).iri
-
         }
         Map(IRI.create(term) -> virtualTermIRI)
-      }.flatten
+      }
     }
     termSubsumerSeq
   }
