@@ -33,6 +33,7 @@ testFrameworks += new TestFramework("utest.runner.Framework")
 val akkaVersion = "2.6.16"
 val akkaHttpVersion = "10.2.6"
 
+// log4j 1.2.x implementations are excluded in order to unify logging to the logback implementation via log4j-over-slf4j.
 libraryDependencies ++= {
   Seq(
     "com.typesafe.akka" %% "akka-stream" % akkaVersion,
@@ -58,8 +59,7 @@ libraryDependencies ++= {
     "org.codehaus.groovy" % "groovy-all" % "3.0.8",
     "org.phenoscape" %% "sparql-utils" % "1.3.1" exclude ("log4j", "log4j"),
     "org.phenoscape" %% "sparql-utils-owlapi" % "1.3.1" exclude ("log4j", "log4j"),
-    "org.apache.logging.log4j" % "log4j" % "2.15.0",
-    "org.apache.logging.log4j" % "log4j-1.2-api" % "2.15.0",
+    "org.slf4j" % "log4j-over-slf4j" % "1.7.32",
     "com.lihaoyi" %% "utest" % "0.7.10" % Test
   )
 }
