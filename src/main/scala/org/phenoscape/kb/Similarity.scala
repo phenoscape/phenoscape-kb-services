@@ -161,11 +161,28 @@ object Similarity {
   def addDisparity(subsumer: Subsumer, queryGraph: IRI, corpusGraph: IRI): Future[SubsumerWithDisparity] =
     icDisparity(Class(subsumer.term.iri), queryGraph, corpusGraph).map(SubsumerWithDisparity(subsumer, _))
 
-  //FIXME this query is way too slow
   def corpusSize(corpusGraph: IRI): Future[Int] = {
-    val query = select() from corpusGraph.toString where (bgp(t('comparison, for_corpus_profile, 'profile)))
-    query.getProject.add(Var.alloc("count"), query.allocAggregate(new AggCountVarDistinct(new ExprVar("profile"))))
-    App.executeSPARQLQuery(query).map(ResultCount.count)
+    val query = corpusGraph match {
+      case TaxaCorpus =>
+        sparql"""
+          SELECT (COUNT(DISTINCT ?profile) AS ?count)
+          WHERE {
+            ?x $has_phenotypic_profile ?profile .
+            ?x $rdfsIsDefinedBy $VTO .
+          }
+              """
+      case GenesCorpus =>
+        sparql"""
+          SELECT (COUNT(DISTINCT ?profile) AS ?count)
+          WHERE {
+            ?x $has_phenotypic_profile ?profile .
+            FILTER NOT EXISTS {
+              ?x $rdfsIsDefinedBy $VTO .
+            }
+          }
+              """
+    }
+    App.executeSPARQLQuery(query.toQuery).map(ResultCount.count)
   }
 
   private def triplesBlock(elements: Element*): ElementGroup = {
@@ -286,7 +303,6 @@ object Similarity {
     App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
   }
 
-  
   def frequency(terms: Set[IRI], corpus: IRI): Future[TermFrequencyTable] = {
     import scalaz.Scalaz._
     val values = if (terms.nonEmpty) terms.map(t => sparql" $t ").reduce(_ + _) else sparql""
