@@ -33,6 +33,7 @@ import akka.stream.scaladsl.Flow
 import akka.util.ByteString
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
+import org.apache.commons.io.IOUtils
 import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
 import scalaz._
 import spray.json._
@@ -114,13 +115,30 @@ object Main extends HttpApp with App {
     negotiator.pickContentType(validTypes)
   }
 
+  private val swaggerText = IOUtils
+    .toString(this.getClass.getResourceAsStream("/swaggerDocs/swagger.yaml"), "UTF-8")
+    .replace("{{basePathToReplace}}", App.basePath)
+
   def routes: Route =
     cors() {
       alwaysCache(memoryCache, cacheKeyer) {
         respondWithHeaders(RawHeader("Vary", "negotiate, Accept")) {
           rejectEmptyResponse {
             pathSingleSlash {
-              redirect(Uri("http://kb.phenoscape.org/apidocs/"), StatusCodes.SeeOther)
+              redirect(Uri("../docs/"), StatusCodes.SeeOther)
+            } ~ pathPrefix("docs") {
+              pathEnd {
+                redirect(Uri("docs/"), StatusCodes.MovedPermanently)
+              } ~
+                pathSingleSlash {
+                  getFromResource("swaggerDocs/index.html")
+                } ~
+                path("swagger.yaml") {
+                  complete {
+                    swaggerText
+                  }
+                } ~
+                getFromResourceDirectory("swaggerDocs")
             } ~ pathPrefix("kb") {
               path("metadata") {
                 complete {

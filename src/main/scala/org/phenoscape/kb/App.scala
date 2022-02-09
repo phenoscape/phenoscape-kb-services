@@ -49,6 +49,7 @@ object App {
   val `application/ld+json` = MediaType.applicationWithFixedCharset("ld+json", HttpCharsets.`UTF-8`, "jsonld")
 
   val conf = ConfigFactory.load()
+  val basePath = conf.getString("kb-services.base-path")
   val KBEndpoint: Uri = Uri(conf.getString("kb-services.kb.endpoint"))
   val Owlery: Uri = Uri(conf.getString("kb-services.owlery.endpoint"))
 
