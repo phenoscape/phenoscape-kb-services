@@ -125,7 +125,7 @@ object Main extends HttpApp with App {
         respondWithHeaders(RawHeader("Vary", "negotiate, Accept")) {
           rejectEmptyResponse {
             pathSingleSlash {
-              redirect(Uri("../docs/"), StatusCodes.SeeOther)
+              redirect(Uri("docs/"), StatusCodes.SeeOther)
             } ~ pathPrefix("docs") {
               pathEnd {
                 redirect(Uri("docs/"), StatusCodes.MovedPermanently)
