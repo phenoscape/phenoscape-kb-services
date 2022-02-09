@@ -6,12 +6,13 @@ on:
       - master
       - services-new-data-model
       - relations-graphs-updates
+      - 2.0-maintenance
   pull_request:
     branches:
       - master
       - services-new-data-model
       - relations-graphs-updates 
-
+      - 2.0-maintenance
 jobs:
   build:
 
