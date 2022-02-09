@@ -4,7 +4,7 @@ organization  := "org.phenoscape"
 
 name          := "phenoscape-kb-services"
 
-version       := "2.0.1"
+version       := "2.0.2"
 
 packageDescription in Debian := "Phenoscape KB services"
 
