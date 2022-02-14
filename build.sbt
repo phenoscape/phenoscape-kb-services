@@ -31,7 +31,7 @@ resolvers += ("BBOP repository" at "http://code.berkeleybop.org/maven/repository
 testFrameworks += new TestFramework("utest.runner.Framework")
 
 val akkaVersion = "2.6.16"
-val akkaHttpVersion = "10.2.6"
+val akkaHttpVersion = "10.2.8"
 
 libraryDependencies ++= {
   Seq(
