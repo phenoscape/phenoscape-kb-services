@@ -45,7 +45,7 @@ libraryDependencies ++= {
     "com.lightbend.akka" %% "akka-stream-alpakka-xml" % "3.0.3",
     "io.spray" %% "spray-json" % "1.3.6",
     "net.sourceforge.owlapi" % "owlapi-distribution" % "4.5.20",
-    "org.phenoscape" %% "owlet" % "1.9" exclude ("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
+    "org.phenoscape" %% "owlet" % "1.8.1" exclude ("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
     "org.phenoscape" %% "scowl" % "1.4.0",
     "org.phenoscape" %% "kb-owl-tools" % "1.13.0" exclude ("org.slf4j", "slf4j-log4j12"), // exclude("log4j", "log4j"),
     "org.phenoscape" %% "phenoscape-kb-ingest" % "1.6.2",
