@@ -58,7 +58,7 @@ libraryDependencies ++= {
     "org.codehaus.groovy" % "groovy-all" % "3.0.8",
     "org.phenoscape" %% "sparql-utils" % "1.3.1",
     "org.phenoscape" %% "sparql-utils-owlapi" % "1.3.1",
-    "com.lihaoyi" %% "utest" % "0.7.10" % Test
+    "com.lihaoyi" %% "utest" % "0.7.11" % Test
   )
 }
 
