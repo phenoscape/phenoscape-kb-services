@@ -34,6 +34,7 @@ akka.http {
 kb-services {
   host = localhost
 	port = 8082
+	base-path = "/api/v2-beta"
 	kb.endpoint = "https://stars-app.renci.org/phenoscape/sparql"
 	owlery.endpoint = "http://kb.phenoscape.org/owlery/kbs/phenoscape"
 }
