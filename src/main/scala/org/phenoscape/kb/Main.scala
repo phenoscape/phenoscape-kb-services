@@ -149,23 +149,24 @@ object Main extends HttpApp with App {
                   }
                 } ~
                 getFromResourceDirectory("swaggerDocs")
-            } ~ pathPrefix("kb") {
-              path("metadata") {
-                complete {
-                  KB.getKBMetadata
-                }
-              } ~
-                path("annotation_summary") {
+            } ~
+              pathPrefix("kb") {
+                path("metadata") {
                   complete {
-                    KB.annotationSummary
+                    KB.getKBMetadata
                   }
                 } ~
-                path("annotation_report") {
-                  complete {
-                    KB.annotationReport
+                  path("annotation_summary") {
+                    complete {
+                      KB.annotationSummary
+                    }
+                  } ~
+                  path("annotation_report") {
+                    complete {
+                      KB.annotationReport
+                    }
                   }
-                }
-            } ~
+              } ~
               pathPrefix("term") {
                 path("search") {
                   parameters(
