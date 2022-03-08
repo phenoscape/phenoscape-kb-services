@@ -42,7 +42,7 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
     "com.typesafe.akka" %% "akka-http-caching" % akkaHttpVersion,
     "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-    "ch.megard" %% "akka-http-cors" % "1.1.2",
+    "ch.megard" %% "akka-http-cors" % "1.1.3",
     "com.lightbend.akka" %% "akka-stream-alpakka-xml" % "3.0.3",
     "io.spray" %% "spray-json" % "1.3.6",
     "net.sourceforge.owlapi" % "owlapi-distribution" % "4.5.20" exclude ("log4j", "log4j"),
@@ -55,12 +55,12 @@ libraryDependencies ++= {
     "org.apache.jena" % "apache-jena-libs" % "3.17.0" exclude ("org.slf4j", "slf4j-log4j12"),
     "org.scalaz" %% "scalaz-core" % "7.2.33",
     "org.bbop" % "oboformat" % "0.5.5" exclude ("net.sourceforge.owlapi", "owlapi-apibinding") exclude ("log4j", "log4j"),
-    "ch.qos.logback" % "logback-classic" % "1.2.7",
+    "ch.qos.logback" % "logback-classic" % "1.2.11",
     "org.codehaus.groovy" % "groovy-all" % "3.0.8",
     "org.phenoscape" %% "sparql-utils" % "1.3.1" exclude ("log4j", "log4j"),
     "org.phenoscape" %% "sparql-utils-owlapi" % "1.3.1" exclude ("log4j", "log4j"),
     "org.slf4j" % "log4j-over-slf4j" % "1.7.32",
-    "com.lihaoyi" %% "utest" % "0.7.10" % Test
+    "com.lihaoyi" %% "utest" % "0.7.11" % Test
   )
 }
 
