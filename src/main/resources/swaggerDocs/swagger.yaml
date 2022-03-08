@@ -9,6 +9,7 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
+basePath: {{basePathToReplace}}
 tags:
   - name: Knowledgebase status
   - name: Terms
