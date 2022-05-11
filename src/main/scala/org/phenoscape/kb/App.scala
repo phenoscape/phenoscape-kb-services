@@ -30,9 +30,9 @@ import org.phenoscape.sparql.FromQuerySolutionOWL._
 object App {
 
   implicit val timeout = Timeout(10 minutes)
-  private val Prior = IRI.create("http://www.bigdata.com/queryHints#Prior")
-  private val RunFirst = IRI.create("http://www.bigdata.com/queryHints#runFirst")
-  private val HintQuery = IRI.create("http://www.bigdata.com/queryHints#Query")
+  val Prior = IRI.create("http://www.bigdata.com/queryHints#Prior")
+  val RunFirst = IRI.create("http://www.bigdata.com/queryHints#runFirst")
+  val HintQuery = IRI.create("http://www.bigdata.com/queryHints#Query")
   private val HintAnalytic = IRI.create("http://www.bigdata.com/queryHints#analytic")
   private val HintOptimizer = IRI.create("http://www.bigdata.com/queryHints#optimizer")
   val BigdataRunPriorFirst = bgp(t(Prior, RunFirst, "true" ^^ XSDDatatype.XSDboolean))
