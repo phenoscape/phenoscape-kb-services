@@ -462,32 +462,20 @@ object Main extends HttpApp with App {
                     get {
                       parameters(
                         "iris".as[Seq[IRI]],
-                        "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                        "path".as[Path].?,
-                        "subject_filter_property".as[IRI].?,
-                        "subject_filter_value".as[IRI].?
-                      ) { (iris, relations, path, subjProp, subjVal) =>
-                        validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                 "Subject filter property and value must be provided together if at all") {
-                          complete {
-                            Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path, subjProp, subjVal)
-                          }
+                        "corpus".as[PhenotypeCorpus].?
+                      ) { (iris, corpusOpt) =>
+                        complete {
+                          Similarity.pairwiseJaccardSimilarity(iris.toSet, corpusOpt)
                         }
                       }
                     } ~
                       post {
                         formFields(
                           "iris".as[Seq[IRI]],
-                          "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                          "path".as[Path].?,
-                          "subject_property".as[IRI].?,
-                          "subject_value".as[IRI].?
-                        ) { (iris, relations, path, subjProp, subjVal) =>
-                          validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                   "Subject filter property and value must be provided together if at all") {
-                            complete {
-                              Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path, subjProp, subjVal)
-                            }
+                          "corpus".as[PhenotypeCorpus].?
+                        ) { (iris, corpusOpt) =>
+                          complete {
+                            Similarity.pairwiseJaccardSimilarity(iris.toSet, corpusOpt)
                           }
                         }
                       }
@@ -496,32 +484,20 @@ object Main extends HttpApp with App {
                     get {
                       parameters(
                         "terms".as[Seq[IRI]],
-                        "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                        "path".as[Path].?,
-                        "subject_property".as[IRI].?,
-                        "subject_value".as[IRI].?
-                      ) { (terms, relations, path, subjProp, subjVal) =>
-                        validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                 "Subject filter property and value must be provided together if at all") {
-                          complete {
-                            Graph.ancestorMatrix(terms.toSet, relations.toSet, path, subjProp, subjVal)
-                          }
+                        "corpus".as[PhenotypeCorpus].?
+                      ) { (terms, corpusOpt) =>
+                        complete {
+                          Graph.ancestorMatrix(terms.toSet, corpusOpt)
                         }
                       }
                     } ~
                       post {
                         formFields(
                           "terms".as[Seq[IRI]],
-                          "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                          "path".as[Path].?,
-                          "subject_property".as[IRI].?,
-                          "subject_value".as[IRI].?
-                        ) { (terms, relations, path, subjProp, subjVal) =>
-                          validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                   "Subject filter property and value must be provided together if at all") {
-                            complete {
-                              Graph.ancestorMatrix(terms.toSet, relations.toSet, path, subjProp, subjVal)
-                            }
+                          "corpus".as[PhenotypeCorpus].?
+                        ) { (terms, corpusOpt) =>
+                          complete {
+                            Graph.ancestorMatrix(terms.toSet, corpusOpt)
                           }
                         }
                       }

@@ -261,40 +261,28 @@ object Similarity {
     }
   }
 
-  def pairwiseJaccardSimilarity(iris: Set[IRI],
-                                relations: Set[IRI],
-                                pathOpt: Option[Path],
-                                subjectPropertyOpt: Option[IRI],
-                                subjectValueOpt: Option[IRI]): Future[Seq[JaccardScore]] = {
-
-    val termSubsumerPairsFut = getTermSubsumerPairs(iris, relations, pathOpt, subjectPropertyOpt, subjectValueOpt)
-
+  def pairwiseJaccardSimilarity(iris: Set[IRI], corpusOpt: Option[PhenotypeCorpus]): Future[Seq[JaccardScore]] = {
     val termSubsumersMapFut = for {
-      termSubsumerPairs <- termSubsumerPairsFut
+      termSubsumerPairs <- getTermSubsumerPairs(iris, corpusOpt)
     } yield {
       val groupedByTerm = termSubsumerPairs.groupBy(_._1)
-
       groupedByTerm
         .map { case (term, pairs) =>
           val subsumers = pairs.map(_._2).toSet
           (term, subsumers)
         }
     }
-
     termSubsumersMapFut.map { termSubsumersMap =>
       (for {
         combo <- iris.toSeq.combinations(2)
         left = combo(0)
         right = combo(1)
-
         intersectionCount = termSubsumersMap
           .getOrElse(left, Set.empty)
           .intersect(termSubsumersMap.getOrElse(right, Set.empty))
           .size
         unionCount = (termSubsumersMap.getOrElse(left, Set.empty) ++ termSubsumersMap.getOrElse(right, Set.empty)).size
-
         jaccardScore = if (unionCount == 0) 0 else intersectionCount.toDouble / unionCount.toDouble
-
       } yield JaccardScore(Set(left, right), jaccardScore)).toSeq
     }
   }

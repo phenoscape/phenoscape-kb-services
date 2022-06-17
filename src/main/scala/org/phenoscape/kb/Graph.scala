@@ -8,6 +8,7 @@ import org.semanticweb.owlapi.model.IRI
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, _}
 import org.phenoscape.owl.Vocab.rdfType
 import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.Similarity.PhenotypeCorpus
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
 
@@ -96,73 +97,40 @@ object Graph {
     query.toQuery
   }
 
-  def getTermSubsumerPairs(terms: Set[IRI],
-                           relations: Set[IRI],
-                           pathOpt: Option[Path],
-                           subjectPropertyOpt: Option[IRI],
-                           subjectValueOpt: Option[IRI]): Future[Seq[(IRI, IRI)]] = {
+  def getTermSubsumerPairs(terms: Set[IRI], corpusOpt: Option[PhenotypeCorpus]): Future[Seq[(IRI, IRI)]] = {
     val termsElements = terms.map(t => sparql" $t ").reduceOption(_ + _).getOrElse(sparql"")
-    val relationsElements = relations.map(r => sparql" $r ").reduceOption(_ + _).getOrElse(sparql"")
+    val pathOpt = corpusOpt.map(_.path)
     val queryPattern = pathOpt match {
-      case Some(path) => sparql""" ?term $path ?class . ?class ?relation ?subsumer ."""
-      case None       => sparql""" ?term ?relation ?subsumer . """
+      case Some(path) => sparql""" ?term $path ?class . ?class $rdfsSubClassOf ?subsumer ."""
+      case None       => sparql""" ?term $rdfsSubClassOf ?subsumer . """
     }
-
-    val subjectPattern = (for {
-      subjectProperty <- subjectPropertyOpt
-      subjectValue <- subjectValueOpt
-    } yield sparql"?term $subjectProperty $subjectValue .").getOrElse(sparql"")
-
     val query =
       sparql"""
-       SELECT DISTINCT ?term ?relation ?subsumer 
+       SELECT DISTINCT ?term ?subsumer 
        FROM $KBMainGraph
        FROM $KBClosureGraph
-       FROM $KBRedundantRelationGraph
        WHERE {
          VALUES ?term { $termsElements }
-         VALUES ?relation { $relationsElements }
          $queryPattern
-         $subjectPattern
          FILTER(?subsumer != $owlThing)
          FILTER(isIRI(?subsumer))
        }
        """
-
-    val futurePairs = App.executeSPARQLQueryString(
+    App.executeSPARQLQueryString(
       query.text,
       qs => {
         val term = qs.getResource("term").getURI
-        val relation = qs.getResource("relation").getURI
         val subsumer = qs.getResource("subsumer").getURI
-        (term, relation, subsumer)
+        IRI.create(term) -> IRI.create(subsumer)
       }
     )
-
-    val termSubsumerSeq = for {
-      pairs <- futurePairs
-    } yield {
-      val termSubsumerPairs = pairs.map(p => p._1 -> (p._2, p._3))
-      termSubsumerPairs.flatMap { case (term, (relation, subsumer)) =>
-        val virtualTermIRI = relation match {
-          case "http://www.w3.org/2000/01/rdf-schema#subClassOf" => IRI.create(subsumer)
-          case _                                                 => RelationalTerm(IRI.create(relation), IRI.create(subsumer)).iri
-        }
-        Map(IRI.create(term) -> virtualTermIRI)
-      }
-    }
-    termSubsumerSeq
   }
 
-  def ancestorMatrix(terms: Set[IRI],
-                     relations: Set[IRI],
-                     pathOpt: Option[Path],
-                     subjectPropertyOpt: Option[IRI],
-                     subjectValueOpt: Option[IRI]): Future[AncestorMatrix] =
+  def ancestorMatrix(terms: Set[IRI], corpusOpt: Option[PhenotypeCorpus]): Future[AncestorMatrix] =
     if (terms.isEmpty) Future.successful(AncestorMatrix(""))
     else {
       val termSubsumerPairsFut =
-        getTermSubsumerPairs(terms, relations, pathOpt, subjectPropertyOpt, subjectValueOpt)
+        getTermSubsumerPairs(terms, corpusOpt)
       for {
         termSubsumerPairs <- termSubsumerPairsFut
       } yield {

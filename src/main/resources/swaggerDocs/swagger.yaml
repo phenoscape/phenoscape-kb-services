@@ -849,7 +849,7 @@ paths:
       tags:
         - Semantic similarity
       summary: Get pairwise Jaccard similarity for a set of terms.
-      description: Calculate similarity for every pair in a set of terms, for the given relations, and path.
+      description: Calculate similarity for every pair in a set of ontology terms, or for a set of items in the provided phenotype corpus.
       produces:
         - application/json
       parameters:
@@ -859,31 +859,11 @@ paths:
           required: true
           type: string
           format: JSON
-        - name: relations
+        - name: corpus
           in: query
-          description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
-          required: false
-          default: ["http://www.w3.org/2000/01/rdf-schema#subClassOf","http://purl.obolibrary.org/obo/BFO_0000050"]
-          type: string
-          format: JSON
-        - name: path
-          in: query
-          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'taxa' and 'states'.
           required: false
           type: string
-          format: JSON
-        - name: subject_property
-          in: query
-          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_value`.
-          required: false
-          type: string
-          format: IRI
-        - name: subject_value
-          in: query
-          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_property`.
-          required: false
-          type: string
-          format: IRI
       responses:
         200:
           description: similarity scores
@@ -906,7 +886,7 @@ paths:
       tags:
         - Semantic similarity
       summary: Get pairwise Jaccard similarity for a set of terms [IN DEVELOPMENT—SUBJECT TO CHANGE]
-      description: Calculate similarity for every pair in a set of terms.
+      description: Calculate similarity for every pair in a set of ontology terms, or for a set of items in the provided phenotype corpus.
       consumes:
         - application/x-www-form-urlencoded
       produces:
@@ -918,6 +898,11 @@ paths:
           required: true
           type: string
           format: JSON
+        - name: corpus
+          in: query
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'taxa' and 'states'.
+          required: false
+          type: string
       responses:
         200:
           description: similarity scores
@@ -940,7 +925,7 @@ paths:
     get:
       tags:
         - Semantic similarity
-      summary: Get matrix of subsuming terms for a list of terms [IN DEVELOPMENT—SUBJECT TO CHANGE]
+      summary: Get matrix of subsuming terms for a list of terms
       description: Get matrix of subsuming terms for a list of terms, such that clients can perform their own calculations such as Jaccard similarity.
       produces:
         - text/csv
@@ -950,32 +935,11 @@ paths:
           description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
           required: true
           type: string
-        - name: relations
+        - name: corpus
           in: query
-          description: JSON array of relation IRIs, e.g. `["http://www.w3.org/2000/01/rdf-schema#subClassOf","http://purl.obolibrary.org/obo/BFO_0000050"]`
-          required: false
-          default: ["http://www.w3.org/2000/01/rdf-schema#subClassOf","http://purl.obolibrary.org/obo/BFO_0000050"]
-          type: string
-          format: JSON
-        - name: path
-          in: query
-          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
-          required: false
-          default:
-          type: string
-          format: JSON
-        - name: subject_property
-          in: query
-          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_value`.
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'taxa' and 'states'.
           required: false
           type: string
-          format: IRI
-        - name: subject_value
-          in: query
-          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_property`.
-          required: false
-          type: string
-          format: IRI
       responses:
         200:
           description: 'Subsumer matrix: column headers are input terms; each row is a subsumer class, with 1 if the column header is subsumed by the row term, and 0 if not.'
@@ -992,7 +956,7 @@ paths:
     post:
       tags:
         - Semantic similarity
-      summary: Get matrix of subsuming terms for a list of terms [IN DEVELOPMENT—SUBJECT TO CHANGE]
+      summary: Get matrix of subsuming terms for a list of terms
       description: Get matrix of subsuming terms for a list of terms, such that clients can perform their own calculations such as Jaccard similarity.
       consumes:
         - application/x-www-form-urlencoded
@@ -1004,18 +968,11 @@ paths:
           description: JSON array of term IRIs, e.g. `["http://purl.obolibrary.org/obo/UBERON_0000151","http://purl.obolibrary.org/obo/UBERON_0000152","http://purl.obolibrary.org/obo/UBERON_0003097"]`
           required: true
           type: string
-        - name: subject_property
+        - name: corpus
           in: formData
-          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_value`.
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'taxa' and 'states'.
           required: false
           type: string
-          format: IRI
-        - name: subject_value
-          in: formData
-          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_property`.
-          required: false
-          type: string
-          format: IRI
       responses:
         200:
           description: 'Subsumer matrix: column headers are input terms; each row is a subsumer class, with 1 if the column header is subsumed by the row term, and 0 if not.'
