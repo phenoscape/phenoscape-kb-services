@@ -287,19 +287,6 @@ object Similarity {
     }
   }
 
-  private def classSubsumers(iri: IRI): Future[Set[IRI]] = {
-    val query: QueryText =
-      sparql"""
-              SELECT DISTINCT ?subsumer
-              FROM $KBClosureGraph
-              WHERE {
-                $iri $rdfsSubClassOf ?subsumer .
-                FILTER(?subsumer != $owlThing)
-              }
-            """
-    App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
-  }
-
   private def stateSubsumers(studyIRI: IRI, characterNum: Int, symbol: String): Future[Set[IRI]] = {
     val query: QueryText =
       sparql"""
