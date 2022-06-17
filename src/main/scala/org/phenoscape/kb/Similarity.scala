@@ -389,7 +389,6 @@ object Similarity {
         }
         GROUP BY ?term
         """
-    scribe.info(query.text)
     for {
       results <- App.executeSPARQLQueryString(
         query.text,
