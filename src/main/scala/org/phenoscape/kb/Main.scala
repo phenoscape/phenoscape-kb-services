@@ -408,30 +408,24 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("profile") {
-                    parameters("iri".as[IRI], "path".as[Path]) { (iri, path) =>
+                    parameters("iri".as[IRI], "corpus".as[PhenotypeCorpus]) { (iri, corpus) =>
                       complete {
-                        Similarity.getProfile(iri, path)
+                        Similarity.getProfile(iri, corpus)
                       }
                     }
                   } ~
                   path("profile_size") {
-                    parameters("iri".as[IRI], "path".as[Path]) { (iri, path) =>
+                    parameters("iri".as[IRI], "corpus".as[PhenotypeCorpus]) { (iri, corpus) =>
                       complete {
-                        Similarity.profileSize(iri, path).map(ResultCount(_))
+                        Similarity.profileSize(iri, corpus).map(ResultCount(_))
                       }
                     }
                   } ~
                   path("corpus_size") {
-                    parameters("path".as[Path], "subject_filter_property".as[IRI].?, "subject_filter_value".as[IRI].?) {
-                      (path, subjProp, subjVal) =>
-                        validate(
-                          (subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                          "Subject filter property and value must be provided together if at all"
-                        ) {
-                          complete {
-                            Similarity.corpusSize(path, subjProp, subjVal).map(ResultCount(_))
-                          }
-                        }
+                    parameters("corpus".as[PhenotypeCorpus]) { corpus =>
+                      complete {
+                        Similarity.corpusSize(corpus).map(ResultCount(_))
+                      }
                     }
                   } ~
                   path("ic_disparity") {

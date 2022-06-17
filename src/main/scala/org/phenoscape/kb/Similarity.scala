@@ -126,31 +126,29 @@ object Similarity {
       labelledTerms <- Future.sequence(irisFuture.map(Term.computedLabel))
     } yield labelledTerms
 
-  def getProfile(profileSubject: IRI, path: Path): Future[Seq[IRI]] = {
+  def getProfile(profileSubject: IRI, corpus: PhenotypeCorpus): Future[Seq[IRI]] = {
     final case class Annotation(annotation: IRI)
     val query =
       sparql"""
                SELECT DISTINCT ?annotation
                FROM $KBMainGraph
-               FROM $KBRedundantRelationGraph
                FROM $KBClosureGraph
                WHERE {
-                $profileSubject $path ?annotation .
+                $profileSubject ${corpus.path} ?annotation .
                 FILTER(isIRI(?annotation))
                 }
               """
     App.executeSPARQLQueryStringCase[Annotation](query.text).map(_.map(_.annotation))
   }
 
-  def profileSize(profileSubject: IRI, path: Path): Future[Int] = {
+  def profileSize(profileSubject: IRI, corpus: PhenotypeCorpus): Future[Int] = {
     val query =
       sparql"""
                SELECT (COUNT(DISTINCT ?phen) AS ?count) 
                FROM $KBMainGraph
-               FROM $KBRedundantRelationGraph
                FROM $KBClosureGraph
                WHERE {
-                $profileSubject $path ?phen .
+                $profileSubject ${corpus.path} ?phen .
                 FILTER(isIRI(?phen))
                 }
               """
@@ -176,17 +174,12 @@ object Similarity {
   def addDisparity(subsumer: Subsumer, queryGraph: IRI, corpusGraph: IRI): Future[SubsumerWithDisparity] =
     icDisparity(Class(subsumer.term.iri), queryGraph, corpusGraph).map(SubsumerWithDisparity(subsumer, _))
 
-  def corpusSize(path: Path, subjectPropertyOpt: Option[IRI], subjectValueOpt: Option[IRI]): Future[Int] = {
-    val specifierPattern = (for {
-      specifierProperty <- subjectPropertyOpt
-      specifierValue <- subjectValueOpt
-    } yield sparql"?item $specifierProperty $specifierValue .").getOrElse(sparql"")
+  def corpusSize(corpus: PhenotypeCorpus): Future[Int] = {
     val query =
       sparql"""
             SELECT (COUNT(DISTINCT ?item) AS ?count)
             WHERE {
-              $specifierPattern
-              ?item $path ?term .
+              ?item ${corpus.path} ?term .
               FILTER(isIRI(?item))
               FILTER(isIRI(?term))
             }
