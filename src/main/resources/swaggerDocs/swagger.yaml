@@ -491,7 +491,7 @@ paths:
         - application/xml
       parameters:
         - name: taxon
-          in: formData
+          in: query
           description: Taxonomic class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
           required: false
           type: string
@@ -502,7 +502,7 @@ paths:
           type: string
           format: JSON
         - name: entity
-          in: formData
+          in: query
           description: Anatomical class expression in [OWL Manchester syntax](http://www.w3.org/TR/owl2-manchester-syntax/)
           required: false
           type: string
@@ -513,7 +513,7 @@ paths:
           type: string
           format: JSON
         - name: variable_only
-          in: formData
+          in: query
           description: whether to restrict the matrix to characters with both 'present' and 'absent' values in the matrix
           required: false
           type: boolean
@@ -537,7 +537,7 @@ paths:
           required: false
           type: string
         - name: taxon_list
-          in: query
+          in: formData
           description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/VTO_0033643", "http://purl.obolibrary.org/obo/VTO_0036426"]
           required: false
           type: string
@@ -548,7 +548,7 @@ paths:
           required: false
           type: string
         - name: entity_list
-          in: query
+          in: formData
           description: JSON array of term IRIs ["http://purl.obolibrary.org/obo/UBERON_0008897", "http://purl.obolibrary.org/obo/UBERON_0002535"]
           required: false
           type: string
@@ -1017,13 +1017,13 @@ paths:
           required: true
           type: string
         - name: subject_property
-          in: query
+          in: formData
           description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_value`.
           required: false
           type: string
           format: IRI
         - name: subject_value
-          in: query
+          in: formData
           description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_property`.
           required: false
           type: string
@@ -1055,23 +1055,16 @@ paths:
           description: JSON array of term IRIs, e.g. `["http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0008897%3E"]`
           required: true
           type: string
-        - name: path
+        - name: corpus
           in: query
-          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'taxa' and 'states'.
           required: true
           type: string
-        - name: subject_filter_property
+        - name: type
           in: query
-          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_filter_value`.
-          required: false
+          description: The kind of ontology terms being submitted in the terms parameter. Allowed values are 'phenotype' and 'anatomical_entity'.
+          required: true
           type: string
-          format: IRI
-        - name: subject_filter_value
-          in: query
-          description: Value for an additional triple constraint to select members of the corpus. If used, must also provide `subject_filter_property`.
-          required: false
-          type: string
-          format: IRI
       responses:
         200:
           description: 'Term frequency table: first column is term IRI, second column is occurrence count.'
@@ -1089,27 +1082,20 @@ paths:
         - text/csv
       parameters:
         - name: terms
-          in: query
+          in: formData
           description: JSON array of term IRIs, e.g. `["http://purl.org/phenoscape/expression?value=%3Chttp%3A%2F%2Fpurl.org%2Fphenoscape%2Fvocab.owl%23phenotype_of%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FUBERON_0008897%3E"]`
           required: true
           type: string
-        - name: path
-          in: query
-          description: SPARQL property path composed of full IRIS. This is used to connect the data resource to count (RDF graph world) to the ontology world. E.g. `<http://purl.org/phenoscape/vocab.owl#exhibits_state>/<http://purl.org/phenoscape/vocab.owl#describes_phenotype>`
+        - name: corpus
+          in: formData
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'taxa' and 'states'.
           required: true
           type: string
-        - name: subject_filter_property
-          in: query
-          description: Property for an additional triple constraint to select members of the corpus. If used, must also provide `subject_filter_value`.
-          required: false
+        - name: type
+          in: formData
+          description: The kind of ontology terms being submitted in the terms parameter. Allowed values are 'phenotype' and 'anatomical_entity'.
+          required: true
           type: string
-          format: IRI
-        - name: subject_filter_value
-          in: query
-          description: Value for an additional triple constraint to select members of the corpus. If used, must also provide `subject_filter_property`.
-          required: false
-          type: string
-          format: IRI
       responses:
         200:
           description: 'Term frequency table: first column is term IRI, second column is occurrence count.'

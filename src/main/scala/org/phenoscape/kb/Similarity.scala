@@ -10,6 +10,7 @@ import org.phenoscape.kb.Graph.getTermSubsumerPairs
 import org.phenoscape.kb.JSONResultItem.JSONResultItemsMarshaller
 import org.phenoscape.kb.KBVocab._
 import org.phenoscape.kb.Main.system.dispatcher
+import org.phenoscape.kb.util.PropertyPathParser
 import org.phenoscape.owl.Vocab
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.owlet.SPARQLComposer._
@@ -337,46 +338,73 @@ object Similarity {
     App.executeSPARQLQueryString(query.text, qs => IRI.create(qs.getResource("subsumer").getURI)).map(_.toSet)
   }
 
-  def frequency(terms: Set[IRI],
-                path: Path,
-                subjectPropertyOpt: Option[IRI],
-                subjectValueOpt: Option[IRI]): Future[TermFrequencyTable] = {
-    val specifierPattern = (for {
-      specifierProperty <- subjectPropertyOpt
-      specifierValue <- subjectValueOpt
-    } yield sparql"?item $specifierProperty $specifierValue .").getOrElse(sparql"")
+  sealed trait PhenotypeCorpus {
 
-    val groupsResults = terms.map { term =>
-      val relTerm = Term.asRelationalTerm(term)
-      val query =
-        sparql"""
-            SELECT (${relTerm.relation} AS ?relation) (${relTerm.term} AS ?term) (COUNT(DISTINCT ?item) AS ?count)
-            WHERE {
-              $specifierPattern
-              ?item $path ?cls .
-              ?cls ${relTerm.relation} ${relTerm.term} .
-            }
-            """
-      App
-        .executeSPARQLQueryString(
-          query.text,
-          qs =>
-            (IRI.create(qs.getResource("relation").getURI), IRI.create(qs.getResource("term").getURI)) ->
-              qs.getLiteral("count").getInt)
-        .map(_.toMap)
-        .map(_.map { case ((relation, term), count) =>
-          val termIRI = if (relation == rdfsSubClassOf.getIRI) term else RelationalTerm(relation, term).iri
-          termIRI -> count
-        })
-    }
-    Future
-      .sequence(groupsResults)
-      .map(_.fold(Map.empty)(_ ++ _))
-      .map { result =>
-        val foundTerms = result.keySet
-        // add in 0 counts for terms not returned by the query
-        result ++ (terms -- foundTerms).map(_ -> 0)
-      }
+    def path: Path
+
+  }
+
+  object StateCorpus extends PhenotypeCorpus {
+
+    val path: Path = PropertyPathParser
+      .parsePropertyPath(sparql"$describes_phenotype".text)
+      .getOrElse(throw new Exception("Invalid property path"))
+
+  }
+
+  object TaxonCorpus extends PhenotypeCorpus {
+
+    val path: Path = PropertyPathParser
+      .parsePropertyPath(sparql"$exhibits_state/$describes_phenotype".text)
+      .getOrElse(throw new Exception("Invalid property path"))
+
+  }
+
+  sealed trait SimilarityTermType {
+
+    def path: Path
+
+  }
+
+  object AnatomyTerm extends SimilarityTermType {
+
+    private val phenotypeOfSome = ObjectProperty(s"${phenotype_of.getIRI.toString}_some")
+
+    val path: Path = PropertyPathParser
+      .parsePropertyPath(sparql"$rdfsSubClassOf/$phenotypeOfSome".text)
+      .getOrElse(throw new Exception("Invalid property path"))
+
+  }
+
+  object PhenotypeTerm extends SimilarityTermType {
+
+    val path: Path = PropertyPathParser
+      .parsePropertyPath(sparql"$rdfsSubClassOf".text)
+      .getOrElse(throw new Exception("Invalid property path"))
+
+  }
+
+  def frequency(terms: Set[IRI], corpus: PhenotypeCorpus, termType: SimilarityTermType): Future[TermFrequencyTable] = {
+    val termsValues = terms.map(t => sparql" $t ").reduceOption(_ + _).getOrElse(sparql"")
+    val query =
+      sparql"""
+        SELECT ?term (COUNT(DISTINCT ?item) AS ?count)
+        WHERE {
+          VALUES ?term { $termsValues }
+          ?cls ${termType.path} ?term .
+          ?item ${corpus.path} ?cls .
+        }
+        GROUP BY ?term
+        """
+    scribe.info(query.text)
+    for {
+      results <- App.executeSPARQLQueryString(
+        query.text,
+        qs => IRI.create(qs.getResource("term").getURI) -> qs.getLiteral("count").getInt)
+      resultsMap = results.toMap
+      foundTerms = resultsMap.keySet
+      // add in 0 counts for terms not returned by the query
+    } yield resultsMap ++ (terms -- foundTerms).map(_ -> 0)
   }
 
   type TermFrequencyTable = Map[IRI, Int]

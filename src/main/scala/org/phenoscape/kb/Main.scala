@@ -37,6 +37,7 @@ import akka.util.ByteString
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import org.apache.commons.io.IOUtils
+import org.phenoscape.kb.Similarity.{AnatomyTerm, PhenotypeCorpus, PhenotypeTerm, SimilarityTermType, StateCorpus, TaxonCorpus}
 import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
 import scalaz._
 import spray.json._
@@ -68,6 +69,18 @@ object Main extends HttpApp with App {
   }
 
   implicit val QualitySpecUnmarshaller: Unmarshaller[String, QualitySpec] = IRIUnmarshaller.map(QualitySpec.fromIRI)
+
+  implicit val SimilarityTermTypeUnmarshaller: Unmarshaller[String, SimilarityTermType] = Unmarshaller.strict {
+    case "phenotype"         => PhenotypeTerm
+    case "anatomical_entity" => AnatomyTerm
+    case _                   => throw new Exception(s"Invalid similarity term type")
+  }
+
+  implicit val PhenotypeCorpusUnmarshaller: Unmarshaller[String, PhenotypeCorpus] = Unmarshaller.strict {
+    case "taxa"   => TaxonCorpus
+    case "states" => StateCorpus
+    case _        => throw new Exception(s"Invalid phenotype corpus name")
+  }
 
   implicit val OWLClassUnmarshaller: Unmarshaller[String, OWLClass] =
     Unmarshaller.strict(text => factory.getOWLClass(IRI.create(text)))
@@ -521,31 +534,21 @@ object Main extends HttpApp with App {
                   } ~
                   path("frequency") {
                     get {
-                      parameters("terms".as[Seq[IRI]],
-                                 "path".as[Path],
-                                 "subject_filter_property".as[IRI].?,
-                                 "subject_filter_value".as[IRI].?) { (iris, path, subjProp, subjVal) =>
-                        validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                 "Subject filter property and value must be provided together if at all") {
+                      parameters("terms".as[Seq[IRI]], "corpus".as[PhenotypeCorpus], "type".as[SimilarityTermType]) {
+                        (iris, corpus, termType) =>
                           complete {
                             import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                            Similarity.frequency(iris.toSet, path, subjProp, subjVal)
+                            Similarity.frequency(iris.toSet, corpus, termType)
                           }
-                        }
                       }
                     } ~
                       post {
-                        formFields("terms".as[Seq[IRI]],
-                                   "path".as[Path],
-                                   "subject_filter_property".as[IRI].?,
-                                   "subject_filter_value".as[IRI].?) { (iris, path, subjProp, subjVal) =>
-                          validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                   "Subject filter property and value must be provided together if at all") {
+                        formFields("terms".as[Seq[IRI]], "corpus".as[PhenotypeCorpus], "type".as[SimilarityTermType]) {
+                          (iris, corpus, termType) =>
                             complete {
                               import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                              Similarity.frequency(iris.toSet, path, subjProp, subjVal)
+                              Similarity.frequency(iris.toSet, corpus, termType)
                             }
-                          }
                         }
                       }
                   }
