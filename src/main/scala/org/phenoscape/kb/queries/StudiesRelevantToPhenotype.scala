@@ -48,7 +48,6 @@ object StudiesRelevantToPhenotype {
       SELECT (COUNT(*) AS ?count)
       FROM $KBMainGraph
       FROM $KBClosureGraph
-      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       WHERE {
         SELECT DISTINCT ?matrix ?matrix_label 
@@ -60,7 +59,6 @@ object StudiesRelevantToPhenotype {
       SELECT DISTINCT ?matrix ?matrix_label 
       FROM $KBMainGraph
       FROM $KBClosureGraph
-      FROM $KBRedundantRelationGraph
       $namedQueriesBlock
       $whereClause
       ORDER BY LCASE(?matrix_label) ?matrix
