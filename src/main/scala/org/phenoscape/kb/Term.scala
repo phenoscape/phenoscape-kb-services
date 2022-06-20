@@ -283,9 +283,10 @@ object Term {
             """
     val partOfs =
       sparql"""
-            GRAPH $KBRedundantRelationGraph {
-              $iri $part_of ?term .
-              FILTER($iri != ?term)
+            ?container $PartOfSome ?term .
+            GRAPH $KBClosureGraph {
+              $iri $rdfsSubClassOf ?container .
+              FILTER($iri != ?container)
               FILTER(?term != $owlThing)
             }
             """
@@ -314,9 +315,11 @@ object Term {
             """
     val parts =
       sparql"""
-            GRAPH $KBRedundantRelationGraph {
-              ?term $part_of $iri .
-              FILTER($iri != ?term)
+            ?query $PartOfSome $iri .
+            GRAPH $KBClosureGraph {
+              ?term $rdfsSubClassOf ?query .
+              FILTER(?query != ?term)
+              FILTER(?term != $owlThing)
             }
             """
     val all = if (includeParts) sparql" { $subclasses } UNION { $parts } " else subclasses
