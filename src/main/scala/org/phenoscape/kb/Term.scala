@@ -284,10 +284,10 @@ object Term {
     val partOfs =
       sparql"""
             ?container $PartOfSome ?term .
+            FILTER(?term != $owlThing)
             GRAPH $KBClosureGraph {
               $iri $rdfsSubClassOf ?container .
               FILTER($iri != ?container)
-              FILTER(?term != $owlThing)
             }
             """
     val all = if (includePartOf) sparql" { $superclasses } UNION { $partOfs } " else superclasses
