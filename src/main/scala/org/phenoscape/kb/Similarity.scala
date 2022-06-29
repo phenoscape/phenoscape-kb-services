@@ -180,6 +180,7 @@ object Similarity {
             SELECT (COUNT(DISTINCT ?item) AS ?count)
             WHERE {
               ?item ${corpus.path} ?term .
+              ${corpus.constraint(sparql"?item")}
               FILTER(isIRI(?item))
               FILTER(isIRI(?term))
             }
@@ -310,6 +311,8 @@ object Similarity {
 
     def path: Path
 
+    def constraint(node: QueryText): QueryText
+
   }
 
   object StateCorpus extends PhenotypeCorpus {
@@ -318,13 +321,17 @@ object Similarity {
       .parsePropertyPath(sparql"$describes_phenotype".text)
       .getOrElse(throw new Exception("Invalid property path"))
 
+    def constraint(node: QueryText): QueryText = sparql""
+
   }
 
   object TaxonCorpus extends PhenotypeCorpus {
 
     val path: Path = PropertyPathParser
-      .parsePropertyPath(sparql"$exhibits_state/$describes_phenotype".text)
+      .parsePropertyPath(sparql"$has_phenotypic_profile/$rdfType".text)
       .getOrElse(throw new Exception("Invalid property path"))
+
+    def constraint(node: QueryText): QueryText = sparql"$node $rdfsIsDefinedBy $VTO ."
 
   }
 
@@ -361,6 +368,7 @@ object Similarity {
           VALUES ?term { $termsValues }
           ?cls ${termType.path} ?term .
           ?item ${corpus.path} ?cls .
+          ${corpus.constraint(sparql"?item")}
         }
         GROUP BY ?term
         """
