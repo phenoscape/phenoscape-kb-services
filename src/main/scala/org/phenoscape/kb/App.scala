@@ -42,6 +42,9 @@ object App {
   val `application/sparql-results+xml` =
     MediaType.applicationWithFixedCharset("sparql-results+xml", HttpCharsets.`UTF-8`, "xml")
 
+  val `application/sparql-results+json` =
+    MediaType.applicationWithFixedCharset("sparql-results+json", HttpCharsets.`UTF-8`, "json")
+
   val `application/sparql-query` =
     MediaType.applicationWithFixedCharset("sparql-query", HttpCharsets.`UTF-8`, "rq", "sparql")
 
@@ -51,6 +54,7 @@ object App {
   val conf = ConfigFactory.load()
   val basePath = conf.getString("kb-services.base-path")
   val KBEndpoint: Uri = Uri(conf.getString("kb-services.kb.endpoint"))
+  val QLeverEndpoint: Uri = Uri(conf.getString("kb-services.qlever.endpoint"))
   val Owlery: Uri = Uri(conf.getString("kb-services.owlery.endpoint"))
 
   def withOwlery(triple: TripleOrPath): ElementService = service(App.Owlery.toString + "/sparql", bgp(triple))
@@ -69,15 +73,17 @@ object App {
 
   def executeSPARQLQueryStringCase[T: FromQuerySolution](query: String): Future[Seq[T]] =
     for {
-      resultSet    <- sparqlSelectQuery(query)
-      results       = resultSet.asScala.map(mapSolution[T])
-      asFutures     = results.map(Future.fromTry)
+      resultSet <- sparqlSelectQuery(query)
+      results = resultSet.asScala.map(mapSolution[T])
+      asFutures = results.map(Future.fromTry)
       validResults <- Future.sequence(asFutures)
     } yield validResults.toSeq
 
-  def executeSPARQLQueryString[T](queryString: String, resultMapper: QuerySolution => T): Future[Seq[T]] =
+  def executeSPARQLQueryString[T](queryString: String,
+                                  resultMapper: QuerySolution => T,
+                                  endpoint: Uri = KBEndpoint): Future[Seq[T]] =
     for {
-      resultSet <- sparqlSelectQuery(queryString)
+      resultSet <- sparqlSelectQuery(queryString, endpoint)
     } yield resultSet.asScala.map(resultMapper).toSeq
 
   def executeSPARQLConstructQuery(query: Query): Future[Model] = sparqlConstructQuery(query)
@@ -100,15 +106,17 @@ object App {
 
   implicit private val SPARQLQueryBodyUnmarshaller: FromEntityUnmarshaller[Query] =
     Unmarshaller.stringUnmarshaller.forContentTypes(`application/sparql-query`).map(QueryFactory.create)
-
-  implicit private val SPARQLResultsXMLUnmarshaller =
-    Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/sparql-results+xml`).map { data =>
-      // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
-      val inputStream = new ByteArrayInputStream(data)
-      val result = ResultSetMgr.read(inputStream, ResultSetLang.SPARQLResultSetXML)
-      inputStream.close()
-      result
-    }
+  
+  implicit private val SPARQLResultsJSONUnmarshaller =
+    Unmarshaller.byteArrayUnmarshaller
+      .forContentTypes(`application/sparql-results+json`, MediaTypes.`application/json`)
+      .map { data =>
+        // When using the String unmarshaller directly, we don't get fancy characters decoded correctly
+        val inputStream = new ByteArrayInputStream(data)
+        val result = ResultSetMgr.read(inputStream, ResultSetLang.SPARQLResultSetJSON)
+        inputStream.close()
+        result
+      }
 
   implicit private val SPARQLResultsBooleanUnmarshaller =
     Unmarshaller.byteArrayUnmarshaller.forContentTypes(`application/sparql-results+xml`).map { data =>
@@ -141,19 +149,19 @@ object App {
       requestEntity <- Marshal(query).to[RequestEntity]
       response <- Http().singleRequest(
         HttpRequest(method = HttpMethods.POST,
-                    headers = List(headers.Accept(`application/sparql-results+xml`)),
+                    headers = List(headers.Accept(`application/sparql-results+json`)),
                     uri = KBEndpoint,
                     entity = requestEntity))
       result <- Unmarshal(response.entity).to[ResultSet]
     } yield result
 
-  def sparqlSelectQuery(queryString: String): Future[ResultSet] =
+  def sparqlSelectQuery(queryString: String, endpoint: Uri = KBEndpoint): Future[ResultSet] =
     for {
       requestEntity <- Marshal(queryString).to[RequestEntity]
       response <- Http().singleRequest(
         HttpRequest(method = HttpMethods.POST,
-                    headers = List(headers.Accept(`application/sparql-results+xml`)),
-                    uri = KBEndpoint,
+                    headers = List(headers.Accept(`application/sparql-results+json`)),
+                    uri = endpoint,
                     entity = requestEntity))
       result <- Unmarshal(response.entity).to[ResultSet]
     } yield result

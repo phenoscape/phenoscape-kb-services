@@ -375,7 +375,9 @@ object Similarity {
     for {
       results <- App.executeSPARQLQueryString(
         query.text,
-        qs => IRI.create(qs.getResource("term").getURI) -> qs.getLiteral("count").getInt)
+        qs => IRI.create(qs.getResource("term").getURI) -> qs.getLiteral("count").getInt,
+        App.QLeverEndpoint
+      )
       resultsMap = results.toMap
       foundTerms = resultsMap.keySet
       // add in 0 counts for terms not returned by the query
