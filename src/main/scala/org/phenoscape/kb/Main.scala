@@ -37,6 +37,7 @@ import akka.util.ByteString
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import org.apache.commons.io.IOUtils
+import org.phenoscape.kb.Similarity.{AnatomyTerm, PhenotypeCorpus, PhenotypeTerm, SimilarityTermType, StateCorpus, TaxonCorpus}
 import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
 import scalaz._
 import spray.json._
@@ -68,6 +69,18 @@ object Main extends HttpApp with App {
   }
 
   implicit val QualitySpecUnmarshaller: Unmarshaller[String, QualitySpec] = IRIUnmarshaller.map(QualitySpec.fromIRI)
+
+  implicit val SimilarityTermTypeUnmarshaller: Unmarshaller[String, SimilarityTermType] = Unmarshaller.strict {
+    case "phenotype"         => PhenotypeTerm
+    case "anatomical_entity" => AnatomyTerm
+    case _                   => throw new Exception(s"Invalid similarity term type")
+  }
+
+  implicit val PhenotypeCorpusUnmarshaller: Unmarshaller[String, PhenotypeCorpus] = Unmarshaller.strict {
+    case "taxa"   => TaxonCorpus
+    case "states" => StateCorpus
+    case _        => throw new Exception(s"Invalid phenotype corpus name")
+  }
 
   implicit val OWLClassUnmarshaller: Unmarshaller[String, OWLClass] =
     Unmarshaller.strict(text => factory.getOWLClass(IRI.create(text)))
@@ -249,19 +262,17 @@ object Main extends HttpApp with App {
                   } ~
                   pathPrefix("property_neighbors") {
                     path("object") {
-                      parameters("term".as[IRI], "property".as[IRI], "direct".as[Boolean].?(false)) {
-                        (term, property, direct) =>
-                          complete {
-                            Graph.propertyNeighborsForObject(term, property, direct)
-                          }
+                      parameters("term".as[IRI], "property".as[IRI]) { (term, property) =>
+                        complete {
+                          Graph.propertyNeighborsForObject(term, property)
+                        }
                       }
                     } ~
                       path("subject") {
-                        parameters("term".as[IRI], "property".as[IRI], "direct".as[Boolean].?(false)) {
-                          (term, property, direct) =>
-                            complete {
-                              Graph.propertyNeighborsForSubject(term, property, direct)
-                            }
+                        parameters("term".as[IRI], "property".as[IRI]) { (term, property) =>
+                          complete {
+                            Graph.propertyNeighborsForSubject(term, property)
+                          }
                         }
                       }
                   } ~
@@ -395,30 +406,24 @@ object Main extends HttpApp with App {
                     }
                   } ~
                   path("profile") {
-                    parameters("iri".as[IRI], "path".as[Path]) { (iri, path) =>
+                    parameters("iri".as[IRI], "corpus".as[PhenotypeCorpus]) { (iri, corpus) =>
                       complete {
-                        Similarity.getProfile(iri, path)
+                        Similarity.getProfile(iri, corpus)
                       }
                     }
                   } ~
                   path("profile_size") {
-                    parameters("iri".as[IRI], "path".as[Path]) { (iri, path) =>
+                    parameters("iri".as[IRI], "corpus".as[PhenotypeCorpus]) { (iri, corpus) =>
                       complete {
-                        Similarity.profileSize(iri, path).map(ResultCount(_))
+                        Similarity.profileSize(iri, corpus).map(ResultCount(_))
                       }
                     }
                   } ~
                   path("corpus_size") {
-                    parameters("path".as[Path], "subject_filter_property".as[IRI].?, "subject_filter_value".as[IRI].?) {
-                      (path, subjProp, subjVal) =>
-                        validate(
-                          (subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                          "Subject filter property and value must be provided together if at all"
-                        ) {
-                          complete {
-                            Similarity.corpusSize(path, subjProp, subjVal).map(ResultCount(_))
-                          }
-                        }
+                    parameters("corpus".as[PhenotypeCorpus]) { corpus =>
+                      complete {
+                        Similarity.corpusSize(corpus).map(ResultCount(_))
+                      }
                     }
                   } ~
                   path("ic_disparity") {
@@ -455,32 +460,20 @@ object Main extends HttpApp with App {
                     get {
                       parameters(
                         "iris".as[Seq[IRI]],
-                        "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                        "path".as[Path].?,
-                        "subject_filter_property".as[IRI].?,
-                        "subject_filter_value".as[IRI].?
-                      ) { (iris, relations, path, subjProp, subjVal) =>
-                        validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                 "Subject filter property and value must be provided together if at all") {
-                          complete {
-                            Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path, subjProp, subjVal)
-                          }
+                        "corpus".as[PhenotypeCorpus].?
+                      ) { (iris, corpusOpt) =>
+                        complete {
+                          Similarity.pairwiseJaccardSimilarity(iris.toSet, corpusOpt)
                         }
                       }
                     } ~
                       post {
                         formFields(
                           "iris".as[Seq[IRI]],
-                          "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                          "path".as[Path].?,
-                          "subject_property".as[IRI].?,
-                          "subject_value".as[IRI].?
-                        ) { (iris, relations, path, subjProp, subjVal) =>
-                          validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                   "Subject filter property and value must be provided together if at all") {
-                            complete {
-                              Similarity.pairwiseJaccardSimilarity(iris.toSet, relations.toSet, path, subjProp, subjVal)
-                            }
+                          "corpus".as[PhenotypeCorpus].?
+                        ) { (iris, corpusOpt) =>
+                          complete {
+                            Similarity.pairwiseJaccardSimilarity(iris.toSet, corpusOpt)
                           }
                         }
                       }
@@ -489,63 +482,41 @@ object Main extends HttpApp with App {
                     get {
                       parameters(
                         "terms".as[Seq[IRI]],
-                        "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                        "path".as[Path].?,
-                        "subject_property".as[IRI].?,
-                        "subject_value".as[IRI].?
-                      ) { (terms, relations, path, subjProp, subjVal) =>
-                        validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                 "Subject filter property and value must be provided together if at all") {
-                          complete {
-                            Graph.ancestorMatrix(terms.toSet, relations.toSet, path, subjProp, subjVal)
-                          }
+                        "corpus".as[PhenotypeCorpus].?
+                      ) { (terms, corpusOpt) =>
+                        complete {
+                          Graph.ancestorMatrix(terms.toSet, corpusOpt)
                         }
                       }
                     } ~
                       post {
                         formFields(
                           "terms".as[Seq[IRI]],
-                          "relations".as[Seq[IRI]].?(Seq(rdfsSubClassOf.getIRI, part_of.getIRI)),
-                          "path".as[Path].?,
-                          "subject_property".as[IRI].?,
-                          "subject_value".as[IRI].?
-                        ) { (terms, relations, path, subjProp, subjVal) =>
-                          validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                   "Subject filter property and value must be provided together if at all") {
-                            complete {
-                              Graph.ancestorMatrix(terms.toSet, relations.toSet, path, subjProp, subjVal)
-                            }
+                          "corpus".as[PhenotypeCorpus].?
+                        ) { (terms, corpusOpt) =>
+                          complete {
+                            Graph.ancestorMatrix(terms.toSet, corpusOpt)
                           }
                         }
                       }
                   } ~
                   path("frequency") {
                     get {
-                      parameters("terms".as[Seq[IRI]],
-                                 "path".as[Path],
-                                 "subject_filter_property".as[IRI].?,
-                                 "subject_filter_value".as[IRI].?) { (iris, path, subjProp, subjVal) =>
-                        validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                 "Subject filter property and value must be provided together if at all") {
+                      parameters("terms".as[Seq[IRI]], "corpus".as[PhenotypeCorpus], "type".as[SimilarityTermType]) {
+                        (iris, corpus, termType) =>
                           complete {
                             import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                            Similarity.frequency(iris.toSet, path, subjProp, subjVal)
+                            Similarity.frequency(iris.toSet, corpus, termType)
                           }
-                        }
                       }
                     } ~
                       post {
-                        formFields("terms".as[Seq[IRI]],
-                                   "path".as[Path],
-                                   "subject_filter_property".as[IRI].?,
-                                   "subject_filter_value".as[IRI].?) { (iris, path, subjProp, subjVal) =>
-                          validate((subjProp.isEmpty && subjVal.isEmpty) || (subjProp.nonEmpty && subjVal.nonEmpty),
-                                   "Subject filter property and value must be provided together if at all") {
+                        formFields("terms".as[Seq[IRI]], "corpus".as[PhenotypeCorpus], "type".as[SimilarityTermType]) {
+                          (iris, corpus, termType) =>
                             complete {
                               import Similarity.TermFrequencyTable.TermFrequencyTableCSV
-                              Similarity.frequency(iris.toSet, path, subjProp, subjVal)
+                              Similarity.frequency(iris.toSet, corpus, termType)
                             }
-                          }
                         }
                       }
                   }

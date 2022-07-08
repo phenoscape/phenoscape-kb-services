@@ -36,5 +36,6 @@ kb-services {
 	port = 8082
 	base-path = "/api/v2-beta"
 	kb.endpoint = "https://stars-app.renci.org/phenoscape/sparql"
+	qlever.endpoint = "https://dev.phenoscape.org/qlever"
 	owlery.endpoint = "http://kb.phenoscape.org/owlery/kbs/phenoscape"
 }
