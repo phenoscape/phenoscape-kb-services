@@ -33,15 +33,15 @@ object Similarity {
   private val for_query_profile = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_query_profile")
   private val for_corpus_profile = ObjectProperty("http://purl.org/phenoscape/vocab.owl#for_corpus_profile")
   private val has_ic = ObjectProperty("http://purl.org/phenoscape/vocab.owl#has_ic")
-  val TaxaCorpus = IRI.create("http://kb.phenoscape.org/sim/taxa")
-  val GenesCorpus = IRI.create("http://kb.phenoscape.org/sim/genes")
+  val LegacyTaxaCorpus = IRI.create("http://kb.phenoscape.org/sim/taxa")
+  val LegacyGenesCorpus = IRI.create("http://kb.phenoscape.org/sim/genes")
   private val has_phenotypic_profile = ObjectProperty(Vocab.has_phenotypic_profile)
   private val rdfsSubClassOf = ObjectProperty(Vocab.rdfsSubClassOf)
 
-  val availableCorpora = Seq(TaxaCorpus, GenesCorpus)
+  val availableCorpora = Seq(LegacyTaxaCorpus, LegacyGenesCorpus)
 
   def evolutionaryProfilesSimilarToGene(gene: IRI, limit: Int = 20, offset: Int = 0): Future[Seq[SimilarityMatch]] =
-    App.executeSPARQLQuery(similarityProfileQuery(gene, TaxaCorpus, limit, offset), constructMatchFor(gene))
+    App.executeSPARQLQuery(similarityProfileQuery(gene, LegacyTaxaCorpus, limit, offset), constructMatchFor(gene))
 
   def querySimilarProfiles(queryItem: IRI,
                            corpus: IRI,
@@ -132,7 +132,6 @@ object Similarity {
       sparql"""
                SELECT DISTINCT ?annotation
                FROM $KBMainGraph
-               FROM $KBClosureGraph
                WHERE {
                 $profileSubject ${corpus.path} ?annotation .
                 FILTER(isIRI(?annotation))
@@ -146,7 +145,6 @@ object Similarity {
       sparql"""
                SELECT (COUNT(DISTINCT ?phen) AS ?count) 
                FROM $KBMainGraph
-               FROM $KBClosureGraph
                WHERE {
                 $profileSubject ${corpus.path} ?phen .
                 FILTER(isIRI(?phen))
@@ -315,7 +313,7 @@ object Similarity {
 
   }
 
-  object StateCorpus extends PhenotypeCorpus {
+  object StatesCorpus extends PhenotypeCorpus {
 
     val path: Path = PropertyPathParser
       .parsePropertyPath(sparql"$describes_phenotype".text)
@@ -325,13 +323,23 @@ object Similarity {
 
   }
 
-  object TaxonCorpus extends PhenotypeCorpus {
+  object TaxaCorpus extends PhenotypeCorpus {
 
     val path: Path = PropertyPathParser
       .parsePropertyPath(sparql"$has_phenotypic_profile/$rdfType".text)
       .getOrElse(throw new Exception("Invalid property path"))
 
     def constraint(node: QueryText): QueryText = sparql"$node $rdfsIsDefinedBy $VTO ."
+
+  }
+
+  object GenesCorpus extends PhenotypeCorpus {
+
+    val path: Path = PropertyPathParser
+      .parsePropertyPath(sparql"$has_phenotypic_profile/$rdfType".text)
+      .getOrElse(throw new Exception("Invalid property path"))
+
+    def constraint(node: QueryText): QueryText = sparql"$node $rdfType $AnnotatedGene ."
 
   }
 
