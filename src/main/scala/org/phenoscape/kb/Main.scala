@@ -3,7 +3,7 @@ package org.phenoscape.kb
 import org.apache.jena.sys.JenaSystem
 import org.apache.jena.sparql.path.Path
 import org.phenoscape.kb.util.PropertyPathParser
-import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
+import org.phenoscape.kb.KBVocab._
 import org.phenoscape.owl.Vocab.part_of
 import org.phenoscape.kb.OWLFormats.ManchesterSyntaxClassExpressionUnmarshaller
 import org.phenoscape.kb.OWLFormats.OWLClassExpressionMarshaller
@@ -37,7 +37,7 @@ import akka.util.ByteString
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import org.apache.commons.io.IOUtils
-import org.phenoscape.kb.Similarity.{AnatomyTerm, PhenotypeCorpus, PhenotypeTerm, SimilarityTermType, StateCorpus, TaxonCorpus}
+import org.phenoscape.kb.Similarity.{AnatomyTerm, GenesCorpus, PhenotypeCorpus, PhenotypeTerm, SimilarityTermType, StatesCorpus, TaxaCorpus}
 import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
 import scalaz._
 import spray.json._
@@ -77,8 +77,9 @@ object Main extends HttpApp with App {
   }
 
   implicit val PhenotypeCorpusUnmarshaller: Unmarshaller[String, PhenotypeCorpus] = Unmarshaller.strict {
-    case "taxa"   => TaxonCorpus
-    case "states" => StateCorpus
+    case "taxa"   => TaxaCorpus
+    case "states" => StatesCorpus
+    case "genes"  => GenesCorpus
     case _        => throw new Exception(s"Invalid phenotype corpus name")
   }
 
