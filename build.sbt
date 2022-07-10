@@ -4,7 +4,7 @@ organization := "org.phenoscape"
 
 name := "phenoscape-kb-services"
 
-version := "0.5"
+version := "2.1.3"
 
 packageDescription in Debian := "Phenoscape KB services"
 
@@ -31,7 +31,7 @@ resolvers += ("BBOP repository" at "http://code.berkeleybop.org/maven/repository
 testFrameworks += new TestFramework("utest.runner.Framework")
 
 val akkaVersion = "2.6.18"
-val akkaHttpVersion = "10.2.6"
+val akkaHttpVersion = "10.2.9"
 
 // log4j 1.2.x implementations are excluded in order to unify logging to the logback implementation via log4j-over-slf4j.
 libraryDependencies ++= {
@@ -45,9 +45,9 @@ libraryDependencies ++= {
     "ch.megard" %% "akka-http-cors" % "1.1.3",
     "com.lightbend.akka" %% "akka-stream-alpakka-xml" % "3.0.3",
     "io.spray" %% "spray-json" % "1.3.6",
-    "net.sourceforge.owlapi" % "owlapi-distribution" % "4.5.20" exclude ("log4j", "log4j"),
+    "net.sourceforge.owlapi" % "owlapi-distribution" % "4.5.22" exclude ("log4j", "log4j"),
     "org.phenoscape" %% "owlet" % "1.8.1" exclude ("org.slf4j", "slf4j-log4j12") exclude ("log4j", "log4j"),
-    "org.phenoscape" %% "scowl" % "1.4.0" exclude ("log4j", "log4j"),
+    "org.phenoscape" %% "scowl" % "1.4.1" exclude ("log4j", "log4j"),
     "org.phenoscape" %% "kb-owl-tools" % "1.13.0" exclude ("org.slf4j", "slf4j-log4j12") exclude ("log4j", "log4j"),
     "org.phenoscape" %% "phenoscape-kb-ingest" % "1.6.2" exclude ("log4j", "log4j"),
     "org.phenoscape" % "phenex" % "1.17.2" exclude ("org.slf4j", "slf4j-log4j12") exclude ("net.sourceforge.owlapi", "owlapi-apibinding") exclude ("log4j", "log4j"),
@@ -60,7 +60,7 @@ libraryDependencies ++= {
     "org.phenoscape" %% "sparql-utils" % "1.3.1" exclude ("log4j", "log4j"),
     "org.phenoscape" %% "sparql-utils-owlapi" % "1.3.1" exclude ("log4j", "log4j"),
     "org.slf4j" % "log4j-over-slf4j" % "1.7.32",
-    "com.lihaoyi" %% "utest" % "0.7.11" % Test
+    "com.lihaoyi" %% "utest" % "0.8.0" % Test
   )
 }
 

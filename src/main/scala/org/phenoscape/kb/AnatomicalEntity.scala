@@ -4,11 +4,11 @@ import akka.http.scaladsl.marshalling.{Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model.MediaTypes
 import org.apache.jena.query.{QueryFactory, QuerySolution}
 import org.phenoscape.kb.KBVocab.{rdfsSubClassOf, _}
+import org.phenoscape.kb.Similarity.rdfsSubClassOf
 import org.phenoscape.owl.Vocab._
 import org.phenoscape.scowl._
 import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
-import org.phenoscape.kb.util.SPARQLInterpolatorBlazegraph._
 import org.phenoscape.owl.{NamedRestrictionGenerator, Vocab}
 import org.semanticweb.owlapi.model.IRI
 import spray.json.DefaultJsonProtocol._
@@ -70,7 +70,7 @@ object AnatomicalEntity {
   }
 
   // Output a boolean matrix as CSV
-  def matrixRendererFromMapOfMaps[A](dependencyMatrix: DependencyMatrix[A]): String = {
+  def matrixRendererFromMapOfMaps[A](dependencyMatrix: DependencyMatrix[A]) = {
 
     val mapOfMaps = dependencyMatrix.map
     val orderedKeys = dependencyMatrix.orderedKeys
@@ -78,7 +78,10 @@ object AnatomicalEntity {
 
     val matrix = for (x <- orderedKeys) yield {
       val row = s"$x"
-      val values = for (y <- orderedKeys) yield (if (mapOfMaps(x)(y)) 1 else 0)
+      val values = for (y <- orderedKeys) yield mapOfMaps(x)(y) match {
+        case true  => 1
+        case false => 0
+      }
       s"$row,${values.mkString(",")}"
     }
     s"$headers\n${matrix.mkString("\n")}\n"
@@ -118,16 +121,38 @@ object AnatomicalEntity {
         """
 
   private def queryImpliesPresenceOfMulti(terms: Iterable[IRI]): QueryText = {
+    import scalaz._
+    import Scalaz._
     val valuesList = terms.map(t => sparql" $t ").fold(sparql"")(_ + _)
     sparql"""
+            PREFIX hint: <http://www.bigdata.com/queryHints#>
             SELECT DISTINCT ?x ?y
             FROM $KBClosureGraph
             FROM $KBMainGraph
-            FROM $KBRedundantRelationGraph
+            WITH {
+              SELECT ?term ?presence
+              WHERE {
+                VALUES ?term { $valuesList }
+                ?presence <http://purl.org/phenoscape/vocab.owl#implies_presence_of_some> ?term .
+              }
+            } AS %SUB1
             WHERE {
-              VALUES ?x { $valuesList }
-              VALUES ?y { $valuesList }
-              ?x $rdfsSubClassOf | $IMPLIES_PRESENCE_OF ?y .
+              hint:Query hint:filterExists "VectoredSubPlan" .
+              {
+                SELECT (?term AS ?x) (?presence AS ?x_presence)
+                WHERE {
+                  INCLUDE %SUB1
+                }
+              }
+              {
+                SELECT (?term AS ?y) (?presence AS ?y_presence)
+                WHERE {
+                  INCLUDE %SUB1
+                }
+              }
+              FILTER EXISTS {
+                ?x_presence <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?y_presence
+              }
               FILTER(?x != ?y)
             }
         """

@@ -9,6 +9,9 @@ import org.apache.jena.sparql.syntax.ElementSubQuery
 import org.apache.log4j.Logger
 import org.obo.datamodel.impl.OBOClassImpl
 import org.phenoscape.io.NeXMLUtil
+import org.phenoscape.kb.KBVocab.{owlNothing, rdfsLabel, rdfsSubClassOf}
+import org.phenoscape.kb.App.Prior
+import org.phenoscape.kb.App.RunFirst
 import org.phenoscape.kb.KBVocab.{rdfsLabel, rdfsSubClassOf, KBMainGraph}
 import org.phenoscape.kb.Main.system.dispatcher
 import org.phenoscape.model.MultipleState.MODE
@@ -22,7 +25,6 @@ import org.phenoscape.sparql.SPARQLInterpolation._
 import org.phenoscape.sparql.SPARQLInterpolationOWL._
 import org.semanticweb.owlapi.model.{IRI, OWLClassExpression, OWLEntity}
 import scalaz.NonEmptyList
-
 import java.net.URI
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -192,24 +194,35 @@ object PresenceAbsenceOfStructure {
       case (Some(expressionQuery), Some(taxonValues)) => sparql"{ $expressionQuery } UNION { $taxonValues } "
       case _                                          => taxonExpressionQueryOpt.orElse(taxonValuesOpt).getOrElse(sparql"")
     }
-    val graphPattern =
-      sparql"""
-              ?taxon ?relation ?entity .
-              ?taxon $rdfsLabel ?taxon_label .
-              ?entity $rdfsLabel ?entity_label .
-            """
-
     val query: QueryText =
       sparql"""
                CONSTRUCT {
-                $graphPattern
-                }
+                 ?taxon ?relation ?entity .
+                 ?taxon $rdfsLabel ?taxon_label .
+                 ?entity $rdfsLabel ?entity_label .
+               }
                FROM  $KBMainGraph
                WHERE {
-                  $graphPattern
-                  $entityQuery
-                  $taxonQuery
-                  VALUES ?relation {$has_presence_of $has_absence_of}
+                  ?taxon $rdfsLabel ?taxon_label .
+                  ?entity $rdfsLabel ?entity_label .
+                  {
+                    SELECT ?taxon ($has_presence_of AS ?relation) ?entity
+                    WHERE {
+                      ?taxon $has_presence_of ?entity .
+                      $entityQuery
+                      $taxonQuery
+                    }
+                  }
+                  UNION
+                  {
+                    SELECT ?taxon ($has_absence_of AS ?relation) ?entity
+                    WHERE {
+                      ?taxon $has_absence_of ?entity .
+                      $entityQuery
+                      $taxonQuery
+                    }
+                  }
+                  $Prior $RunFirst true .
                }
             """
     query.toQuery
