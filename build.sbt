@@ -31,7 +31,7 @@ resolvers += ("BBOP repository" at "http://code.berkeleybop.org/maven/repository
 testFrameworks += new TestFramework("utest.runner.Framework")
 
 val akkaVersion = "2.6.18"
-val akkaHttpVersion = "10.2.9"
+val akkaHttpVersion = "10.2.10"
 
 // log4j 1.2.x implementations are excluded in order to unify logging to the logback implementation via log4j-over-slf4j.
 libraryDependencies ++= {
