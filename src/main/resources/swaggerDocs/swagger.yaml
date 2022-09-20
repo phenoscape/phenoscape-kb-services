@@ -744,7 +744,7 @@ paths:
           format: IRI
         - name: corpus
           in: query
-          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', and 'states'.
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', 'states', and 'genes'.
           required: true
           type: string
       responses:
@@ -770,7 +770,7 @@ paths:
           format: IRI
         - name: corpus
           in: query
-          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', and 'states'.
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', 'states', and 'genes'.
           required: true
           type: string
       responses:
@@ -790,7 +790,7 @@ paths:
       parameters:
         - name: corpus
           in: query
-          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', and 'states'.
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', 'states', and 'genes'.
           required: true
           type: string
       responses:
@@ -849,7 +849,7 @@ paths:
           format: JSON
         - name: corpus
           in: query
-          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', and 'states'.
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', 'states', and 'genes'.
           required: false
           type: string
       responses:
@@ -888,7 +888,7 @@ paths:
           format: JSON
         - name: corpus
           in: query
-          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', and 'states'.
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', 'states', and 'genes'.
           required: false
           type: string
       responses:
@@ -925,7 +925,7 @@ paths:
           type: string
         - name: corpus
           in: query
-          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', and 'states'.
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', 'states', and 'genes'.
           required: false
           type: string
       responses:
@@ -958,7 +958,7 @@ paths:
           type: string
         - name: corpus
           in: formData
-          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', and 'states'.
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', 'states', and 'genes'.
           required: false
           type: string
       responses:
@@ -990,7 +990,7 @@ paths:
           type: string
         - name: corpus
           in: query
-          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', and 'states'.
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', 'states', and 'genes'.
           required: true
           type: string
         - name: type
@@ -1021,7 +1021,7 @@ paths:
           type: string
         - name: corpus
           in: formData
-          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', and 'states'.
+          description: Name of corpus of items to count. A corpus is a particular type of item that can be associated with phenotypes. Allowed values are 'annotated-taxa', 'taxon-variation', 'states', and 'genes'.
           required: true
           type: string
         - name: type
