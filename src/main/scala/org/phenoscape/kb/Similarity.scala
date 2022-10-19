@@ -323,10 +323,20 @@ object Similarity {
 
   }
 
-  object TaxaCorpus extends PhenotypeCorpus {
+  object TaxonVariationCorpus extends PhenotypeCorpus {
 
     val path: Path = PropertyPathParser
       .parsePropertyPath(sparql"$has_phenotypic_profile/$rdfType".text)
+      .getOrElse(throw new Exception("Invalid property path"))
+
+    def constraint(node: QueryText): QueryText = sparql"$node $rdfsIsDefinedBy $VTO ."
+
+  }
+
+  object AnnotatedTaxaCorpus extends PhenotypeCorpus {
+
+    val path: Path = PropertyPathParser
+      .parsePropertyPath(sparql"$exhibits_state/$describes_phenotype".text)
       .getOrElse(throw new Exception("Invalid property path"))
 
     def constraint(node: QueryText): QueryText = sparql"$node $rdfsIsDefinedBy $VTO ."

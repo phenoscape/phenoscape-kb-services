@@ -37,7 +37,7 @@ import akka.util.ByteString
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import org.apache.commons.io.IOUtils
-import org.phenoscape.kb.Similarity.{AnatomyTerm, GenesCorpus, PhenotypeCorpus, PhenotypeTerm, SimilarityTermType, StatesCorpus, TaxaCorpus}
+import org.phenoscape.kb.Similarity.{AnatomyTerm, AnnotatedTaxaCorpus, GenesCorpus, PhenotypeCorpus, PhenotypeTerm, SimilarityTermType, StatesCorpus, TaxonVariationCorpus}
 import org.phenoscape.kb.queries.QueryUtil.{InferredAbsence, InferredPresence, PhenotypicQuality, QualitySpec}
 import scalaz._
 import spray.json._
@@ -77,10 +77,12 @@ object Main extends HttpApp with App {
   }
 
   implicit val PhenotypeCorpusUnmarshaller: Unmarshaller[String, PhenotypeCorpus] = Unmarshaller.strict {
-    case "taxa"   => TaxaCorpus
-    case "states" => StatesCorpus
-    case "genes"  => GenesCorpus
-    case _        => throw new Exception(s"Invalid phenotype corpus name")
+    case "taxa"            => AnnotatedTaxaCorpus
+    case "annotated-taxa"  => AnnotatedTaxaCorpus
+    case "taxon-variation" => TaxonVariationCorpus
+    case "states"          => StatesCorpus
+    case "genes"           => GenesCorpus
+    case _                 => throw new Exception(s"Invalid phenotype corpus name")
   }
 
   implicit val OWLClassUnmarshaller: Unmarshaller[String, OWLClass] =

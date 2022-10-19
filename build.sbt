@@ -4,7 +4,7 @@ organization := "org.phenoscape"
 
 name := "phenoscape-kb-services"
 
-version := "2.1.3"
+version := "2.1.4"
 
 packageDescription in Debian := "Phenoscape KB services"
 
@@ -55,12 +55,12 @@ libraryDependencies ++= {
     "org.apache.jena" % "apache-jena-libs" % "3.17.0" exclude ("org.slf4j", "slf4j-log4j12"),
     "org.scalaz" %% "scalaz-core" % "7.2.33",
     "org.bbop" % "oboformat" % "0.5.5" exclude ("net.sourceforge.owlapi", "owlapi-apibinding") exclude ("log4j", "log4j"),
-    "ch.qos.logback" % "logback-classic" % "1.2.11",
+    "ch.qos.logback" % "logback-classic" % "1.4.0",
     "org.codehaus.groovy" % "groovy-all" % "3.0.8",
     "org.phenoscape" %% "sparql-utils" % "1.3.1" exclude ("log4j", "log4j"),
     "org.phenoscape" %% "sparql-utils-owlapi" % "1.3.1" exclude ("log4j", "log4j"),
     "org.slf4j" % "log4j-over-slf4j" % "1.7.32",
-    "com.lihaoyi" %% "utest" % "0.8.0" % Test
+    "com.lihaoyi" %% "utest" % "0.8.1" % Test
   )
 }
 
