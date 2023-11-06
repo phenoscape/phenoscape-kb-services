@@ -60,7 +60,7 @@ libraryDependencies ++= {
     "org.phenoscape" %% "sparql-utils" % "1.3.1" exclude ("log4j", "log4j"),
     "org.phenoscape" %% "sparql-utils-owlapi" % "1.3.1" exclude ("log4j", "log4j"),
     "org.slf4j" % "log4j-over-slf4j" % "1.7.32",
-    "com.lihaoyi" %% "utest" % "0.8.1" % Test
+    "com.lihaoyi" %% "utest" % "0.8.2" % Test
   )
 }
 
